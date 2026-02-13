@@ -16,8 +16,8 @@ export function ChatsView() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="px-4 py-4">
-        <h1 className="text-2xl font-bold text-foreground mb-4">Messages</h1>
+      <div className="px-[var(--space-sm)] py-[var(--space-sm)]">
+        <h1 className="text-[length:var(--text-heading)] font-bold text-foreground mb-[var(--space-sm)]">Messages</h1>
         
         {/* Tab Switcher */}
         <div className="flex bg-secondary rounded-2xl p-1">
@@ -46,11 +46,11 @@ export function ChatsView() {
       </div>
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto px-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-[var(--space-sm)] pb-[var(--nav-padding)]">
         {currentChats.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-              <span className="text-2xl">💬</span>
+          <div className="flex flex-col items-center justify-center py-[10vh]">
+            <div className="w-[var(--size-thumbnail)] h-[var(--size-thumbnail)] rounded-full bg-secondary flex items-center justify-center mb-[var(--space-sm)]">
+              <span className="text-[length:var(--text-heading)]">💬</span>
             </div>
             <p className="text-muted-foreground text-center">
               No {activeTab} conversations yet
@@ -67,7 +67,7 @@ export function ChatsView() {
                 className="w-full flex items-start gap-3 p-3 bg-card rounded-2xl hover:bg-card-elevated transition-colors text-left"
               >
                 {/* Listing Thumbnail */}
-                <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+                <div className="relative w-[var(--size-thumbnail)] h-[var(--size-thumbnail)] rounded-xl overflow-hidden flex-shrink-0">
                   <img 
                     src={chat.listing.image} 
                     alt={chat.listing.title}

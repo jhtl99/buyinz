@@ -20,21 +20,21 @@ export function SearchView() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="px-4 py-4 space-y-4">
+      <div className="px-[var(--space-sm)] py-[var(--space-sm)] space-y-[var(--space-sm)]">
         {/* Search Bar */}
         <div className="flex gap-2">
           <div className="flex-1 relative">
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-[var(--size-icon)] h-[var(--size-icon)] text-muted-foreground" />
             <input
               type="text"
               placeholder="Search items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-12 pl-12 pr-4 bg-secondary rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+              className="w-full h-[var(--size-action-md)] pl-12 pr-4 bg-secondary rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
             />
           </div>
-          <button className="w-12 h-12 bg-secondary rounded-2xl flex items-center justify-center hover:bg-secondary/80 transition-colors">
-            <SlidersHorizontal className="w-5 h-5 text-muted-foreground" />
+          <button className="w-[var(--size-action-md)] h-[var(--size-action-md)] bg-secondary rounded-2xl flex items-center justify-center hover:bg-secondary/80 transition-colors">
+            <SlidersHorizontal className="w-[var(--size-icon)] h-[var(--size-icon)] text-muted-foreground" />
           </button>
         </div>
 
@@ -57,8 +57,8 @@ export function SearchView() {
       </div>
 
       {/* Results Grid */}
-      <div className="flex-1 overflow-y-auto px-4 pb-24">
-        <p className="text-sm text-muted-foreground mb-4">
+      <div className="flex-1 overflow-y-auto px-[var(--space-sm)] pb-[var(--nav-padding)]">
+        <p className="text-[length:var(--text-body)] text-muted-foreground mb-[var(--space-sm)]">
           {filteredListings.length} results
         </p>
         
@@ -96,8 +96,8 @@ export function SearchView() {
         </div>
 
         {filteredListings.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16">
-            <SearchIcon className="w-12 h-12 text-muted-foreground mb-4" />
+          <div className="flex flex-col items-center justify-center py-[10vh]">
+            <SearchIcon className="w-[var(--size-action-md)] h-[var(--size-action-md)] text-muted-foreground mb-[var(--space-sm)]" />
             <p className="text-muted-foreground">No items found</p>
           </div>
         )}

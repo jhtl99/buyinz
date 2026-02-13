@@ -65,9 +65,9 @@ export function FeedView() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4">
-        <h1 className="text-2xl font-bold text-foreground">Nearby</h1>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center justify-between px-[var(--space-md)] py-[var(--space-sm)]">
+        <h1 className="text-[length:var(--text-heading)] font-bold text-foreground">Nearby</h1>
+        <div className="flex items-center gap-2 text-[length:var(--text-body)] text-muted-foreground">
           <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
           <span>{listings.length} listings</span>
         </div>
@@ -96,10 +96,10 @@ export function FeedView() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
-              <Heart className="w-10 h-10 text-muted-foreground" />
+            <div className="w-[var(--size-avatar)] h-[var(--size-avatar)] rounded-full bg-secondary flex items-center justify-center mb-4">
+              <Heart className="w-1/2 h-1/2 text-muted-foreground" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">All caught up!</h2>
+            <h2 className="text-[length:var(--text-price-sm)] font-semibold text-foreground mb-2">All caught up!</h2>
             <p className="text-muted-foreground text-center mb-6">
               No more listings nearby. Check back later for new items.
             </p>
@@ -118,35 +118,35 @@ export function FeedView() {
 
       {/* Action Buttons */}
       {listings.length > 0 && (
-        <div className="flex items-center justify-center gap-6 py-4 px-6">
+        <div className="flex items-center justify-center gap-[var(--space-md)] py-[var(--space-sm)] px-[var(--space-md)]">
           <button 
             onClick={handleSwipeLeft}
-            className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center hover:bg-destructive/20 hover:border-destructive border-2 border-transparent transition-all"
+            className="w-[var(--size-action-lg)] h-[var(--size-action-lg)] rounded-full bg-secondary flex items-center justify-center hover:bg-destructive/20 hover:border-destructive border-2 border-transparent transition-all"
           >
-            <X className="w-6 h-6 text-destructive" />
+            <X className="w-[var(--size-icon)] h-[var(--size-icon)] text-destructive" />
           </button>
           
           {discardedListings.length > 0 && (
             <button 
               onClick={handleUndo}
-              className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+              className="w-[var(--size-action-sm)] h-[var(--size-action-sm)] rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
             >
-              <RotateCcw className="w-5 h-5 text-muted-foreground" />
+              <RotateCcw className="w-[calc(var(--size-icon)*0.85)] h-[calc(var(--size-icon)*0.85)] text-muted-foreground" />
             </button>
           )}
           
           <button 
             onClick={handleSwipeUp}
-            className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition-colors"
+            className="w-[var(--size-action-md)] h-[var(--size-action-md)] rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition-colors"
           >
-            <ArrowUp className="w-5 h-5 text-muted-foreground" />
+            <ArrowUp className="w-[calc(var(--size-icon)*0.85)] h-[calc(var(--size-icon)*0.85)] text-muted-foreground" />
           </button>
           
           <button 
             onClick={handleSwipeRight}
-            className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-glow hover:scale-105 transition-transform"
+            className="w-[var(--size-action-lg)] h-[var(--size-action-lg)] rounded-full bg-primary flex items-center justify-center shadow-glow hover:scale-105 transition-transform"
           >
-            <Heart className="w-6 h-6 text-primary-foreground" />
+            <Heart className="w-[var(--size-icon)] h-[var(--size-icon)] text-primary-foreground" />
           </button>
         </div>
       )}

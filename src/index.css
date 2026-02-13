@@ -43,6 +43,30 @@
 
     --radius: 1rem;
 
+    /* Layout constants — single source of truth */
+    --nav-height: 4rem;
+    --nav-padding: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+
+    /* Responsive spacing (scales between small and large phones) */
+    --space-xs: clamp(0.5rem, 1.5vw, 0.75rem);
+    --space-sm: clamp(0.75rem, 2vw, 1rem);
+    --space-md: clamp(1rem, 3vw, 1.5rem);
+    --space-lg: clamp(1.5rem, 4vw, 2rem);
+
+    /* Responsive text (scales between ~320px and ~430px screens) */
+    --text-heading: clamp(1.25rem, 5vw, 1.75rem);
+    --text-price-lg: clamp(1.75rem, 7vw, 2.25rem);
+    --text-price-sm: clamp(1.25rem, 5vw, 1.5rem);
+    --text-body: clamp(0.8125rem, 2.5vw, 0.875rem);
+
+    /* Responsive element sizes */
+    --size-action-lg: clamp(3rem, 10vw, 3.5rem);
+    --size-action-md: clamp(2.5rem, 8vw, 3rem);
+    --size-action-sm: clamp(2rem, 7vw, 2.5rem);
+    --size-avatar: clamp(4rem, 14vw, 5rem);
+    --size-thumbnail: clamp(3.5rem, 12vw, 4rem);
+    --size-icon: clamp(1.125rem, 3.5vw, 1.5rem);
+
     /* Custom tokens */
     --nav-background: 0 0% 6%;
     --nav-border: 0 0% 12%;

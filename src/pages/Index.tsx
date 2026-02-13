@@ -20,9 +20,9 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden pb-20">
+      <main className="flex-1 overflow-hidden pb-[var(--nav-padding)]">
         <AnimatePresence mode="wait">
           {activeTab === 'feed' && !showPostFlow && (
             <motion.div

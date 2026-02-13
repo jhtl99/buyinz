@@ -52,7 +52,7 @@ export function SwipeCard({ listing, onSwipeLeft, onSwipeRight, onSwipeUp, onTap
 
   return (
     <motion.div
-      className={`absolute inset-4 ${isTop ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none'}`}
+      className={`absolute inset-[var(--space-sm)] ${isTop ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none'}`}
       style={{ x, y, rotate, opacity }}
       drag={isTop}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
@@ -88,48 +88,48 @@ export function SwipeCard({ listing, onSwipeLeft, onSwipeRight, onSwipeUp, onTap
         
         {/* Swipe Indicators */}
         <motion.div 
-          className="absolute top-8 left-8 bg-destructive text-destructive-foreground px-4 py-2 rounded-xl font-bold text-lg"
+          className="absolute top-[var(--space-lg)] left-[var(--space-lg)] bg-destructive text-destructive-foreground px-[var(--space-sm)] py-[var(--space-xs)] rounded-xl font-bold"
           style={{ opacity: leftIndicatorOpacity }}
         >
-          <X className="w-6 h-6" />
+          <X className="w-[var(--size-icon)] h-[var(--size-icon)]" />
         </motion.div>
         
         <motion.div 
-          className="absolute top-8 right-8 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold text-lg"
+          className="absolute top-[var(--space-lg)] right-[var(--space-lg)] bg-primary text-primary-foreground px-[var(--space-sm)] py-[var(--space-xs)] rounded-xl font-bold"
           style={{ opacity: rightIndicatorOpacity }}
         >
-          <Heart className="w-6 h-6" />
+          <Heart className="w-[var(--size-icon)] h-[var(--size-icon)]" />
         </motion.div>
         
         <motion.div 
-          className="absolute top-8 left-1/2 -translate-x-1/2 bg-muted text-muted-foreground px-4 py-2 rounded-xl font-bold text-lg"
+          className="absolute top-[var(--space-lg)] left-1/2 -translate-x-1/2 bg-muted text-muted-foreground px-[var(--space-sm)] py-[var(--space-xs)] rounded-xl font-bold"
           style={{ opacity: upIndicatorOpacity }}
         >
-          <ArrowUp className="w-6 h-6" />
+          <ArrowUp className="w-[var(--size-icon)] h-[var(--size-icon)]" />
         </motion.div>
         
         {/* Category Badge */}
-        <div className="absolute top-6 left-6">
-          <span className="glass px-3 py-1.5 rounded-full text-xs font-medium text-foreground">
+        <div className="absolute top-[var(--space-md)] left-[var(--space-md)]">
+          <span className="glass px-[var(--space-xs)] py-1 rounded-full text-[length:var(--text-body)] font-medium text-foreground">
             {listing.category}
           </span>
         </div>
         
         {/* Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          <div className="space-y-3">
+        <div className="absolute bottom-0 left-0 right-0 p-[var(--space-md)]">
+          <div className="space-y-[var(--space-xs)]">
             {/* Price */}
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold text-foreground">${listing.price}</span>
+              <span className="text-[length:var(--text-price-lg)] font-bold text-foreground">${listing.price}</span>
             </div>
             
             {/* Title */}
-            <h2 className="text-xl font-semibold text-foreground leading-tight">
+            <h2 className="text-[length:var(--text-price-sm)] font-semibold text-foreground leading-tight">
               {listing.title}
             </h2>
             
             {/* Meta */}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-[var(--space-sm)] text-[length:var(--text-body)] text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 <span>{listing.distance}</span>

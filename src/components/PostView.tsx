@@ -40,8 +40,8 @@ export function PostView({ onComplete }: { onComplete: () => void }) {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4">
-        <h1 className="text-2xl font-bold text-foreground">
+      <div className="flex items-center justify-between px-[var(--space-sm)] py-[var(--space-sm)]">
+        <h1 className="text-[length:var(--text-heading)] font-bold text-foreground">
           {step === 'photos' && 'Add Photos'}
           {step === 'details' && 'Item Details'}
           {step === 'confirm' && 'Review'}
@@ -55,7 +55,7 @@ export function PostView({ onComplete }: { onComplete: () => void }) {
       </div>
 
       {/* Progress */}
-      <div className="flex gap-2 px-4 mb-4">
+      <div className="flex gap-2 px-[var(--space-sm)] mb-[var(--space-sm)]">
         {(['photos', 'details', 'confirm'] as PostStep[]).map((s, i) => (
           <div 
             key={s}
@@ -69,7 +69,7 @@ export function PostView({ onComplete }: { onComplete: () => void }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-32">
+      <div className="flex-1 overflow-y-auto px-[var(--space-sm)] pb-[6rem]">
         <AnimatePresence mode="wait">
           {step === 'photos' && (
             <motion.div
@@ -258,7 +258,7 @@ export function PostView({ onComplete }: { onComplete: () => void }) {
       </div>
 
       {/* Bottom Action */}
-      <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
+      <div className="fixed bottom-[var(--nav-padding)] left-0 right-0 p-[var(--space-sm)] bg-gradient-to-t from-background via-background to-transparent">
         {step === 'photos' && (
           <Button
             onClick={() => setStep('details')}

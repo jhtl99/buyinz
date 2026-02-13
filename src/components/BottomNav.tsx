@@ -17,7 +17,7 @@ const tabs = [
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-nav border-t border-nav-border safe-bottom">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+      <div className="flex items-center justify-around h-[var(--nav-height)] max-w-lg mx-auto px-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const isPost = tab.id === 'post';
@@ -26,7 +26,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-colors ${
+              className={`relative flex flex-col items-center justify-center w-[var(--size-action-lg)] h-[var(--size-action-lg)] rounded-2xl transition-colors ${
                 isPost 
                   ? 'bg-primary text-primary-foreground shadow-glow' 
                   : ''
@@ -40,7 +40,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 />
               )}
               <tab.icon 
-                className={`relative z-10 w-6 h-6 ${
+                className={`relative z-10 w-[var(--size-icon)] h-[var(--size-icon)] ${
                   isPost 
                     ? '' 
                     : isActive 
@@ -51,7 +51,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               />
               {!isPost && (
                 <span 
-                  className={`relative z-10 text-[10px] mt-0.5 font-medium ${
+                  className={`relative z-10 text-[clamp(0.5625rem,1.8vw,0.625rem)] mt-0.5 font-medium ${
                     isActive ? 'text-nav-active' : 'text-nav-inactive'
                   }`}
                 >
