@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { MapPin, Star, X, ArrowUp, Heart } from 'lucide-react';
 import { Listing } from '@/types/listing';
@@ -14,6 +15,7 @@ interface SwipeCardProps {
 export function SwipeCard({ listing, onSwipeLeft, onSwipeRight, onSwipeUp, onTap, isTop }: SwipeCardProps) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
+  const hasDragged = useRef(false);
   
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0.5, 1, 1, 1, 0.5]);
@@ -21,6 +23,10 @@ export function SwipeCard({ listing, onSwipeLeft, onSwipeRight, onSwipeUp, onTap
   const leftIndicatorOpacity = useTransform(x, [-100, -50, 0], [1, 0.5, 0]);
   const rightIndicatorOpacity = useTransform(x, [0, 50, 100], [0, 0.5, 1]);
   const upIndicatorOpacity = useTransform(y, [-100, -50, 0], [1, 0.5, 0]);
+
+  const handleDragStart = () => {
+    hasDragged.current = true;
+  };
 
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 100;
@@ -35,6 +41,15 @@ export function SwipeCard({ listing, onSwipeLeft, onSwipeRight, onSwipeUp, onTap
     }
   };
 
+  const handleClick = () => {
+    if (!isTop) return;
+    if (hasDragged.current) {
+      hasDragged.current = false;
+      return;
+    }
+    onTap();
+  };
+
   return (
     <motion.div
       className={`absolute inset-4 ${isTop ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none'}`}
@@ -42,6 +57,7 @@ export function SwipeCard({ listing, onSwipeLeft, onSwipeRight, onSwipeUp, onTap
       drag={isTop}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.9}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       whileTap={{ scale: 0.98 }}
       initial={{ scale: 0.95, opacity: 0 }}
@@ -52,7 +68,7 @@ export function SwipeCard({ listing, onSwipeLeft, onSwipeRight, onSwipeUp, onTap
         opacity: 0,
         transition: { duration: 0.3 }
       }}
-      onClick={() => isTop && onTap()}
+      onClick={handleClick}
     >
       {/* Card */}
       <div className="relative h-full rounded-3xl overflow-hidden bg-card shadow-lg">
