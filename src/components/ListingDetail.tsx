@@ -1,8 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Star, MapPin, Clock, MessageCircle, Bookmark, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Star, MapPin, Clock, Bookmark, Send } from 'lucide-react';
 import { Listing } from '@/types/listing';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useMessages } from '@/context/MessagesContext';
+
+const DEFAULT_MESSAGE = 'Hi, if this is still available I would like to make an offer!';
 
 interface ListingDetailProps {
   listing: Listing;
@@ -12,17 +14,22 @@ interface ListingDetailProps {
 }
 
 export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: ListingDetailProps) {
-  const [offerAmount, setOfferAmount] = useState(Math.round(listing.price * 0.9));
+  const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  const { startConversation } = useMessages();
 
-  const adjustOffer = (delta: number) => {
-    setOfferAmount(prev => Math.max(1, prev + delta));
+  const isEdited = message.trim() !== DEFAULT_MESSAGE && message.trim().length > 0;
+
+  const handleSend = () => {
+    if (message.trim().length === 0) return;
+    startConversation(listing, message.trim());
+    setMessage(DEFAULT_MESSAGE);
+    onMakeOffer();
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
             initial={{ opacity: 0 }}
@@ -31,7 +38,6 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
             onClick={onClose}
           />
           
-          {/* Centered Modal */}
           <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
@@ -46,7 +52,6 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Top bar: close button */}
               <div className="relative flex items-center justify-center py-3 px-4 z-10">
                 <div className="w-10 h-1 bg-muted rounded-full" />
                 <button 
@@ -58,7 +63,6 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
               </div>
               
               <div className="overflow-y-auto max-h-[calc(80dvh-48px)] hide-scrollbar">
-              {/* Compact image + key info row */}
               <div className="flex gap-[var(--space-sm)] mx-[var(--space-sm)] mb-[var(--space-sm)]">
                 <div className="relative w-[30vw] max-w-[8rem] aspect-square flex-shrink-0 rounded-2xl overflow-hidden">
                   <img 
@@ -81,9 +85,7 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
                 </div>
               </div>
               
-              {/* Content */}
               <div className="px-[var(--space-md)] pb-[var(--space-md)] space-y-[var(--space-sm)]">
-                {/* Quick details grid */}
                 <div className="grid grid-cols-2 gap-[var(--space-xs)]">
                   <div className="flex items-center gap-2 p-[var(--space-xs)] bg-secondary rounded-xl">
                     <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -95,7 +97,6 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
                   </div>
                 </div>
 
-                {/* Seller Info */}
                 <div className="flex items-center gap-[var(--space-sm)] p-[var(--space-sm)] bg-secondary rounded-2xl">
                   <div className="w-[var(--size-action-sm)] h-[var(--size-action-sm)] rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                     <span className="text-[length:var(--text-body)] font-bold text-foreground">
@@ -120,7 +121,6 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
                   </button>
                 </div>
                 
-                {/* Description */}
                 <div className="space-y-2">
                   <h3 className="font-semibold text-foreground text-[length:var(--text-body)]">Description</h3>
                   <p className="text-[length:var(--text-body)] text-muted-foreground leading-relaxed">
@@ -128,49 +128,34 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
                   </p>
                 </div>
                 
-                {/* Offer Section */}
                 <div className="p-[var(--space-sm)] bg-secondary rounded-2xl space-y-[var(--space-sm)]">
-                  <h3 className="font-semibold text-foreground text-[length:var(--text-body)]">Make an Offer</h3>
-                  
-                  <div className="flex items-center justify-center gap-[var(--space-md)]">
-                    <button 
-                      onClick={() => adjustOffer(-5)}
-                      className="w-[var(--size-action-md)] h-[var(--size-action-md)] rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
-                    >
-                      <ChevronDown className="w-[var(--size-icon)] h-[var(--size-icon)] text-foreground" />
-                    </button>
-                    
-                    <div className="text-center">
-                      <span className="text-[length:var(--text-price-lg)] font-bold text-foreground">${offerAmount}</span>
-                      <p className="text-[calc(var(--text-body)*0.85)] text-muted-foreground mt-1">
-                        {Math.round((offerAmount / listing.price) * 100)}% of asking
-                      </p>
-                    </div>
-                    
-                    <button 
-                      onClick={() => adjustOffer(5)}
-                      className="w-[var(--size-action-md)] h-[var(--size-action-md)] rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
-                    >
-                      <ChevronUp className="w-[var(--size-icon)] h-[var(--size-icon)] text-foreground" />
-                    </button>
-                  </div>
+                  <h3 className="font-semibold text-foreground text-[length:var(--text-body)]">Send a Message</h3>
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onFocus={(e) => {
+                      if (message === DEFAULT_MESSAGE) {
+                        e.target.select();
+                      }
+                    }}
+                    rows={3}
+                    className="w-full bg-muted rounded-xl p-3 text-[length:var(--text-body)] text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
+                  />
                 </div>
                 
-                {/* Actions */}
-                <div className="flex gap-[var(--space-xs)] pb-[var(--space-md)]">
-                  <Button 
-                    variant="secondary" 
-                    className="flex-1 h-13 rounded-2xl text-sm font-semibold"
+                <div className="flex justify-center pb-[var(--space-md)]">
+                  <button
+                    onClick={handleSend}
+                    disabled={message.trim().length === 0}
+                    className={`flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 ${
+                      isEdited
+                        ? 'bg-primary text-primary-foreground shadow-glow scale-[1.02]'
+                        : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                    }`}
                   >
-                    <MessageCircle className="w-5 h-5 mr-2" />
-                    Message
-                  </Button>
-                  <Button 
-                    onClick={onMakeOffer}
-                    className="flex-1 h-13 rounded-2xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    Send ${offerAmount}
-                  </Button>
+                    <Send className="w-4 h-4" />
+                    Send Message
+                  </button>
                 </div>
               </div>
             </div>

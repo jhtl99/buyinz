@@ -92,19 +92,17 @@ export const mockConversations: Conversation[] = [
   {
     id: '1',
     listing: mockListings[0],
-    lastMessage: 'Is this still available?',
-    timestamp: '10 min ago',
-    offerStatus: 'pending',
-    offerAmount: 75,
+    messages: [
+      { id: 'm1', senderId: 'me', text: 'Is this still available?', timestamp: '10 min ago' },
+    ],
     unread: true,
   },
   {
     id: '2',
     listing: mockListings[2],
-    lastMessage: 'I can do $600 if you can meet today',
-    timestamp: '2 hrs ago',
-    offerStatus: 'pending',
-    offerAmount: 600,
+    messages: [
+      { id: 'm2', senderId: 'me', text: 'I can do $600 if you can meet today', timestamp: '2 hrs ago' },
+    ],
     unread: false,
   },
 ];

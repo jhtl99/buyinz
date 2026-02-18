@@ -91,6 +91,14 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 0 0% 12%;
     --sidebar-ring: 0 100% 71%;
+
+    /* Chat theme colors */
+    --chat-buying: 220 70% 55%;
+    --chat-selling: 0 70% 55%;
+    --chat-bubble-self-buying: 220 60% 45%;
+    --chat-bubble-other-buying: 0 55% 45%;
+    --chat-bubble-self-selling: 0 55% 45%;
+    --chat-bubble-other-selling: 220 60% 45%;
   }
 }
 

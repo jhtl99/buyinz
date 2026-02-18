@@ -15,12 +15,16 @@ export interface Listing {
   postedAt: string;
 }
 
+export interface Message {
+  id: string;
+  senderId: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface Conversation {
   id: string;
   listing: Listing;
-  lastMessage: string;
-  timestamp: string;
-  offerStatus: 'pending' | 'accepted' | 'declined' | null;
-  offerAmount?: number;
+  messages: Message[];
   unread: boolean;
 }

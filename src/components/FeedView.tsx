@@ -5,7 +5,7 @@ import { ListingDetail } from './ListingDetail';
 import { mockListings } from '@/data/mockListings';
 import { Listing } from '@/types/listing';
 import { X, ArrowUp, Heart, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
+
 
 export function FeedView() {
   const [listings, setListings] = useState<Listing[]>(mockListings);
@@ -18,10 +18,6 @@ export function FeedView() {
     const [removed, ...rest] = listings;
     setDiscardedListings(prev => [removed, ...prev]);
     setListings(rest);
-    toast('Removed from feed', { 
-      icon: <X className="w-4 h-4 text-destructive" />,
-      duration: 1500,
-    });
   }, [listings]);
 
   const handleSwipeRight = useCallback(() => {
@@ -33,11 +29,7 @@ export function FeedView() {
   const handleSwipeUp = useCallback(() => {
     if (listings.length === 0) return;
     const [skipped, ...rest] = listings;
-    setListings([...rest, skipped]); // Move to end
-    toast('Skipped for now', { 
-      icon: <ArrowUp className="w-4 h-4 text-muted-foreground" />,
-      duration: 1500,
-    });
+    setListings([...rest, skipped]);
   }, [listings]);
 
   const handleTap = useCallback(() => {
@@ -51,7 +43,6 @@ export function FeedView() {
     setListings(rest);
     setShowDetail(false);
     setSelectedListing(null);
-    toast.success('Offer sent!', { duration: 2000 });
   };
 
   const handleUndo = () => {
@@ -59,7 +50,6 @@ export function FeedView() {
     const [lastDiscarded, ...rest] = discardedListings;
     setDiscardedListings(rest);
     setListings(prev => [lastDiscarded, ...prev]);
-    toast('Restored', { duration: 1500 });
   };
 
   return (

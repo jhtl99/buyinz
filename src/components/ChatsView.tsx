@@ -1,25 +1,49 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { mockConversations } from '@/data/mockListings';
 import { Conversation } from '@/types/listing';
+import { useMessages } from '@/context/MessagesContext';
+import { ChatThread } from './ChatThread';
 
 type ChatTab = 'buying' | 'selling';
 
+const TAB_COLORS = {
+  buying: {
+    accent: 'hsl(220, 70%, 55%)',
+    accentMuted: 'hsla(220, 70%, 55%, 0.15)',
+    pill: 'hsla(220, 70%, 55%, 0.2)',
+  },
+  selling: {
+    accent: 'hsl(0, 70%, 55%)',
+    accentMuted: 'hsla(0, 70%, 55%, 0.15)',
+    pill: 'hsla(0, 70%, 55%, 0.2)',
+  },
+} as const;
+
 export function ChatsView() {
   const [activeTab, setActiveTab] = useState<ChatTab>('buying');
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const { conversations } = useMessages();
 
-  const buyingChats = mockConversations;
-  const sellingChats: Conversation[] = []; // Empty for MVP
-
+  const buyingChats = conversations;
+  const sellingChats: Conversation[] = [];
   const currentChats = activeTab === 'buying' ? buyingChats : sellingChats;
+  const colors = TAB_COLORS[activeTab];
+
+  if (selectedConversation) {
+    return (
+      <ChatThread
+        conversation={selectedConversation}
+        mode={activeTab}
+        onBack={() => setSelectedConversation(null)}
+      />
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="px-[var(--space-sm)] py-[var(--space-sm)]">
         <h1 className="text-[length:var(--text-heading)] font-bold text-foreground mb-[var(--space-sm)]">Messages</h1>
         
-        {/* Tab Switcher */}
         <div className="flex bg-secondary rounded-2xl p-1">
           {(['buying', 'selling'] as ChatTab[]).map((tab) => (
             <button
@@ -32,20 +56,23 @@ export function ChatsView() {
               {activeTab === tab && (
                 <motion.div
                   layoutId="chatTab"
-                  className="absolute inset-0 bg-card rounded-xl"
+                  className="absolute inset-0 rounded-xl"
+                  style={{ backgroundColor: TAB_COLORS[tab].pill }}
                   transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                 />
               )}
               <span className="relative z-10">{tab}</span>
               {tab === 'buying' && buyingChats.some(c => c.unread) && (
-                <span className="relative z-10 ml-1 w-2 h-2 bg-primary rounded-full inline-block" />
+                <span
+                  className="relative z-10 ml-1 w-2 h-2 rounded-full inline-block"
+                  style={{ backgroundColor: TAB_COLORS.buying.accent }}
+                />
               )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Chat List */}
       <div className="flex-1 overflow-y-auto px-[var(--space-sm)] pb-[var(--nav-padding)]">
         {currentChats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-[10vh]">
@@ -58,64 +85,54 @@ export function ChatsView() {
           </div>
         ) : (
           <div className="space-y-2">
-            {currentChats.map((chat, index) => (
-              <motion.button
-                key={chat.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="w-full flex items-start gap-3 p-3 bg-card rounded-2xl hover:bg-card-elevated transition-colors text-left"
-              >
-                {/* Listing Thumbnail */}
-                <div className="relative w-[var(--size-thumbnail)] h-[var(--size-thumbnail)] rounded-xl overflow-hidden flex-shrink-0">
-                  <img 
-                    src={chat.listing.image} 
-                    alt={chat.listing.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-foreground truncate">
-                        {chat.listing.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {chat.lastMessage}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end flex-shrink-0">
-                      <span className="text-xs text-muted-foreground">
-                        {chat.timestamp}
-                      </span>
-                      {chat.unread && (
-                        <span className="w-2 h-2 bg-primary rounded-full mt-1" />
-                      )}
-                    </div>
+            {currentChats.map((chat, index) => {
+              const lastMsg = chat.messages[chat.messages.length - 1];
+              return (
+                <motion.button
+                  key={chat.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => setSelectedConversation(chat)}
+                  className="w-full flex items-start gap-3 p-3 bg-card rounded-2xl hover:bg-card-elevated transition-colors text-left"
+                >
+                  <div className="relative w-[var(--size-thumbnail)] h-[var(--size-thumbnail)] rounded-xl overflow-hidden flex-shrink-0">
+                    <img 
+                      src={chat.listing.image} 
+                      alt={chat.listing.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   
-                  {/* Offer Status */}
-                  {chat.offerStatus && (
-                    <div className="mt-2">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
-                        chat.offerStatus === 'pending' 
-                          ? 'bg-warning/20 text-warning' 
-                          : chat.offerStatus === 'accepted'
-                            ? 'bg-success/20 text-success'
-                            : 'bg-destructive/20 text-destructive'
-                      }`}>
-                        {chat.offerStatus === 'pending' && '⏳'}
-                        {chat.offerStatus === 'accepted' && '✓'}
-                        {chat.offerStatus === 'declined' && '✕'}
-                        ${chat.offerAmount} offer {chat.offerStatus}
-                      </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-foreground truncate">
+                          {chat.listing.title}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          @{chat.listing.seller.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate mt-1">
+                          {lastMsg?.text}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end flex-shrink-0">
+                        <span className="text-xs text-muted-foreground">
+                          {lastMsg?.timestamp}
+                        </span>
+                        {chat.unread && (
+                          <span
+                            className="w-2 h-2 rounded-full mt-1"
+                            style={{ backgroundColor: colors.accent }}
+                          />
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </motion.button>
-            ))}
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
         )}
       </div>
