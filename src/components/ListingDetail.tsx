@@ -4,7 +4,7 @@ import { Listing } from '@/types/listing';
 import { useState } from 'react';
 import { useMessages } from '@/context/MessagesContext';
 
-const DEFAULT_MESSAGE = 'Hi, if this is still available I would like to make an offer!';
+const DEFAULT_MESSAGE = 'Hello, I would like to offer...';
 
 interface ListingDetailProps {
   listing: Listing;
@@ -14,15 +14,15 @@ interface ListingDetailProps {
 }
 
 export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: ListingDetailProps) {
-  const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  const [message, setMessage] = useState('');
   const { startConversation } = useMessages();
 
-  const isEdited = message.trim() !== DEFAULT_MESSAGE && message.trim().length > 0;
+  const hasContent = message.trim().length > 0;
 
   const handleSend = () => {
-    if (message.trim().length === 0) return;
-    startConversation(listing, message.trim());
-    setMessage(DEFAULT_MESSAGE);
+    const text = hasContent ? message.trim() : DEFAULT_MESSAGE;
+    startConversation(listing, text);
+    setMessage('');
     onMakeOffer();
   };
 
@@ -133,11 +133,7 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    onFocus={(e) => {
-                      if (message === DEFAULT_MESSAGE) {
-                        e.target.select();
-                      }
-                    }}
+                    placeholder={DEFAULT_MESSAGE}
                     rows={3}
                     className="w-full bg-muted rounded-xl p-3 text-[length:var(--text-body)] text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
                   />
@@ -146,9 +142,8 @@ export function ListingDetail({ listing, isOpen, onClose, onMakeOffer }: Listing
                 <div className="flex justify-center pb-[var(--space-md)]">
                   <button
                     onClick={handleSend}
-                    disabled={message.trim().length === 0}
                     className={`flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 ${
-                      isEdited
+                      hasContent
                         ? 'bg-primary text-primary-foreground shadow-glow scale-[1.02]'
                         : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
                     }`}

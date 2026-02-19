@@ -7,6 +7,7 @@ import { PostView } from '@/components/PostView';
 import { ChatsView } from '@/components/ChatsView';
 import { ProfileView } from '@/components/ProfileView';
 import { MessagesProvider } from '@/context/MessagesContext';
+import { FeedbackPopup } from '@/components/FeedbackPopup';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('feed');
@@ -93,6 +94,7 @@ const Index = () => {
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
       </div>
+      <FeedbackPopup />
     </MessagesProvider>
   );
 };

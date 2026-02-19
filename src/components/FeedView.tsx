@@ -2,13 +2,13 @@ import { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SwipeCard } from './SwipeCard';
 import { ListingDetail } from './ListingDetail';
-import { mockListings } from '@/data/mockListings';
+import { feedListings } from '@/data/mockListings';
 import { Listing } from '@/types/listing';
 import { X, ArrowUp, Heart, RotateCcw } from 'lucide-react';
 
 
 export function FeedView() {
-  const [listings, setListings] = useState<Listing[]>(mockListings);
+  const [listings, setListings] = useState<Listing[]>(feedListings);
   const [discardedListings, setDiscardedListings] = useState<Listing[]>([]);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [showDetail, setShowDetail] = useState(false);

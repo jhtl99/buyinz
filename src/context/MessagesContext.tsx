@@ -36,6 +36,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
 
     const newConv: Conversation = {
       id: `conv-${Date.now()}`,
+      type: 'buying',
       listing,
       messages: [
         {

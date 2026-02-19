@@ -24,8 +24,8 @@ export function ChatsView() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const { conversations } = useMessages();
 
-  const buyingChats = conversations;
-  const sellingChats: Conversation[] = [];
+  const buyingChats = conversations.filter(c => c.type === 'buying');
+  const sellingChats = conversations.filter(c => c.type === 'selling');
   const currentChats = activeTab === 'buying' ? buyingChats : sellingChats;
   const colors = TAB_COLORS[activeTab];
 
@@ -66,6 +66,12 @@ export function ChatsView() {
                 <span
                   className="relative z-10 ml-1 w-2 h-2 rounded-full inline-block"
                   style={{ backgroundColor: TAB_COLORS.buying.accent }}
+                />
+              )}
+              {tab === 'selling' && sellingChats.some(c => c.unread) && (
+                <span
+                  className="relative z-10 ml-1 w-2 h-2 rounded-full inline-block"
+                  style={{ backgroundColor: TAB_COLORS.selling.accent }}
                 />
               )}
             </button>

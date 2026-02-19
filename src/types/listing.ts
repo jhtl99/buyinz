@@ -24,6 +24,7 @@ export interface Message {
 
 export interface Conversation {
   id: string;
+  type: 'buying' | 'selling';
   listing: Listing;
   messages: Message[];
   unread: boolean;
