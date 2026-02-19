@@ -2,103 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/*
+  ╔══════════════════════════════════════════════════════════╗
+  ║         SecondHand Social — Design System Tokens        ║
+  ║   All colors live here. Change accent or palette here   ║
+  ╚══════════════════════════════════════════════════════════╝
+
+  ACCENT:   Electric Teal  → hsl(174, 90%, 42%)
+  To swap the accent color, update --brand-h, --brand-s, --brand-l below.
+*/
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
+    /* ── Brand accent (edit these three to change the whole accent color) ── */
+    --brand-h: 174;
+    --brand-s: 90%;
+    --brand-l: 42%;
 
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 98%;
-    --card-elevated: 0 0% 10%;
+    /* ── Light mode palette ── */
+    --background: 0 0% 97%;
+    --foreground: 220 20% 8%;
 
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 8%;
 
-    --primary: 0 100% 71%;
-    --primary-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 8%;
 
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 98%;
+    --primary: var(--brand-h) var(--brand-s) var(--brand-l);
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 55%;
+    --secondary: 220 14% 93%;
+    --secondary-foreground: 220 20% 20%;
 
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 98%;
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: var(--brand-h) var(--brand-s) var(--brand-l);
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 46%;
-    --success-foreground: 0 0% 98%;
+    --border: 220 14% 88%;
+    --input: 220 14% 88%;
+    --ring: var(--brand-h) var(--brand-s) var(--brand-l);
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 4%;
+    --radius: 0.75rem;
 
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 0 100% 71%;
+    /* ── Glassmorphism token ── */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.4);
 
-    --radius: 1rem;
+    /* ── ISO post tint ── */
+    --iso-bg: var(--brand-h) calc(var(--brand-s)) 96%;
+    --iso-border: var(--brand-h) var(--brand-s) var(--brand-l);
 
-    /* Layout constants — single source of truth */
-    --nav-height: 4rem;
-    --nav-padding: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+    /* ── Sidebar ── */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 8%;
+    --sidebar-primary: var(--brand-h) var(--brand-s) var(--brand-l);
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 93%;
+    --sidebar-accent-foreground: 220 20% 8%;
+    --sidebar-border: 220 14% 88%;
+    --sidebar-ring: var(--brand-h) var(--brand-s) var(--brand-l);
+  }
 
-    /* Responsive spacing (scales between small and large phones) */
-    --space-xs: clamp(0.5rem, 1.5vw, 0.75rem);
-    --space-sm: clamp(0.75rem, 2vw, 1rem);
-    --space-md: clamp(1rem, 3vw, 1.5rem);
-    --space-lg: clamp(1.5rem, 4vw, 2rem);
+  .dark {
+    /* ── Dark mode palette ── */
+    --background: 222 20% 9%;
+    --foreground: 210 20% 95%;
 
-    /* Responsive text (scales between ~320px and ~430px screens) */
-    --text-heading: clamp(1.25rem, 5vw, 1.75rem);
-    --text-price-lg: clamp(1.75rem, 7vw, 2.25rem);
-    --text-price-sm: clamp(1.25rem, 5vw, 1.5rem);
-    --text-body: clamp(0.8125rem, 2.5vw, 0.875rem);
+    --card: 222 18% 13%;
+    --card-foreground: 210 20% 95%;
 
-    /* Responsive element sizes */
-    --size-action-lg: clamp(3rem, 10vw, 3.5rem);
-    --size-action-md: clamp(2.5rem, 8vw, 3rem);
-    --size-action-sm: clamp(2rem, 7vw, 2.5rem);
-    --size-avatar: clamp(4rem, 14vw, 5rem);
-    --size-thumbnail: clamp(3.5rem, 12vw, 4rem);
-    --size-icon: clamp(1.125rem, 3.5vw, 1.5rem);
+    --popover: 222 18% 13%;
+    --popover-foreground: 210 20% 95%;
 
-    /* Custom tokens */
-    --nav-background: 0 0% 6%;
-    --nav-border: 0 0% 12%;
-    --nav-active: 0 100% 71%;
-    --nav-inactive: 0 0% 45%;
+    --primary: var(--brand-h) var(--brand-s) var(--brand-l);
+    --primary-foreground: 0 0% 100%;
 
-    --card-gradient: linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 6%) 100%);
-    --glass-background: hsla(0, 0%, 10%, 0.8);
-    --glass-border: hsla(0, 0%, 100%, 0.06);
-    --overlay-gradient: linear-gradient(180deg, transparent 0%, hsla(0, 0%, 0%, 0.9) 100%);
+    --secondary: 222 15% 18%;
+    --secondary-foreground: 210 20% 85%;
 
-    --shadow-sm: 0 2px 8px hsla(0, 0%, 0%, 0.3);
-    --shadow-md: 0 8px 24px hsla(0, 0%, 0%, 0.4);
-    --shadow-lg: 0 16px 48px hsla(0, 0%, 0%, 0.5);
-    --shadow-glow: 0 0 40px hsla(0, 100%, 71%, 0.15);
+    --muted: 222 15% 18%;
+    --muted-foreground: 215 12% 55%;
 
-    --sidebar-background: 0 0% 6%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 0 100% 71%;
-    --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 12%;
-    --sidebar-ring: 0 100% 71%;
+    --accent: var(--brand-h) var(--brand-s) var(--brand-l);
+    --accent-foreground: 0 0% 100%;
 
-    /* Chat theme colors */
-    --chat-buying: 220 70% 55%;
-    --chat-selling: 0 70% 55%;
-    --chat-bubble-self-buying: 220 60% 45%;
-    --chat-bubble-other-buying: 0 55% 45%;
-    --chat-bubble-self-selling: 0 55% 45%;
-    --chat-bubble-other-selling: 220 60% 45%;
+    --destructive: 0 62% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 15% 20%;
+    --input: 222 15% 20%;
+    --ring: var(--brand-h) var(--brand-s) var(--brand-l);
+
+    /* ── Glassmorphism token (dark) ── */
+    --glass-bg: rgba(18, 20, 28, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.08);
+
+    /* ── ISO post tint (dark) ── */
+    --iso-bg: var(--brand-h) 30% 14%;
+    --iso-border: var(--brand-h) var(--brand-s) var(--brand-l);
+
+    /* ── Sidebar ── */
+    --sidebar-background: 222 20% 7%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: var(--brand-h) var(--brand-s) var(--brand-l);
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 15% 18%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 222 15% 16%;
+    --sidebar-ring: var(--brand-h) var(--brand-s) var(--brand-l);
   }
 }
 
@@ -109,46 +126,47 @@
 
   html {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
     @apply bg-background text-foreground;
-    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
   }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
+  /* Glassmorphism utility */
   .glass {
-    background: var(--glass-background);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    border-bottom: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
-  .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--muted-foreground)) 100%);
+  /* Brand gradient */
+  .brand-gradient {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--brand-h) var(--brand-s) var(--brand-l)),
+      hsl(calc(var(--brand-h) + 20) var(--brand-s) calc(var(--brand-l) - 5%))
+    );
   }
 
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
-  }
-
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
+  /* ISO post background */
+  .iso-bg {
+    background-color: hsl(var(--iso-bg));
+    border-left: 3px solid hsl(var(--iso-border));
   }
 }
