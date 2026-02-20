@@ -20,7 +20,7 @@ const CONDITION_COLORS: Record<SalePost["condition"], string> = {
 
 const MOCK_LOCATION = { zip: "15222", distance: "1.4 miles away", neighborhood: "Strip District" };
 
-export function SalePostCard({ post: initialPost }: { post: SalePost }) {
+export function SalePostCard({ post: initialPost, fill }: { post: SalePost; fill?: boolean }) {
   const [post] = useState(initialPost);
   const [imgIndex, setImgIndex] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -77,9 +77,12 @@ export function SalePostCard({ post: initialPost }: { post: SalePost }) {
 
   return (
     <>
-      <article className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm w-full">
+      <article className={cn(
+        "bg-card border border-border rounded-2xl overflow-hidden shadow-sm w-full",
+        fill && "flex flex-col h-full"
+      )}>
         {/* Seller Header */}
-        <div className="flex items-center gap-3 px-4 py-3">
+        <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0">
           <img
             src={post.seller.avatar}
             alt={post.seller.displayName}
@@ -98,7 +101,10 @@ export function SalePostCard({ post: initialPost }: { post: SalePost }) {
 
         {/* Image — tap to open detail, swipe to change image */}
         <div
-          className="relative aspect-square bg-muted overflow-hidden cursor-pointer select-none"
+          className={cn(
+            "relative bg-muted overflow-hidden cursor-pointer select-none",
+            fill ? "flex-1 min-h-0" : "aspect-square"
+          )}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -128,7 +134,7 @@ export function SalePostCard({ post: initialPost }: { post: SalePost }) {
         </div>
 
         {/* Bottom row: save + title on left, price on right */}
-        <div className="px-4 py-3 flex items-center justify-between gap-3">
+        <div className="px-4 py-3 flex items-center justify-between gap-3 flex-shrink-0">
           {/* Left: save + title */}
           <div className="flex items-center gap-2 min-w-0">
             <button

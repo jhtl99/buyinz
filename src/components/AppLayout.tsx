@@ -24,9 +24,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-56 bg-sidebar border-r border-sidebar-border z-40">
         <div className="flex items-center gap-2 px-5 py-5 border-b border-sidebar-border">
-          <div className="w-8 h-8 brand-gradient rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">BZ</span>
-          </div>
+          <img src="/BLogoTeal.png" alt="Buyinz" className="w-8 h-8 rounded-lg flex-shrink-0 object-contain" />
           <div>
             <p className="font-bold text-sidebar-foreground text-sm leading-tight">Buyinz</p>
             <p className="text-xs text-muted-foreground leading-tight">Pittsburgh</p>
