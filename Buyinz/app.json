@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "buyinz",
+    "scheme": ["buyinz", "com.googleusercontent.apps.451856355337-bj9og5v76mpqd4qj9j573g41jrku7t3p"],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
