@@ -1,10 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   FlatList,
   StyleSheet,
   Pressable,
   Dimensions,
+  ActivityIndicator,
   type LayoutChangeEvent,
   type ViewToken,
 } from 'react-native';
@@ -12,7 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MOCK_FEED_POSTS, type Post } from '@/data/mockData';
+import type { Post } from '@/data/mockData';
+import { fetchFeedPosts } from '@/supabase/queries';
 import { SalePostCard } from '@/components/feed/SalePostCard';
 import { ISOPostCard } from '@/components/feed/ISOPostCard';
 
@@ -25,6 +27,15 @@ export default function HomeScreen() {
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
   const [pageHeight, setPageHeight] = useState(0);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFeedPosts()
+      .then(setPosts)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const cardWidth = SCREEN_WIDTH - CARD_H_PADDING * 2;
 
@@ -86,9 +97,13 @@ export default function HomeScreen() {
       </Pressable>
 
       {/* Feed */}
-      {pageHeight > 0 && (
+      {loading ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color={Brand.primary} />
+        </View>
+      ) : pageHeight > 0 ? (
         <FlatList
-          data={MOCK_FEED_POSTS}
+          data={posts}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           pagingEnabled
@@ -98,7 +113,7 @@ export default function HomeScreen() {
           decelerationRate="fast"
           bounces={false}
         />
-      )}
+      ) : null}
     </View>
   );
 }
@@ -134,5 +149,10 @@ const styles = StyleSheet.create({
   page: {
     paddingHorizontal: CARD_H_PADDING,
     paddingVertical: CARD_V_PADDING,
+  },
+  loader: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
