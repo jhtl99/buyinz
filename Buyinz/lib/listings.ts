@@ -12,6 +12,7 @@ export interface ListingDraft {
   price: string;
   condition: SalePost['condition'] | null;
   category: SalePost['category'] | null;
+  zipCode: string;
   description: string;
   hashtags: string;
 }
@@ -22,6 +23,7 @@ export const EMPTY_DRAFT: ListingDraft = {
   price: '',
   condition: null,
   category: null,
+  zipCode: '',
   description: '',
   hashtags: '',
 };
@@ -46,7 +48,8 @@ export function isDraftValid(draft: ListingDraft): boolean {
     draft.price.trim().length > 0 &&
     parseFloat(draft.price) >= 0 &&
     draft.condition !== null &&
-    draft.category !== null
+    draft.category !== null &&
+    /^\d{5}$/.test(draft.zipCode)
   );
 }
 
