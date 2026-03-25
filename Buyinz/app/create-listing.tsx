@@ -37,6 +37,7 @@ export default function CreateListingScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const priceRef = useRef<TextInput>(null);
+  const zipRef = useRef<TextInput>(null);
   const descRef = useRef<TextInput>(null);
   const tagsRef = useRef<TextInput>(null);
 
@@ -179,6 +180,26 @@ export default function CreateListingScreen() {
                 </Pressable>
               );
             })}
+          </View>
+        </View>
+
+        {/* ── Location ── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Location</Text>
+          <View style={[styles.zipRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="location-outline" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
+            <TextInput
+              ref={zipRef}
+              style={[styles.zipInput, { color: colors.text }]}
+              placeholder="Zip code (e.g. 15213)"
+              placeholderTextColor={colors.textSecondary}
+              value={draft.zipCode}
+              onChangeText={(v) => update('zipCode', v.replace(/[^0-9]/g, ''))}
+              keyboardType="number-pad"
+              returnKeyType="next"
+              onSubmitEditing={() => descRef.current?.focus()}
+              maxLength={5}
+            />
           </View>
         </View>
 
@@ -328,6 +349,18 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  zipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+  },
+  zipInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 12,
   },
   bottomBar: {
     position: 'absolute',

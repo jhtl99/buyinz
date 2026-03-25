@@ -1,8 +1,9 @@
 import { supabase } from './client';
 import type { Post, SalePost, ISOPost, Seller } from '@/data/mockData';
-import type { ListingDraft } from '@/lib/listings';
+import type { ListingDraft, ImageAsset } from '@/lib/listings';
 
 const DEFAULT_MOCK_USER_ID = '11111111-1111-1111-1111-111111111111';
+const IMAGE_BUCKET = 'listing-images';
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -74,7 +75,36 @@ export async function fetchFeedPosts(): Promise<Post[]> {
   return (data ?? []).map(mapRowToPost);
 }
 
+async function uploadListingImages(images: ImageAsset[]): Promise<string[]> {
+  const urls: string[] = [];
+
+  for (const img of images) {
+    const ext = img.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+
+    const response = await fetch(img.uri);
+    const arraybuffer = await response.arrayBuffer();
+
+    const { error } = await supabase.storage
+      .from(IMAGE_BUCKET)
+      .upload(path, arraybuffer, { contentType });
+
+    if (error) throw error;
+
+    const { data: urlData } = supabase.storage
+      .from(IMAGE_BUCKET)
+      .getPublicUrl(path);
+
+    urls.push(urlData.publicUrl);
+  }
+
+  return urls;
+}
+
 export async function insertPost(draft: ListingDraft): Promise<string> {
+  const imageUrls = await uploadListingImages(draft.images);
+
   const hashtags = draft.hashtags
     .split(/[\s,]+/)
     .map((t) => t.trim())
@@ -91,7 +121,7 @@ export async function insertPost(draft: ListingDraft): Promise<string> {
       price: parseFloat(draft.price) || 0,
       condition: draft.condition,
       category: draft.category!,
-      images: draft.images.map((img) => img.uri),
+      images: imageUrls,
       hashtags,
     })
     .select('id')
