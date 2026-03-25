@@ -1,9 +1,29 @@
 import { supabase } from './client';
 import type { Post, SalePost, ISOPost, Seller } from '@/data/mockData';
+import {
+  coordinateFromLocation,
+  DEFAULT_PITTSBURGH_COORDS,
+  milesBetween,
+  resolveNeighborhood,
+  type GeoPoint,
+} from '@/lib/discoveryLocation';
 import type { ListingDraft, ImageAsset } from '@/lib/listings';
 
 const DEFAULT_MOCK_USER_ID = '11111111-1111-1111-1111-111111111111';
 const IMAGE_BUCKET = 'listing-images';
+
+export { DEFAULT_PITTSBURGH_COORDS };
+export type { GeoPoint };
+
+export interface DiscoverySalePost extends SalePost {
+  neighborhoodTag: string;
+  distanceMiles: number;
+}
+
+export interface DiscoveryFeedResult {
+  neighborhood: string;
+  listings: DiscoverySalePost[];
+}
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -73,6 +93,51 @@ export async function fetchFeedPosts(): Promise<Post[]> {
 
   if (error) throw error;
   return (data ?? []).map(mapRowToPost);
+}
+
+export async function fetchDiscoveryFeed(options: {
+  userCoords: GeoPoint;
+  radiusMiles: number;
+}): Promise<DiscoveryFeedResult> {
+  const { userCoords, radiusMiles } = options;
+  const userNeighborhood = resolveNeighborhood(userCoords);
+  const feed = await fetchFeedPosts();
+
+  const salePosts = feed.filter((post): post is SalePost => post.type === 'sale');
+
+  const enriched = salePosts.map((post) => {
+    const postCoords = coordinateFromLocation(post.seller.location) ?? DEFAULT_PITTSBURGH_COORDS;
+    const neighborhoodTag = resolveNeighborhood(postCoords);
+    const distanceMiles = milesBetween(userCoords, postCoords);
+    return {
+      ...post,
+      neighborhoodTag,
+      distanceMiles,
+    } satisfies DiscoverySalePost;
+  });
+
+  const filtered =
+    radiusMiles <= 0
+      ? enriched.filter((post) => post.neighborhoodTag === userNeighborhood)
+      : enriched.filter((post) => post.distanceMiles <= radiusMiles);
+
+  const listings = (filtered.length > 0 ? filtered : enriched)
+    .slice()
+    .sort((a, b) => {
+      const aIsLocal = a.neighborhoodTag === userNeighborhood ? 1 : 0;
+      const bIsLocal = b.neighborhoodTag === userNeighborhood ? 1 : 0;
+
+      if (aIsLocal !== bIsLocal) return bIsLocal - aIsLocal;
+      if (Math.abs(a.distanceMiles - b.distanceMiles) > 0.05) {
+        return a.distanceMiles - b.distanceMiles;
+      }
+      return b.likes - a.likes;
+    });
+
+  return {
+    neighborhood: userNeighborhood,
+    listings,
+  };
 }
 
 async function uploadListingImages(images: ImageAsset[]): Promise<string[]> {
