@@ -1,20 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
+  Text,
   FlatList,
   StyleSheet,
   Pressable,
+  Switch,
   Dimensions,
   ActivityIndicator,
   type LayoutChangeEvent,
-  type ViewToken,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Post } from '@/data/mockData';
-import { fetchFeedPosts } from '@/supabase/queries';
+import { fetchFriendsFeedPosts } from '@/supabase/queries';
 import { SalePostCard } from '@/components/feed/SalePostCard';
 import { ISOPostCard } from '@/components/feed/ISOPostCard';
 
@@ -26,17 +28,26 @@ export default function HomeScreen() {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [pageHeight, setPageHeight] = useState(0);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [includeFriendsOfFriends, setIncludeFriendsOfFriends] = useState(false);
+  const feedRequestId = useRef(0);
 
   useEffect(() => {
+    const id = ++feedRequestId.current;
     setLoading(true);
-    fetchFeedPosts()
-      .then(setPosts)
+    const uid = user?.id;
+    fetchFriendsFeedPosts(uid ?? '', { includeSecondDegree: includeFriendsOfFriends })
+      .then((data) => {
+        if (feedRequestId.current === id) setPosts(data);
+      })
       .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (feedRequestId.current === id) setLoading(false);
+      });
+  }, [user?.id, includeFriendsOfFriends]);
 
   const cardWidth = SCREEN_WIDTH - CARD_H_PADDING * 2;
 
@@ -81,40 +92,76 @@ export default function HomeScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]} onLayout={handleLayout}>
-      {/* Notification Bell */}
-      <Pressable
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
         style={[
-          styles.bellBtn,
+          styles.header,
           {
-            top: insets.top + 8,
-            backgroundColor: scheme === 'dark' ? 'rgba(28,31,42,0.8)' : 'rgba(255,255,255,0.8)',
+            paddingTop: insets.top + 8,
+            borderBottomColor: colors.border,
+            backgroundColor: colors.background,
           },
         ]}
-        hitSlop={8}
       >
-        <Ionicons name="notifications-outline" size={20} color={colors.text} />
-        <View style={styles.bellDot} />
-      </Pressable>
-
-      {/* Feed */}
-      {loading ? (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={Brand.primary} />
+        <View
+          style={[
+            styles.toggleInner,
+            {
+              backgroundColor: scheme === 'dark' ? 'rgba(28,31,42,0.92)' : 'rgba(255,255,255,0.92)',
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.toggleLabel, { color: colors.text }]} numberOfLines={2}>
+            Include friends of friends
+          </Text>
+          <Switch
+            value={includeFriendsOfFriends}
+            onValueChange={setIncludeFriendsOfFriends}
+            trackColor={{ false: colors.tabIconDefault, true: `${Brand.primary}88` }}
+            thumbColor={includeFriendsOfFriends ? Brand.primary : '#f4f3f4'}
+          />
         </View>
-      ) : pageHeight > 0 ? (
-        <FlatList
-          data={posts}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          pagingEnabled
-          showsVerticalScrollIndicator={false}
-          getItemLayout={getItemLayout}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          bounces={false}
-        />
-      ) : null}
+        <Pressable
+          style={[
+            styles.bellBtn,
+            {
+              backgroundColor: scheme === 'dark' ? 'rgba(28,31,42,0.8)' : 'rgba(255,255,255,0.8)',
+            },
+          ]}
+          hitSlop={8}
+        >
+          <Ionicons name="notifications-outline" size={20} color={colors.text} />
+          <View style={styles.bellDot} />
+        </Pressable>
+      </View>
+
+      <View style={styles.feedShell} onLayout={handleLayout}>
+        {loading ? (
+          <View style={styles.loader}>
+            <ActivityIndicator size="large" color={Brand.primary} />
+          </View>
+        ) : !posts.length && pageHeight > 0 ? (
+          <View style={styles.emptyWrap}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No listings yet</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.tabIconDefault }]}>
+              Follow people to see their listings here.
+            </Text>
+          </View>
+        ) : pageHeight > 0 ? (
+          <FlatList
+            data={posts}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            pagingEnabled
+            showsVerticalScrollIndicator={false}
+            getItemLayout={getItemLayout}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            bounces={false}
+          />
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -123,10 +170,52 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  toggleInner: {
+    flex: 1,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  feedShell: {
+    flex: 1,
+  },
+  emptyWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
   bellBtn: {
-    position: 'absolute',
-    right: 16,
-    zIndex: 30,
     width: 40,
     height: 40,
     borderRadius: 20,
