@@ -32,6 +32,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="create-profile" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="social" options={{ headerShown: false }} />
           <Stack.Screen
             name="create-listing"
             options={{

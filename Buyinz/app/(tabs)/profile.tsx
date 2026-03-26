@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -17,14 +18,15 @@ import { MOCK_FEED_POSTS } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { deleteProfile } from '@/lib/supabase';
 import { Alert } from 'react-native';
+import { getFollowers, getFollowing } from '@/supabase/queries';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_ITEM_SIZE = SCREEN_WIDTH / 3;
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, onPress }: { label: string; value: number; onPress?: () => void }) {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
-  return (
+  const content = (
     <View style={styles.statContainer}>
       <Text style={[styles.statValue, { color: colors.text }]}>
         {value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
@@ -32,6 +34,16 @@ function Stat({ label, value }: { label: string; value: number }) {
       <Text style={[styles.statLabel, { color: colors.tabIconDefault }]}>{label}</Text>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} hitSlop={8}>
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
 }
 
 export default function ProfileScreen() {
@@ -40,8 +52,39 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, setUser } = useAuth();
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   
   const userListings = MOCK_FEED_POSTS.filter(p => p.type === 'sale').slice(0, 6);
+
+  const loadConnectionCounts = () => {
+    if (!user?.id) {
+      setFollowersCount(0);
+      setFollowingCount(0);
+      return Promise.resolve();
+    }
+
+    return Promise.all([getFollowers(user.id), getFollowing(user.id)])
+      .then(([followers, following]) => {
+        setFollowersCount(followers.length);
+        setFollowingCount(following.length);
+      })
+      .catch((e) => {
+        console.error(e);
+        setFollowersCount(0);
+        setFollowingCount(0);
+      });
+  };
+
+  useEffect(() => {
+    loadConnectionCounts();
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadConnectionCounts();
+    }, [user?.id]),
+  );
 
   const handleDeleteAccount = () => {
     Alert.alert('Delete Account', 'Are you sure you want to delete your profile?', [
@@ -87,9 +130,9 @@ export default function ProfileScreen() {
           <View style={styles.avatarStatsRow}>
             <Image source={{ uri: user.avatar_url }} style={[styles.avatar, { borderColor: colors.border }]} />
             <View style={styles.statsRow}>
-              <Stat label="Posts" value={0} />
-              <Stat label="Followers" value={0} />
-              <Stat label="Following" value={0} />
+              <Stat label="Posts" value={userListings.length} />
+              <Stat label="Followers" value={followersCount} onPress={() => router.push('/social?tab=followers')} />
+              <Stat label="Following" value={followingCount} onPress={() => router.push('/social?tab=following')} />
             </View>
           </View>
 
@@ -116,8 +159,11 @@ export default function ProfileScreen() {
             >
               <Text style={[styles.actionBtnText, { color: colors.text }]}>Edit Profile</Text>
             </Pressable>
-            <Pressable style={[styles.actionBtn, { backgroundColor: scheme === 'light' ? '#EFEFEF' : '#2A2A2A' }]}>
-              <Text style={[styles.actionBtnText, { color: colors.text }]}>Share profile</Text>
+            <Pressable
+              style={[styles.actionBtn, { backgroundColor: scheme === 'light' ? '#EFEFEF' : '#2A2A2A' }]}
+              onPress={() => router.push('/social')}
+            >
+              <Text style={[styles.actionBtnText, { color: colors.text }]}>Connections</Text>
             </Pressable>
           </View>
         </View>
