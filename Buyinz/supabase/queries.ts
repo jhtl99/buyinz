@@ -37,6 +37,19 @@ export type IncomingFollowRequest = {
   createdAt: string;
 };
 
+export { DEFAULT_PITTSBURGH_COORDS };
+export type { GeoPoint };
+
+export interface DiscoverySalePost extends SalePost {
+  neighborhoodTag: string;
+  distanceMiles: number;
+}
+
+export interface DiscoveryFeedResult {
+  neighborhood: string;
+  listings: DiscoverySalePost[];
+}
+
 function isMissingSocialTable(error: any): boolean {
   if (!error) return false;
   const message = `${error.message ?? ''} ${error.details ?? ''}`.toLowerCase();
@@ -52,17 +65,6 @@ function mapUserRowToSocialUser(row: any): SocialUser {
     location: row.location,
     bio: row.bio,
   };
-export { DEFAULT_PITTSBURGH_COORDS };
-export type { GeoPoint };
-
-export interface DiscoverySalePost extends SalePost {
-  neighborhoodTag: string;
-  distanceMiles: number;
-}
-
-export interface DiscoveryFeedResult {
-  neighborhood: string;
-  listings: DiscoverySalePost[];
 }
 
 function timeAgo(dateStr: string): string {
@@ -364,6 +366,8 @@ export async function getFollowing(currentUserId: string): Promise<SocialUser[]>
 
   if (usersError) throw usersError;
   return (usersData ?? []).map(mapUserRowToSocialUser);
+}
+
 export async function fetchDiscoveryFeed(options: {
   userCoords: GeoPoint;
   radiusMiles: number;
