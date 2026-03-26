@@ -85,7 +85,7 @@ export default function ProfileScreen() {
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <View style={styles.avatarStatsRow}>
-            <Image source={{ uri: user.avatarUrl }} style={[styles.avatar, { borderColor: colors.border }]} />
+            <Image source={{ uri: user.avatar_url }} style={[styles.avatar, { borderColor: colors.border }]} />
             <View style={styles.statsRow}>
               <Stat label="Posts" value={0} />
               <Stat label="Followers" value={0} />
