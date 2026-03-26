@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 
 const supabaseUrl = 'https://xoohzqggqzpdzaymztvq.supabase.co';
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'dummy_key_for_testing';
@@ -45,13 +46,6 @@ export async function saveProfile(profile: UserProfile) {
   return data;
 }
 
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
 export async function authenticate(email?: string, phone?: string) {
   if (!email && !phone) {
     throw new Error('Valid email or phone number required');
@@ -62,7 +56,7 @@ export async function authenticate(email?: string, phone?: string) {
   const dummyPassword = 'BuyinzUser!123'; // Use a consistent dummy password for testing so we can log back in
   
   // 1. First, attempt to sign in. This avoids hitting the strict 3-per-hour signup limit for existing test users.
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+  const { data: signInData } = await supabase.auth.signInWithPassword({
     email: authEmail,
     password: dummyPassword,
   });
@@ -96,12 +90,10 @@ export async function authenticate(email?: string, phone?: string) {
   };
 }
 
-import * as AuthSession from 'expo-auth-session';
-
 export async function authenticateWithGoogle() {
-  const redirectUrl = AuthSession.makeRedirectUri({
-    scheme: 'com.googleusercontent.apps.451856355337-bj9og5v76mpqd4qj9j573g41jrku7t3p'
-  });
+  // Must match Supabase Dashboard → Auth → URL Configuration → Redirect URLs (e.g. exp://**/--/auth/callback).
+  // If redirectTo is not allowlisted, Supabase falls back to Site URL (e.g. localhost:3000) and breaks on device.
+  const redirectUrl = Linking.createURL('auth/callback');
 
   // Using Supabase OAuth for Google
   const { data, error } = await supabase.auth.signInWithOAuth({
