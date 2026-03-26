@@ -68,7 +68,7 @@ export default function ListingDetailScreen() {
   }, [id]);
 
   const handleMakeOffer = async (amount: number) => {
-    if (!user) {
+    if (!user || !user.id) {
       Alert.alert('Not Signed In', 'Please sign in to make an offer.', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Sign In', onPress: () => router.push('/create-profile') } // Adjust route to your login screen

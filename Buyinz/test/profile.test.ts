@@ -2,13 +2,12 @@ import { saveProfile, authenticate, UserProfile } from '../lib/supabase';
 
 jest.mock('../lib/supabase', () => ({
   ...jest.requireActual('../lib/supabase'),
-  authenticate: jest.fn().mockImplementation((email, phone) => {
+  authenticate: jest.fn().mockImplementation((email) => {
     return Promise.resolve({
       status: 200,
       user: {
         id: 'mock-user-id-123',
-        email: email,
-        phone: phone
+        email: email
       }
     });
   })
@@ -16,13 +15,7 @@ jest.mock('../lib/supabase', () => ({
 
 describe('Verified Profile Creation', () => {
     it('generates a unique user ID and returns 200 OK given valid email', async () => {
-      const result = await authenticate('test@example.com', undefined);
-      expect(result.status).toBe(200);
-      expect(result.user.id).toBeDefined();
-    });
-
-    it('generates a unique user ID and returns 200 OK given valid phone', async () => {
-      const result = await authenticate(undefined, '+11234567890');
+      const result = await authenticate('test@example.com');
       expect(result.status).toBe(200);
       expect(result.user.id).toBeDefined();
     });

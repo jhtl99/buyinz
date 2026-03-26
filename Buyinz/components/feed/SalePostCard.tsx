@@ -16,7 +16,6 @@ import { Colors, ConditionColors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SalePost } from '@/data/mockData';
-import { useRouter } from 'expo-router';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_H_PADDING = 12;
@@ -32,7 +31,6 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const condColors = ConditionColors[post.condition];
-  const router = useRouter();
   const { user } = useAuth();
   const isOwnListing = user?.id === post.seller.id;
 
