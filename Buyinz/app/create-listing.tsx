@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand, ConditionColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
 import {
   EMPTY_DRAFT,
@@ -32,6 +33,7 @@ export default function CreateListingScreen() {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   const [draft, setDraft] = useState<ListingDraft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +52,7 @@ export default function CreateListingScreen() {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
     try {
-      const result = await submitListing(draft);
+      const result = await submitListing(draft, user?.id);
       if (result.success) {
         Alert.alert('Listed!', 'Your item is now live.', [
           { text: 'Done', onPress: () => router.back() },
