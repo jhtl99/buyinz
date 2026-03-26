@@ -1,4 +1,4 @@
-# Swipe Sell
+# Buyinz
 
 A peer-to-peer marketplace project: browse local listings, chat with buyers and sellers, and complete sales with mutual confirmation and star ratings. The repo contains a **web prototype** (Vite + React) and a **mobile app** (Expo) that talks to **Supabase** for auth, data, storage, and realtime messaging.
 
