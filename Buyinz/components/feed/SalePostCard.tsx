@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, ConditionColors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -28,6 +29,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const condColors = ConditionColors[post.condition];
+  const router = useRouter();
 
   const [imgIndex, setImgIndex] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -118,7 +120,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
         )}
       </View>
 
-      {/* Footer: bookmark + title | price */}
+      {/* Footer: bookmark + message + title | price */}
       <View style={styles.footer}>
         <View style={styles.footerLeft}>
           <Pressable
@@ -130,6 +132,29 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
               name={saved ? 'bookmark' : 'bookmark-outline'}
               size={22}
               color={saved ? Brand.primary : colors.textSecondary}
+            />
+          </Pressable>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/chat/[id]',
+                params: {
+                  id: post.id,
+                  sellerId: post.seller.id,
+                  sellerUsername: post.seller.username,
+                  listingTitle: post.title,
+                  listingPrice: String(post.price),
+                  listingImage: post.images[0] ?? '',
+                },
+              })
+            }
+            hitSlop={8}
+            style={styles.bookmarkBtn}
+          >
+            <Ionicons
+              name="chatbubble-outline"
+              size={20}
+              color={colors.textSecondary}
             />
           </Pressable>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
