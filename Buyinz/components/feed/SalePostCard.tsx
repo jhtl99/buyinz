@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, ConditionColors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
+import { useRouter } from 'expo-router';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_H_PADDING = 12;
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function SalePostCard({ post, cardWidth, fill }: Props) {
+  const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const condColors = ConditionColors[post.condition];
@@ -43,7 +45,8 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
   );
 
   return (
-    <View
+    <Pressable
+      onPress={() => router.push(`/listing/${post.id}`)}
       style={[
         styles.card,
         {
@@ -142,7 +145,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
           </Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
