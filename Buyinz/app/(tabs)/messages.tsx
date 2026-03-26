@@ -108,6 +108,7 @@ export default function MessagesScreen() {
             pathname: '/chat/[id]',
             params: {
               id: listing.id,
+              buyerId: item.buyer_id,
               sellerId: item.seller_id,
               sellerUsername: otherUser.username,
               listingTitle: listing.title,

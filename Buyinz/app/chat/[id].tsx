@@ -29,6 +29,7 @@ import {
 export default function ChatScreen() {
   const {
     id: listingId,
+    buyerId: paramBuyerId,
     sellerId,
     sellerUsername,
     listingTitle,
@@ -36,6 +37,7 @@ export default function ChatScreen() {
     listingImage,
   } = useLocalSearchParams<{
     id: string;
+    buyerId?: string;
     sellerId: string;
     sellerUsername: string;
     listingTitle: string;
@@ -59,9 +61,13 @@ export default function ChatScreen() {
   const currentUserId = user?.id;
   const price = parseFloat(listingPrice ?? '0');
 
-  // Create or find the conversation, then load messages
+  // When opening from inbox, use the original buyer/seller IDs.
+  // When opening from a listing card, current user is the buyer.
+  const effectiveBuyerId = paramBuyerId ?? currentUserId;
+  const effectiveSellerId = sellerId;
+
   useEffect(() => {
-    if (!currentUserId || !listingId || !sellerId) {
+    if (!currentUserId || !listingId || !effectiveSellerId || !effectiveBuyerId) {
       setLoading(false);
       return;
     }
@@ -70,7 +76,7 @@ export default function ChatScreen() {
 
     (async () => {
       try {
-        const convoId = await getOrCreateConversation(listingId, currentUserId, sellerId);
+        const convoId = await getOrCreateConversation(listingId, effectiveBuyerId, effectiveSellerId);
         setConversationId(convoId);
 
         const msgs = await fetchMessages(convoId);
@@ -92,7 +98,7 @@ export default function ChatScreen() {
     })();
 
     return () => unsubscribe?.();
-  }, [currentUserId, listingId, sellerId]);
+  }, [currentUserId, listingId, effectiveBuyerId, effectiveSellerId]);
 
   // Auto-scroll when messages change
   useEffect(() => {

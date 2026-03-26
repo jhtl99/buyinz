@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, ConditionColors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 import type { SalePost } from '@/data/mockData';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -30,6 +31,8 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
   const colors = Colors[scheme];
   const condColors = ConditionColors[post.condition];
   const router = useRouter();
+  const { user } = useAuth();
+  const isOwnListing = user?.id === post.seller.id;
 
   const [imgIndex, setImgIndex] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -134,29 +137,31 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
               color={saved ? Brand.primary : colors.textSecondary}
             />
           </Pressable>
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: '/chat/[id]',
-                params: {
-                  id: post.id,
-                  sellerId: post.seller.id,
-                  sellerUsername: post.seller.username,
-                  listingTitle: post.title,
-                  listingPrice: String(post.price),
-                  listingImage: post.images[0] ?? '',
-                },
-              })
-            }
-            hitSlop={8}
-            style={styles.bookmarkBtn}
-          >
-            <Ionicons
-              name="chatbubble-outline"
-              size={20}
-              color={colors.textSecondary}
-            />
-          </Pressable>
+          {!isOwnListing && (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/chat/[id]',
+                  params: {
+                    id: post.id,
+                    sellerId: post.seller.id,
+                    sellerUsername: post.seller.username,
+                    listingTitle: post.title,
+                    listingPrice: String(post.price),
+                    listingImage: post.images[0] ?? '',
+                  },
+                })
+              }
+              hitSlop={8}
+              style={styles.bookmarkBtn}
+            >
+              <Ionicons
+                name="chatbubble-outline"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+          )}
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {post.title}
           </Text>
