@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { useCallback, useEffect, useState } from 'react';
-=======
-import { useState } from 'react';
->>>>>>> main
 import {
   View,
   Text,
@@ -23,12 +19,8 @@ import { MOCK_FEED_POSTS } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { deleteProfile } from '@/lib/supabase';
-<<<<<<< HEAD
-import { Alert } from 'react-native';
 import { getFollowers, getFollowing } from '@/supabase/queries';
-=======
 import { BuyinzProSubscribeModal } from '@/components/pro/BuyinzProSubscribeModal';
->>>>>>> main
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_ITEM_SIZE = SCREEN_WIDTH / 3;
@@ -62,17 +54,13 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, setUser } = useAuth();
-<<<<<<< HEAD
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   
   const userListings = MOCK_FEED_POSTS.filter(p => p.type === 'sale').slice(0, 6);
-=======
   const { isBuyinzPro, listingCount, maxFreeListings, isReady } = useSubscription();
   const [proModalVisible, setProModalVisible] = useState(false);
 
-  const userListings = MOCK_FEED_POSTS.filter((p) => p.type === 'sale').slice(0, 6);
->>>>>>> main
 
   const loadConnectionCounts = () => {
     if (!user?.id) {
@@ -147,15 +135,9 @@ export default function ProfileScreen() {
           <View style={styles.avatarStatsRow}>
             <Image source={{ uri: user.avatar_url }} style={[styles.avatar, { borderColor: colors.border }]} />
             <View style={styles.statsRow}>
-<<<<<<< HEAD
               <Stat label="Posts" value={userListings.length} />
               <Stat label="Followers" value={followersCount} onPress={() => router.push('/social?tab=followers')} />
               <Stat label="Following" value={followingCount} onPress={() => router.push('/social?tab=following')} />
-=======
-              <Stat label="Listings" value={isReady ? listingCount : 0} />
-              <Stat label="Followers" value={0} />
-              <Stat label="Following" value={0} />
->>>>>>> main
             </View>
           </View>
 
