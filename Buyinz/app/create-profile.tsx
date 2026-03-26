@@ -88,7 +88,40 @@ export default function CreateProfileScreen() {
              }
            } else if (result.url.includes('#access_token')) {
              // Implicit flow (fallback)
-             Alert.alert('Google Auth', 'Successfully authenticated using hash tokens! Please proceed.');
+             const fragment = result.url.split('#')[1];
+             if (fragment) {
+               const params = fragment.split('&').reduce((acc, curr) => {
+                 const [k, v] = curr.split('=');
+                 acc[k] = v;
+                 return acc;
+               }, {} as Record<string, string>);
+               
+               if (params.access_token && params.refresh_token) {
+                 const { data: sessionData, error } = await supabase.auth.setSession({
+                   access_token: params.access_token,
+                   refresh_token: params.refresh_token
+                 });
+                 if (error) throw error;
+                 
+                 if (sessionData.user) {
+                   setDisplayName(sessionData.user.user_metadata?.full_name || '');
+                   setUsername(sessionData.user.email?.split('@')[0] || '');
+                   setAvatarUrl(sessionData.user.user_metadata?.avatar_url || avatarUrl);
+                   setEmail(sessionData.user.email || '');
+
+                   setUser({
+                     id: sessionData.user.id,
+                     display_name: sessionData.user.user_metadata?.full_name || '',
+                     username: sessionData.user.email?.split('@')[0] || '',
+                     location: '', 
+                     avatar_url: sessionData.user.user_metadata?.avatar_url || avatarUrl
+                   });
+                   Alert.alert('Google Auth', 'Successfully signed in! Please complete your zip code and press Save to verify profile.');
+                 }
+               } else {
+                 Alert.alert('Google Auth', 'Successfully authenticated using hash tokens! Please proceed.');
+               }
+             }
            }
         }
       }
