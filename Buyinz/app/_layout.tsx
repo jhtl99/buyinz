@@ -40,6 +40,13 @@ export default function RootLayout() {
               headerTitleStyle: { fontWeight: '700' },
             }}
           />
+          <Stack.Screen
+            name="chat/[id]"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style="auto" />
