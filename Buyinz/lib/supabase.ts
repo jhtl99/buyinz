@@ -46,13 +46,13 @@ export async function saveProfile(profile: UserProfile) {
   return data;
 }
 
-export async function authenticate(email?: string, phone?: string) {
-  if (!email && !phone) {
-    throw new Error('Valid email or phone number required');
+export async function authenticate(email?: string) {
+  if (!email) {
+    throw new Error('Valid email required');
   }
   
   // Actually sign up the user in Supabase auth so that the ID exists in auth.users
-  const authEmail = email || `${phone?.replace(/[^0-9]/g, '')}@buyinz.local`;
+  const authEmail = email;
   const dummyPassword = 'BuyinzUser!123'; // Use a consistent dummy password for testing so we can log back in
   
   // 1. First, attempt to sign in. This avoids hitting the strict 3-per-hour signup limit for existing test users.

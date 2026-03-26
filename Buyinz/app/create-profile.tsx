@@ -24,7 +24,6 @@ export default function CreateProfileScreen() {
 
   // Auth fields
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   
   // Profile fields
   const [displayName, setDisplayName] = useState('');
@@ -73,11 +72,8 @@ export default function CreateProfileScreen() {
                setDisplayName(sessionData.user.user_metadata?.full_name || '');
                setUsername(sessionData.user.email?.split('@')[0] || '');
                setAvatarUrl(sessionData.user.user_metadata?.avatar_url || avatarUrl);
-               
-               // We also need to set email so handleSave successfully passes validation
                setEmail(sessionData.user.email || '');
 
-               // We temporarily set user in context so we can pull their ID on the final save
                setUser({
                  id: sessionData.user.id,
                  display_name: sessionData.user.user_metadata?.full_name || '',
@@ -87,9 +83,41 @@ export default function CreateProfileScreen() {
                });
                Alert.alert('Google Auth', 'Successfully signed in! Please complete your zip code and press Save to verify profile.');
              }
-           } else if (result.url.includes('#access_token')) {
-             // Implicit flow (fallback)
-             Alert.alert('Google Auth', 'Successfully authenticated using hash tokens! Please proceed.');
+           } else if (result.url.includes('#access_token') || result.url.includes('access_token=')) {
+             // Parse hash tokens from implicit flow
+             const hash = result.url.includes('#') ? result.url.split('#')[1] : result.url.split('?')[1];
+             const params = hash.replace(/^\/?/, '').split('&').reduce((acc, current) => {
+               const [key, value] = current.split('=');
+               acc[key] = decodeURIComponent(value);
+               return acc;
+             }, {} as Record<string, string>);
+             
+             if (params.access_token && params.refresh_token) {
+               const { data: sessionData, error } = await supabase.auth.setSession({
+                 access_token: params.access_token,
+                 refresh_token: params.refresh_token,
+               });
+               
+               if (error) throw error;
+               
+               if (sessionData.user) {
+                 setDisplayName(sessionData.user.user_metadata?.full_name || '');
+                 setUsername(sessionData.user.email?.split('@')[0] || '');
+                 setAvatarUrl(sessionData.user.user_metadata?.avatar_url || avatarUrl);
+                 setEmail(sessionData.user.email || '');
+
+                 setUser({
+                   id: sessionData.user.id,
+                   display_name: sessionData.user.user_metadata?.full_name || '',
+                   username: sessionData.user.email?.split('@')[0] || '',
+                   location: '', 
+                   avatar_url: sessionData.user.user_metadata?.avatar_url || avatarUrl
+                 });
+                 Alert.alert('Google Auth', 'Successfully signed in! Please complete your zip code and press Save to verify profile.');
+               }
+             } else {
+               throw new Error('No access token found in URL.');
+             }
            }
         }
       }
@@ -103,15 +131,15 @@ export default function CreateProfileScreen() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      if (!email && !phone && !user?.id) {
-        throw new Error('Please provide an email or phone number to verify and establish identity.');
+      if (!email && !user?.id) {
+        throw new Error('Please provide an email or social account to verify and establish identity.');
       }
       
       let finalUserId = user?.id;
 
       // 1. Authenticate and get 200 OK + unique user ID if we don't already have a Google ID
       if (!finalUserId) {
-        const authRes = await authenticate(email, phone);
+        const authRes = await authenticate(email);
         finalUserId = authRes.user.id;
       }
       
@@ -123,8 +151,7 @@ export default function CreateProfileScreen() {
         location,
         bio,
         avatar_url: avatarUrl,
-        email,
-        phone
+        email
       };
       
       await saveProfile(newProfile);
@@ -160,7 +187,7 @@ export default function CreateProfileScreen() {
         <View style={[styles.section, { backgroundColor: scheme === 'light' ? '#f5f5f5' : '#1c1c1e' }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>1. Verification details</Text>
             <Text style={{ color: colors.text, marginBottom: 16, fontSize: 13, opacity: 0.8 }}>
-              Valid phone, email, or social account needed to establish your identity.
+              Valid email or social account needed to establish your identity.
             </Text>
 
             <Pressable 
@@ -185,14 +212,6 @@ export default function CreateProfileScreen() {
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
-            />
-            <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                placeholder="Phone Number"
-                placeholderTextColor={colors.tabIconDefault}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
             />
         </View>
 
