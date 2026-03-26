@@ -137,6 +137,64 @@ export async function fetchFeedPosts(): Promise<Post[]> {
   return (data ?? []).map(mapRowToPost);
 }
 
+/** Accepted outgoing follows: user ids the current user follows (first degree). */
+export async function getFollowingUserIds(currentUserId: string): Promise<string[]> {
+  const { data: rows, error } = await supabase
+    .from('social_connections')
+    .select('addressee_id')
+    .eq('requester_id', currentUserId)
+    .eq('status', 'accepted');
+
+  if (error) {
+    if (isMissingSocialTable(error)) return [];
+    throw error;
+  }
+
+  return (rows ?? []).map((r) => r.addressee_id);
+}
+
+/**
+ * Home Friends+ feed: posts from followed users only; optional second degree (follows of follows).
+ * Excludes the current user's own posts. Chronological by created_at desc.
+ */
+export async function fetchFriendsFeedPosts(
+  currentUserId: string,
+  options: { includeSecondDegree: boolean },
+): Promise<Post[]> {
+  if (!currentUserId) return [];
+
+  const firstDegreeIds = await getFollowingUserIds(currentUserId);
+  const allowedUserIds = new Set<string>(firstDegreeIds);
+
+  if (options.includeSecondDegree && firstDegreeIds.length > 0) {
+    const { data: secondRows, error: secondError } = await supabase
+      .from('social_connections')
+      .select('addressee_id')
+      .in('requester_id', firstDegreeIds)
+      .eq('status', 'accepted');
+
+    if (secondError && !isMissingSocialTable(secondError)) throw secondError;
+
+    for (const row of secondRows ?? []) {
+      allowedUserIds.add(row.addressee_id);
+    }
+  }
+
+  allowedUserIds.delete(currentUserId);
+
+  const ids = [...allowedUserIds];
+  if (!ids.length) return [];
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, users(*)')
+    .in('user_id', ids)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(mapRowToPost);
+}
+
 export async function searchUsers(
   currentUserId: string,
   queryText: string,
@@ -345,18 +403,7 @@ export async function getFollowers(currentUserId: string): Promise<SocialUser[]>
 }
 
 export async function getFollowing(currentUserId: string): Promise<SocialUser[]> {
-  const { data: rows, error } = await supabase
-    .from('social_connections')
-    .select('addressee_id')
-    .eq('requester_id', currentUserId)
-    .eq('status', 'accepted');
-
-  if (error) {
-    if (isMissingSocialTable(error)) return [];
-    throw error;
-  }
-
-  const ids = (rows ?? []).map((r) => r.addressee_id);
+  const ids = await getFollowingUserIds(currentUserId);
   if (!ids.length) return [];
 
   const { data: usersData, error: usersError } = await supabase
