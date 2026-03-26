@@ -31,6 +31,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     fetchFeedPosts()
       .then(setPosts)
       .catch(console.error)
