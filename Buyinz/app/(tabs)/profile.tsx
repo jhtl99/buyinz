@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
+import { getMockProfileRatings } from '@/lib/mockRatingDemo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { deleteProfile } from '@/lib/supabase';
@@ -70,6 +71,8 @@ export default function ProfileScreen() {
     }
     return items;
   }, [userListings]);
+
+  const { averageOutOf5, count: mockRatingCount } = getMockProfileRatings();
 
   const loadListings = useCallback(() => {
     if (!user?.id) {
@@ -183,6 +186,18 @@ export default function ProfileScreen() {
             <View style={styles.locationRow}>
               <Ionicons name="location-outline" size={14} color={colors.tint} />
               <Text style={[styles.location, { color: colors.tabIconDefault }]}>{user.location}</Text>
+            </View>
+
+            {/* Placeholder averages until Supabase `users.average_rating` / `rating_count` load — see `getMockProfileRatings`. */}
+            <View style={[styles.ratingRow, { marginTop: 10 }]}>
+              <Ionicons name="star" size={18} color="#F59E0B" />
+              <Text style={[styles.ratingMain, { color: colors.text }]}>
+                {averageOutOf5.toFixed(1)}
+                <Text style={[styles.ratingOutOf, { color: colors.textSecondary }]}> / 5</Text>
+              </Text>
+              <Text style={[styles.ratingCount, { color: colors.textSecondary }]}>
+                · {mockRatingCount} {mockRatingCount === 1 ? 'rating' : 'ratings'}
+              </Text>
             </View>
           </View>
 
@@ -375,6 +390,24 @@ const styles = StyleSheet.create({
   location: {
     fontSize: 13,
     marginLeft: 4,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  ratingMain: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  ratingOutOf: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  ratingCount: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   actionButtons: {
     flexDirection: 'row',

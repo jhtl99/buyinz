@@ -714,3 +714,71 @@ export function subscribeToMessages(
     supabase.removeChannel(channel);
   };
 }
+
+// ─── Transaction completion & ratings ─────────────────────────
+
+export interface ConversationCompletion {
+  buyer_marked_complete_at: string | null;
+  seller_marked_complete_at: string | null;
+}
+
+export async function fetchConversationCompletion(
+  conversationId: string,
+): Promise<ConversationCompletion> {
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('buyer_marked_complete_at, seller_marked_complete_at')
+    .eq('id', conversationId)
+    .single();
+
+  if (error) throw error;
+  return {
+    buyer_marked_complete_at: data.buyer_marked_complete_at ?? null,
+    seller_marked_complete_at: data.seller_marked_complete_at ?? null,
+  };
+}
+
+export async function markMyTransactionComplete(
+  conversationId: string,
+  role: 'buyer' | 'seller',
+): Promise<void> {
+  const field = role === 'buyer' ? 'buyer_marked_complete_at' : 'seller_marked_complete_at';
+  const { error } = await supabase
+    .from('conversations')
+    .update({ [field]: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', conversationId);
+
+  if (error) throw error;
+}
+
+export async function fetchMyRatingForConversation(
+  conversationId: string,
+  raterId: string,
+): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('user_ratings')
+    .select('stars')
+    .eq('conversation_id', conversationId)
+    .eq('rater_id', raterId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.stars ?? null;
+}
+
+export async function submitConversationRating(
+  conversationId: string,
+  raterId: string,
+  rateeId: string,
+  stars: number,
+): Promise<void> {
+  const s = Math.min(5, Math.max(1, Math.round(stars)));
+  const { error } = await supabase.from('user_ratings').insert({
+    conversation_id: conversationId,
+    rater_id: raterId,
+    ratee_id: rateeId,
+    stars: s,
+  });
+
+  if (error) throw error;
+}
