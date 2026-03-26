@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,15 +26,28 @@ import {
   type ListingDraft,
   type ImageAsset,
 } from '@/lib/listings';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 export default function CreateListingScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
+  const { isReady, canCreateListing, incrementListingCount } = useSubscription();
 
   const [draft, setDraft] = useState<ListingDraft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = useState(false);
+
+  const blocked = isReady && !canCreateListing;
+
+  useEffect(() => {
+    if (!blocked) return;
+    Alert.alert(
+      'Listing limit reached',
+      'Free accounts can post up to 6 listings. Subscribe to Buyinz Pro from your profile for unlimited listings.',
+      [{ text: 'OK', onPress: () => router.back() }],
+    );
+  }, [blocked, router]);
 
   const priceRef = useRef<TextInput>(null);
   const zipRef = useRef<TextInput>(null);
@@ -47,11 +60,12 @@ export default function CreateListingScreen() {
     setDraft((d) => ({ ...d, [key]: value }));
 
   const handleSubmit = async () => {
-    if (!canSubmit || submitting) return;
+    if (!canSubmit || submitting || !canCreateListing) return;
     setSubmitting(true);
     try {
       const result = await submitListing(draft);
       if (result.success) {
+        await incrementListingCount();
         Alert.alert('Listed!', 'Your item is now live.', [
           { text: 'Done', onPress: () => router.back() },
         ]);
@@ -63,6 +77,36 @@ export default function CreateListingScreen() {
       setSubmitting(false);
     }
   };
+
+  if (!isReady) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={Brand.primary} />
+      </View>
+    );
+  }
+
+  if (blocked) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={Brand.primary} />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView

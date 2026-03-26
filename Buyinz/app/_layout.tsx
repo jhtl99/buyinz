@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Brand } from '@/constants/theme';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -28,22 +29,24 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <ThemeProvider value={customTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="create-profile" options={{ headerShown: false, presentation: 'modal' }} />
-          <Stack.Screen
-            name="create-listing"
-            options={{
-              presentation: 'modal',
-              title: 'New Listing',
-              headerTitleStyle: { fontWeight: '700' },
-            }}
-          />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <SubscriptionProvider>
+        <ThemeProvider value={customTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="create-profile" options={{ headerShown: false, presentation: 'modal' }} />
+            <Stack.Screen
+              name="create-listing"
+              options={{
+                presentation: 'modal',
+                title: 'New Listing',
+                headerTitleStyle: { fontWeight: '700' },
+              }}
+            />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </SubscriptionProvider>
     </AuthProvider>
   );
 }
