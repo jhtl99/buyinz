@@ -31,12 +31,16 @@ import {
   type ConversationCompletion,
 } from '@/supabase/queries';
 import { buildMockTransactionMessages } from '@/lib/mockTransactionChat';
-import { LOCAL_DEMO_CONVERSATION_ID } from '@/lib/mockRatingDemo';
+import {
+  LOCAL_DEMO_BUYING_CONVERSATION_ID,
+  LOCAL_DEMO_SELLING_CONVERSATION_ID,
+} from '@/lib/mockRatingDemo';
 import { TransactionRatingModal } from '@/components/chat/TransactionRatingModal';
 
 /**
  * Route params:
- * - `mockDemo=1` — local-only thread from the synthetic Buying row (`SYNTHETIC_RATING_CONVERSATION_ID`); no Supabase chat.
+ * - `mockDemo=1` — synthetic buying thread (seller already finished).
+ * - `mockDemo=2` — synthetic selling thread (you can finish first; rate before buyer finishes).
  * - `mockChat=1` — merge scripted messages into a real conversation (see `mockTransactionChat`).
  */
 export default function ChatScreen() {
@@ -45,6 +49,8 @@ export default function ChatScreen() {
     buyerId: paramBuyerId,
     sellerId,
     sellerUsername,
+    buyerUsername,
+    peerUsername,
     listingTitle,
     listingPrice,
     listingImage,
@@ -54,7 +60,9 @@ export default function ChatScreen() {
     id: string;
     buyerId?: string;
     sellerId: string;
-    sellerUsername: string;
+    sellerUsername?: string;
+    buyerUsername?: string;
+    peerUsername?: string;
     listingTitle: string;
     listingPrice: string;
     listingImage: string;
@@ -69,9 +77,17 @@ export default function ChatScreen() {
   const { user } = useAuth();
   const flatListRef = useRef<FlatList>(null);
 
-  const isFullMockDemo = mockDemo === '1' || mockDemo === 'true';
+  const isMockBuyingDemo = mockDemo === '1' || mockDemo === 'true';
+  const isMockSellingFirstDemo = mockDemo === '2';
+  const isLocalOnlyMock = isMockBuyingDemo || isMockSellingFirstDemo;
   const isMockChat =
-    mockChat === '1' || mockChat === 'true' || isFullMockDemo;
+    mockChat === '1' || mockChat === 'true' || isLocalOnlyMock;
+
+  const localDemoConvId = isMockBuyingDemo
+    ? LOCAL_DEMO_BUYING_CONVERSATION_ID
+    : isMockSellingFirstDemo
+      ? LOCAL_DEMO_SELLING_CONVERSATION_ID
+      : null;
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
@@ -102,7 +118,14 @@ export default function ChatScreen() {
           ? 'seller'
           : null;
 
-  const convIdForMocks = isFullMockDemo ? LOCAL_DEMO_CONVERSATION_ID : conversationId;
+  const rateeHandle =
+    myRole === 'buyer'
+      ? (peerUsername ?? sellerUsername ?? 'seller')
+      : (peerUsername ?? buyerUsername ?? 'buyer');
+
+  const headerPeerHandle = peerUsername ?? (amBuyer ? sellerUsername : buyerUsername) ?? 'user';
+
+  const convIdForMocks = localDemoConvId ?? conversationId;
 
   const mockMsgs = useMemo(() => {
     if (!isMockChat || !convIdForMocks || !effectiveBuyerId || !effectiveSellerId) {
@@ -159,11 +182,24 @@ export default function ChatScreen() {
       return;
     }
 
-    if (isFullMockDemo) {
-      setConversationId(LOCAL_DEMO_CONVERSATION_ID);
+    if (isMockBuyingDemo) {
+      setConversationId(LOCAL_DEMO_BUYING_CONVERSATION_ID);
       setCompletion({
-        buyer_marked_complete_at: new Date().toISOString(),
+        buyer_marked_complete_at: null,
         seller_marked_complete_at: new Date().toISOString(),
+      });
+      setRatingStars(null);
+      setMessages([]);
+      setLoading(false);
+      setTxnMetaLoading(false);
+      return;
+    }
+
+    if (isMockSellingFirstDemo) {
+      setConversationId(LOCAL_DEMO_SELLING_CONVERSATION_ID);
+      setCompletion({
+        buyer_marked_complete_at: null,
+        seller_marked_complete_at: null,
       });
       setRatingStars(null);
       setMessages([]);
@@ -210,7 +246,8 @@ export default function ChatScreen() {
     effectiveBuyerId,
     effectiveSellerId,
     refreshTransactionMeta,
-    isFullMockDemo,
+    isMockBuyingDemo,
+    isMockSellingFirstDemo,
   ]);
 
 
@@ -221,16 +258,21 @@ export default function ChatScreen() {
         ? !!completion?.seller_marked_complete_at
         : false;
 
-  const otherMarkedDb =
+  const otherMarked =
     myRole === 'buyer'
       ? !!completion?.seller_marked_complete_at
       : myRole === 'seller'
         ? !!completion?.buyer_marked_complete_at
         : false;
 
-  const otherMarked = isMockChat || otherMarkedDb;
   const bothMarkedComplete = iMarked && otherMarked && !!myRole;
   const hasRated = ratingStars != null && ratingStars > 0;
+
+  const ratingEligible =
+    !!myRole &&
+    !hasRated &&
+    (bothMarkedComplete ||
+      (isMockSellingFirstDemo && myRole === 'seller' && iMarked));
   const rateeId =
     myRole === 'buyer' ? effectiveSellerId : myRole === 'seller' ? effectiveBuyerId : '';
 
@@ -241,9 +283,27 @@ export default function ChatScreen() {
   }, [messages.length, listMessages.length]);
 
   const handleSend = useCallback(async () => {
-    if (isFullMockDemo) return;
     const text = input.trim();
-    if (!text || !conversationId || !currentUserId || sending) return;
+    if (!text || !currentUserId || sending) return;
+
+    if (isLocalOnlyMock) {
+      const cid = localDemoConvId;
+      if (!cid) return;
+      setSending(true);
+      setInput('');
+      const local: MessageRow = {
+        id: `local-${Date.now()}`,
+        conversation_id: cid,
+        sender_id: currentUserId,
+        body: text,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, local]);
+      setSending(false);
+      return;
+    }
+
+    if (!conversationId) return;
 
     setSending(true);
     setInput('');
@@ -256,14 +316,20 @@ export default function ChatScreen() {
     } finally {
       setSending(false);
     }
-  }, [input, conversationId, currentUserId, sending, isFullMockDemo]);
+  }, [
+    input,
+    conversationId,
+    currentUserId,
+    sending,
+    isLocalOnlyMock,
+    localDemoConvId,
+  ]);
 
   const handleFinishTransaction = useCallback(async () => {
-    if (isFullMockDemo) return;
-    if (!conversationId || !myRole || finishingTxn) return;
+    if (!myRole || finishingTxn) return;
 
     if (iMarked) {
-      if (!otherMarked && !isMockChat) {
+      if (!otherMarked && !isLocalOnlyMock) {
         Alert.alert(
           'Waiting on the other person',
           `They still need to tap Finish Transaction before you can rate each other.`,
@@ -271,6 +337,35 @@ export default function ChatScreen() {
       }
       return;
     }
+
+    if (isLocalOnlyMock) {
+      setFinishingTxn(true);
+      try {
+        const now = new Date().toISOString();
+        setCompletion((prev) => ({
+          buyer_marked_complete_at:
+            myRole === 'buyer' ? now : (prev?.buyer_marked_complete_at ?? null),
+          seller_marked_complete_at:
+            myRole === 'seller' ? now : (prev?.seller_marked_complete_at ?? null),
+        }));
+        setRatingStars(null);
+
+        if (isMockBuyingDemo) {
+          setShowRatingModal(true);
+        } else if (isMockSellingFirstDemo) {
+          Alert.alert(
+            'Great',
+            `You've marked this transaction complete. You can rate @${rateeHandle} now. We're still waiting for them to finish on their side.`,
+          );
+          setShowRatingModal(true);
+        }
+      } finally {
+        setFinishingTxn(false);
+      }
+      return;
+    }
+
+    if (!conversationId) return;
 
     setFinishingTxn(true);
     try {
@@ -290,11 +385,11 @@ export default function ChatScreen() {
         myRole === 'buyer'
           ? !!comp.seller_marked_complete_at
           : !!comp.buyer_marked_complete_at;
-      const bothNow = iNow && (isMockChat || otherNow);
+      const bothNow = iNow && otherNow;
 
       if (bothNow && (stars == null || stars < 1)) {
         setShowRatingModal(true);
-      } else if (!bothNow && !isMockChat) {
+      } else if (!bothNow) {
         Alert.alert(
           'Marked complete',
           'When the other person finishes on their side, you can leave a rating.',
@@ -314,32 +409,30 @@ export default function ChatScreen() {
     myRole,
     finishingTxn,
     iMarked,
-    isMockChat,
+    otherMarked,
     currentUserId,
-    isFullMockDemo,
+    isLocalOnlyMock,
+    isMockBuyingDemo,
+    isMockSellingFirstDemo,
+    rateeHandle,
   ]);
 
   const handleSubmitRating = useCallback(
     async (stars: number) => {
-      if (
-        !conversationId ||
-        !currentUserId ||
-        !rateeId ||
-        stars < 1 ||
-        ratingSubmitting
-      ) {
+      if (!currentUserId || stars < 1 || ratingSubmitting) {
         if (stars < 1) Alert.alert('Pick a rating', 'Choose 1–5 stars.');
         return;
       }
 
       setRatingSubmitting(true);
       try {
-        if (isFullMockDemo) {
+        if (isLocalOnlyMock) {
           setRatingStars(stars);
           setShowRatingModal(false);
           Alert.alert('Thanks!', 'Your rating has been saved.');
           return;
         }
+        if (!conversationId || !rateeId) return;
         await submitConversationRating(conversationId, currentUserId, rateeId, stars);
         setRatingStars(stars);
         setShowRatingModal(false);
@@ -354,7 +447,7 @@ export default function ChatScreen() {
         setRatingSubmitting(false);
       }
     },
-    [conversationId, currentUserId, rateeId, ratingSubmitting, isFullMockDemo],
+    [conversationId, currentUserId, rateeId, ratingSubmitting, isLocalOnlyMock],
   );
 
   const hasText = input.trim().length > 0;
@@ -400,27 +493,40 @@ export default function ChatScreen() {
     );
   }
 
-  const txnStatusLine =
-    !myRole
-      ? ''
-      : hasRated
-        ? `You rated this deal ${ratingStars}★`
-        : isFullMockDemo
-          ? `@${sellerUsername ?? 'seller'} already left you a rating. Tap below to rate your experience.`
-          : !iMarked
-            ? otherMarked || isMockChat
-              ? 'Other party marked complete — tap Finish Transaction to continue.'
-              : 'When the sale is done, both tap Finish Transaction.'
-            : !otherMarked && !isMockChat
-              ? 'Waiting for the other person to finish.'
-              : 'Rate your experience below.';
+  const txnStatusLine = (() => {
+    if (!myRole) return '';
+    if (hasRated) {
+      if (isMockSellingFirstDemo && myRole === 'seller' && !otherMarked) {
+        return `Thanks for your rating. We're still waiting for @${rateeHandle} to finish the transaction.`;
+      }
+      return `You rated this deal ${ratingStars}★`;
+    }
+    if (isMockBuyingDemo && myRole === 'buyer') {
+      if (!iMarked) {
+        return `The seller has finished on their side. Tap Finish Transaction when you're ready, then you can rate them.`;
+      }
+      return 'Rate your experience below.';
+    }
+    if (isMockSellingFirstDemo && myRole === 'seller') {
+      if (!iMarked) {
+        return `The buyer has not finished yet. Tap Finish Transaction when you're ready — you can rate them after you mark complete.`;
+      }
+      if (!otherMarked) {
+        return `You've marked complete. You can rate @${rateeHandle} while we wait for them to finish.`;
+      }
+      return 'Rate your experience below.';
+    }
+    if (!iMarked) {
+      if (otherMarked) {
+        return `The other person has marked this transaction complete. Tap Finish Transaction when you're ready.`;
+      }
+      return 'When the sale is done, both parties tap Finish Transaction.';
+    }
+    if (!otherMarked) return 'Waiting for the other person to finish.';
+    return 'Rate your experience below.';
+  })();
 
-  const showFinishButton =
-    !!myRole &&
-    !hasRated &&
-    !iMarked &&
-    !isFullMockDemo &&
-    (isMockChat || !txnMetaLoading);
+  const showFinishButton = !!myRole && !iMarked && (isMockChat || !txnMetaLoading);
 
   return (
     <KeyboardAvoidingView
@@ -428,17 +534,20 @@ export default function ChatScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <TransactionRatingModal
-        visible={showRatingModal && bothMarkedComplete && !hasRated}
-        otherUsername={sellerUsername ?? 'user'}
+        visible={showRatingModal && ratingEligible}
+        otherUsername={rateeHandle}
         busy={ratingSubmitting}
         onClose={() => setShowRatingModal(false)}
         onSubmit={handleSubmitRating}
         subtitle={
-          isFullMockDemo
-            ? "They've already left you a rating. How was your experience?"
-            : undefined
+          isMockBuyingDemo
+            ? "They've already finished on their side. How was your experience?"
+            : isMockSellingFirstDemo
+              ? 'How was your experience with this buyer?'
+              : undefined
         }
       />
+
 
       <View
         style={[
@@ -465,7 +574,7 @@ export default function ChatScreen() {
             {listingTitle ?? 'Listing'}
           </Text>
           <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-            @{sellerUsername ?? 'user'}
+            @{headerPeerHandle}
           </Text>
         </View>
 
@@ -476,8 +585,8 @@ export default function ChatScreen() {
         )}
       </View>
 
-      {/* Extra scripted messages (mockChat) — no banner for full local thread (mockDemo). */}
-      {isMockChat && !isFullMockDemo && (
+      {/* Scripted merge with server chat only when `mockChat` on a real thread (not local-only demos). */}
+      {isMockChat && !isLocalOnlyMock && (
         <View style={[styles.mockBanner, { backgroundColor: `${Brand.primary}18` }]}>
           <Ionicons name="chatbubbles-outline" size={16} color={Brand.primary} />
           <Text style={[styles.mockBannerText, { color: colors.text }]}>
@@ -506,12 +615,14 @@ export default function ChatScreen() {
                   )}
                 </Pressable>
               )}
-              {bothMarkedComplete && !hasRated && !showRatingModal && (
+              {ratingEligible && !showRatingModal && (
                 <Pressable
                   onPress={() => setShowRatingModal(true)}
                   style={[styles.rateLinkBtn, { borderColor: Brand.primary }]}
                 >
-                  <Text style={[styles.rateLinkText, { color: Brand.primary }]}>Rate @{sellerUsername}</Text>
+                  <Text style={[styles.rateLinkText, { color: Brand.primary }]}>
+                    Rate @{rateeHandle}
+                  </Text>
                 </Pressable>
               )}
             </>
@@ -549,9 +660,7 @@ export default function ChatScreen() {
       >
         <TextInput
           style={[styles.textInput, { backgroundColor: colors.muted, color: colors.text }]}
-          placeholder={
-            isFullMockDemo ? 'Rate this transaction above — messaging is closed here.' : 'Type a message...'
-          }
+          placeholder="Type a message..."
           placeholderTextColor={colors.textSecondary}
           value={input}
           onChangeText={setInput}
@@ -559,11 +668,10 @@ export default function ChatScreen() {
           maxLength={1000}
           onSubmitEditing={handleSend}
           blurOnSubmit={false}
-          editable={!isFullMockDemo}
         />
         <Pressable
           onPress={handleSend}
-          disabled={isFullMockDemo || !hasText || sending}
+          disabled={!hasText || sending}
           style={[
             styles.sendBtn,
             hasText && !sending
