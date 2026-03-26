@@ -8,7 +8,6 @@ export type User = {
   bio?: string;
   avatar_url?: string;
   email?: string;
-  phone?: string;
 };
 
 type AuthContextType = {

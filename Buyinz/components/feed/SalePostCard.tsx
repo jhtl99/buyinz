@@ -27,10 +27,10 @@ interface Props {
 }
 
 export function SalePostCard({ post, cardWidth, fill }: Props) {
+  const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const condColors = ConditionColors[post.condition];
-  const router = useRouter();
   const { user } = useAuth();
   const isOwnListing = user?.id === post.seller.id;
 
@@ -48,7 +48,8 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
   );
 
   return (
-    <View
+    <Pressable
+      onPress={() => router.push(`/listing/${post.id}`)}
       style={[
         styles.card,
         {
@@ -172,7 +173,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
           </Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

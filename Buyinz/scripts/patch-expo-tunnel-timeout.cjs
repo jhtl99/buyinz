@@ -1,3 +1,7 @@
+/**
+ * Re-applies Expo CLI tunnel timeout patch after npm install.
+ * Expo's default ngrok wait is 10s (too short on slow networks).
+ */
 const fs = require('fs');
 const path = require('path');
 
@@ -5,7 +9,6 @@ const cliCandidates = [
   path.join(__dirname, '../node_modules/expo/node_modules/@expo/cli/build/src/start/server/AsyncNgrok.js'),
   path.join(__dirname, '../node_modules/@expo/cli/build/src/start/server/AsyncNgrok.js'),
 ];
-
 const timeoutOld = 'const TUNNEL_TIMEOUT = 10 * 1000;';
 const timeoutNew =
   "// Patched by scripts/patch-expo-tunnel-timeout.cjs - default 90s; override with EXPO_TUNNEL_TIMEOUT_MS\n" +
@@ -18,7 +21,7 @@ const bodyGuardNew =
 
 const target = cliCandidates.find((p) => fs.existsSync(p));
 if (!target) {
-  console.warn('[patch-expo-tunnel-timeout] AsyncNgrok.js not found. Skipping.');
+  console.warn('[patch-expo-tunnel-timeout] AsyncNgrok.js not found; skip (expo layout may have changed).');
   process.exit(0);
 }
 
@@ -38,6 +41,8 @@ if (source.includes(bodyGuardOld)) {
 if (changed) {
   fs.writeFileSync(target, source);
   console.log('[patch-expo-tunnel-timeout] Applied Expo tunnel patches.');
-} else {
+} else if (source.includes('patch-expo-tunnel-timeout.cjs')) {
   console.log('[patch-expo-tunnel-timeout] Already patched.');
+} else {
+  console.warn('[patch-expo-tunnel-timeout] Expected line not found; Expo CLI may have changed. Skipping.');
 }
