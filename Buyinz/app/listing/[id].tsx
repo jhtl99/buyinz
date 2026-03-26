@@ -7,7 +7,7 @@ import { Colors, Brand, ConditionColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { OfferModal } from '@/components/offers/OfferModal';
-import { submitOffer } from '@/lib/offers';
+import { getOrCreateConversation, sendMessage } from '@/supabase/queries';
 import { supabase } from '@/supabase/client';
 // For demo purposes, we will fetch directly or use mock if not found, 
 // normally we'd pass a query, but since we have a mock system:
@@ -78,17 +78,11 @@ export default function ListingDetailScreen() {
     
     if (!post) return;
 
-    const res = await submitOffer(
-      post.id,
-      user.id,
-      post.seller.id,
-      amount,
-      post.price
-    );
+    const convoId = await getOrCreateConversation(post.id, user.id, post.seller.id);
+    const listedLabel = post.price > 0 ? `$${post.price}` : 'Offer';
+    const offerMessage = `Offer: $${amount} for "${post.title}" (listed at ${listedLabel})`;
 
-    if (!res.success) {
-      throw new Error(res.error);
-    }
+    await sendMessage(convoId, user.id, offerMessage);
     
     Alert.alert('Offer Sent!', `You offered $${amount}. The seller will be notified.`);
   };
