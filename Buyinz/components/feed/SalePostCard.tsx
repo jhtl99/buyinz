@@ -146,6 +146,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
                     id: post.id,
                     sellerId: post.seller.id,
                     sellerUsername: post.seller.username,
+                    peerUsername: post.seller.username,
                     listingTitle: post.title,
                     listingPrice: String(post.price),
                     listingImage: post.images[0] ?? '',

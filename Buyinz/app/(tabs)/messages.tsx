@@ -11,8 +11,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchConversations, type ConversationRow } from '@/supabase/queries';
 import {
   getMockRatingDemoPost,
+  getMockSellingRatingDemoPost,
   getSyntheticBuyingConversationRow,
+  getSyntheticSellingConversationRow,
   SYNTHETIC_RATING_CONVERSATION_ID,
+  SYNTHETIC_SELLING_RATING_CONVERSATION_ID,
 } from '@/lib/mockRatingDemo';
 
 type ChatTab = 'buying' | 'selling';
@@ -71,12 +74,13 @@ export default function MessagesScreen() {
   );
 
   const demoListingId = useMemo(() => getMockRatingDemoPost().id, []);
+  const sellingDemoListingId = useMemo(() => getMockSellingRatingDemoPost().id, []);
 
   const buyingChats = useMemo(() => {
     const fromServer = conversations.filter((c) => c.buyer_id === currentUserId);
     if (!user?.id) return fromServer;
 
-    // Synthetic buying row for rating UX — skip if a real thread exists for the same listing.
+    // Synthetic buying row — skip if a real thread exists for the same listing.
     if (fromServer.some((c) => c.listing_id === demoListingId)) return fromServer;
 
     const synthetic = getSyntheticBuyingConversationRow({
@@ -88,7 +92,19 @@ export default function MessagesScreen() {
     return [synthetic, ...fromServer];
   }, [conversations, currentUserId, user, demoListingId]);
 
-  const sellingChats = conversations.filter((c) => c.seller_id === currentUserId);
+  const sellingChats = useMemo(() => {
+    const fromServer = conversations.filter((c) => c.seller_id === currentUserId);
+    if (!user?.id) return fromServer;
+    if (fromServer.some((c) => c.listing_id === sellingDemoListingId)) return fromServer;
+
+    const synthetic = getSyntheticSellingConversationRow({
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      avatar_url: user.avatar_url ?? null,
+    });
+    return [synthetic, ...fromServer];
+  }, [conversations, currentUserId, user, sellingDemoListingId]);
   const currentChats = activeTab === 'buying' ? buyingChats : sellingChats;
   const accent = TAB_ACCENT[activeTab];
 
@@ -113,7 +129,12 @@ export default function MessagesScreen() {
     const listing = item.listing;
     const lastMsg = item.last_message;
     const isMyLastMsg = lastMsg?.sender_id === currentUserId;
-    const openLocalRatingFlow = item.id === SYNTHETIC_RATING_CONVERSATION_ID;
+    const localMockDemo =
+      item.id === SYNTHETIC_RATING_CONVERSATION_ID
+        ? '1'
+        : item.id === SYNTHETIC_SELLING_RATING_CONVERSATION_ID
+          ? '2'
+          : undefined;
 
     return (
       <Pressable
@@ -125,11 +146,13 @@ export default function MessagesScreen() {
               id: listing.id,
               buyerId: item.buyer_id,
               sellerId: item.seller_id,
-              sellerUsername: otherUser.username,
+              sellerUsername: item.seller.username,
+              buyerUsername: item.buyer.username,
+              peerUsername: otherUser.username,
               listingTitle: listing.title,
               listingPrice: String(listing.price ?? 0),
               listingImage: listing.images?.[0] ?? '',
-              ...(openLocalRatingFlow ? { mockDemo: '1' } : {}),
+              ...(localMockDemo ? { mockDemo: localMockDemo } : {}),
             },
           })
         }

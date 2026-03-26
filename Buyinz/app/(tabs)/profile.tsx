@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,11 +17,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_FEED_POSTS } from '@/data/mockData';
-import { getMockProfileRatings } from '@/lib/mockRatingDemo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { deleteProfile } from '@/lib/supabase';
-import { getFollowers, getFollowing } from '@/supabase/queries';
+import { getFollowers, getFollowing, fetchUserRatingStats } from '@/supabase/queries';
 import { BuyinzProSubscribeModal } from '@/components/pro/BuyinzProSubscribeModal';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -57,39 +57,51 @@ export default function ProfileScreen() {
   const { user, setUser } = useAuth();
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  
+  const [receivedRatings, setReceivedRatings] = useState<{
+    averageRating: number;
+    ratingCount: number;
+  } | null>(null);
+
   const userListings = MOCK_FEED_POSTS.filter(p => p.type === 'sale').slice(0, 6);
   const { isBuyinzPro, listingCount, maxFreeListings, isReady } = useSubscription();
   const [proModalVisible, setProModalVisible] = useState(false);
 
-  const { averageOutOf5, count: mockRatingCount } = getMockProfileRatings();
-
-  const loadConnectionCounts = () => {
-    if (!user?.id) {
-      setFollowersCount(0);
-      setFollowingCount(0);
-      return Promise.resolve();
-    }
-
-    return Promise.all([getFollowers(user.id), getFollowing(user.id)])
-      .then(([followers, following]) => {
-        setFollowersCount(followers.length);
-        setFollowingCount(following.length);
-      })
-      .catch((e) => {
-        console.error(e);
-        setFollowersCount(0);
-        setFollowingCount(0);
-      });
-  };
-
-  useEffect(() => {
-    loadConnectionCounts();
-  }, [user?.id]);
-
   useFocusEffect(
     useCallback(() => {
-      loadConnectionCounts();
+      if (!user?.id) {
+        setFollowersCount(0);
+        setFollowingCount(0);
+        setReceivedRatings(null);
+        return undefined;
+      }
+
+      let cancelled = false;
+      setReceivedRatings(null);
+
+      (async () => {
+        try {
+          const [followers, following, stats] = await Promise.all([
+            getFollowers(user.id!),
+            getFollowing(user.id!),
+            fetchUserRatingStats(user.id!),
+          ]);
+          if (cancelled) return;
+          setFollowersCount(followers.length);
+          setFollowingCount(following.length);
+          setReceivedRatings(stats ?? { averageRating: 0, ratingCount: 0 });
+        } catch (e) {
+          console.error(e);
+          if (!cancelled) {
+            setFollowersCount(0);
+            setFollowingCount(0);
+            setReceivedRatings({ averageRating: 0, ratingCount: 0 });
+          }
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
     }, [user?.id]),
   );
 
@@ -164,16 +176,27 @@ export default function ProfileScreen() {
               <Text style={[styles.location, { color: colors.tabIconDefault }]}>{user.location}</Text>
             </View>
 
-            {/* Placeholder averages until Supabase `users.average_rating` / `rating_count` load — see `getMockProfileRatings`. */}
+            {/* From `users.average_rating` / `rating_count`, maintained when others insert `user_ratings`. */}
             <View style={[styles.ratingRow, { marginTop: 10 }]}>
-              <Ionicons name="star" size={18} color="#F59E0B" />
-              <Text style={[styles.ratingMain, { color: colors.text }]}>
-                {averageOutOf5.toFixed(1)}
-                <Text style={[styles.ratingOutOf, { color: colors.textSecondary }]}> / 5</Text>
-              </Text>
-              <Text style={[styles.ratingCount, { color: colors.textSecondary }]}>
-                · {mockRatingCount} {mockRatingCount === 1 ? 'rating' : 'ratings'}
-              </Text>
+              {receivedRatings === null ? (
+                <ActivityIndicator size="small" color={Brand.primary} />
+              ) : receivedRatings.ratingCount < 1 ? (
+                <Text style={[styles.noRatingsText, { color: colors.textSecondary }]}>
+                  No Ratings yet
+                </Text>
+              ) : (
+                <>
+                  <Ionicons name="star" size={18} color="#F59E0B" />
+                  <Text style={[styles.ratingMain, { color: colors.text }]}>
+                    {receivedRatings.averageRating.toFixed(1)}
+                    <Text style={[styles.ratingOutOf, { color: colors.textSecondary }]}> / 5</Text>
+                  </Text>
+                  <Text style={[styles.ratingCount, { color: colors.textSecondary }]}>
+                    · {receivedRatings.ratingCount}{' '}
+                    {receivedRatings.ratingCount === 1 ? 'rating' : 'ratings'}
+                  </Text>
+                </>
+              )}
             </View>
           </View>
 
@@ -344,6 +367,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 6,
+    minHeight: 22,
+  },
+  noRatingsText: {
+    fontSize: 15,
+    fontWeight: '500',
   },
   ratingMain: {
     fontSize: 16,

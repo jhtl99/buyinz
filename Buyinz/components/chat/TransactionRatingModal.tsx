@@ -58,7 +58,7 @@ export function TransactionRatingModal({
                 <Ionicons
                   name={stars >= n ? 'star' : 'star-outline'}
                   size={36}
-                  color={stars >= n ? '#F59E0B' : colors.muted}
+                  color={stars >= n ? '#F59E0B' : colors.textSecondary}
                 />
               </Pressable>
             ))}

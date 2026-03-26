@@ -675,3 +675,48 @@ export async function submitConversationRating(
 
   if (error) throw error;
 }
+
+/**
+ * Denormalized stats on `public.users`, maintained by trigger after inserts into `user_ratings`
+ * (see supabase/migrations). Source of truth for averages is all rows where `ratee_id` = user.
+ */
+export type UserRatingStats = {
+  averageRating: number;
+  ratingCount: number;
+};
+
+function isMissingUserRatingColumnsError(error: { message?: string; code?: string }): boolean {
+  const m = (error.message ?? '').toLowerCase();
+  return (
+    error.code === '42703' ||
+    m.includes('average_rating') ||
+    m.includes('rating_count') ||
+    (m.includes('column') && m.includes('does not exist'))
+  );
+}
+
+export async function fetchUserRatingStats(userId: string): Promise<UserRatingStats | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('average_rating, rating_count')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    // Quiet until ratings migration is applied (see supabase/migrations/20250325120000_transaction_ratings.sql).
+    if (!isMissingUserRatingColumnsError(error)) {
+      console.warn('[fetchUserRatingStats]', error.message);
+    }
+    return null;
+  }
+  if (!data) return null;
+
+  const ratingCount =
+    typeof data.rating_count === 'number'
+      ? data.rating_count
+      : parseInt(String(data.rating_count ?? 0), 10) || 0;
+  const averageRating =
+    data.average_rating != null ? Number(data.average_rating) : 0;
+
+  return { averageRating, ratingCount };
+}

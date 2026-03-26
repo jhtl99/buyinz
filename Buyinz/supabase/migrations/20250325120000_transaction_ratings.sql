@@ -1,5 +1,9 @@
 -- Run in Supabase SQL Editor (or your migration runner).
--- Adds average rating on users, mutual completion on conversations, and per-transaction ratings.
+--
+-- Ratings model:
+--   • Source of truth: `user_ratings` (one row per rater per conversation; `stars` 1–5, `ratee_id` = who is rated).
+--   • Read model: `users.average_rating` + `users.rating_count` updated by trigger on insert (denormalized for fast profile reads).
+--   • Deal flow: `conversations.buyer_marked_complete_at` / `seller_marked_complete_at` gate when both parties can submit ratings.
 
 alter table public.users
   add column if not exists average_rating numeric(4, 2) not null default 0,
