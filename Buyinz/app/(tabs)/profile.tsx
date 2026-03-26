@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,18 @@ import {
   Pressable,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/theme';
+import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_FEED_POSTS } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { deleteProfile } from '@/lib/supabase';
-import { Alert } from 'react-native';
+import { BuyinzProSubscribeModal } from '@/components/pro/BuyinzProSubscribeModal';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_ITEM_SIZE = SCREEN_WIDTH / 3;
@@ -40,8 +42,10 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, setUser } = useAuth();
-  
-  const userListings = MOCK_FEED_POSTS.filter(p => p.type === 'sale').slice(0, 6);
+  const { isBuyinzPro, listingCount, maxFreeListings, isReady } = useSubscription();
+  const [proModalVisible, setProModalVisible] = useState(false);
+
+  const userListings = MOCK_FEED_POSTS.filter((p) => p.type === 'sale').slice(0, 6);
 
   const handleDeleteAccount = () => {
     Alert.alert('Delete Account', 'Are you sure you want to delete your profile?', [
@@ -87,7 +91,7 @@ export default function ProfileScreen() {
           <View style={styles.avatarStatsRow}>
             <Image source={{ uri: user.avatar_url }} style={[styles.avatar, { borderColor: colors.border }]} />
             <View style={styles.statsRow}>
-              <Stat label="Posts" value={0} />
+              <Stat label="Listings" value={isReady ? listingCount : 0} />
               <Stat label="Followers" value={0} />
               <Stat label="Following" value={0} />
             </View>
@@ -96,6 +100,12 @@ export default function ProfileScreen() {
           <View style={styles.bioSection}>
             <View style={styles.nameRow}>
               <Text style={[styles.displayName, { color: colors.text }]}>{user.display_name}</Text>
+              {isBuyinzPro && (
+                <View style={[styles.proBadge, { backgroundColor: `${Brand.primary}22` }]}>
+                  <Ionicons name="sparkles" size={14} color={Brand.primary} />
+                  <Text style={[styles.proBadgeText, { color: Brand.primary }]}>Pro</Text>
+                </View>
+              )}
               {/* Profile is verified once account exists properly */}
               <View style={styles.verifiedBadge}>
                 <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
@@ -120,6 +130,29 @@ export default function ProfileScreen() {
               <Text style={[styles.actionBtnText, { color: colors.text }]}>Share profile</Text>
             </Pressable>
           </View>
+
+          {!isBuyinzPro && (
+            <View
+              style={[
+                styles.accountCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.accountCardTitle, { color: colors.text }]}>Account</Text>
+              <Text style={[styles.accountCardLine, { color: colors.textSecondary }]}>
+                {isReady
+                  ? `${listingCount} of ${maxFreeListings} free listings used`
+                  : 'Loading listing allowance…'}
+              </Text>
+              <Pressable
+                style={[styles.proCta, { backgroundColor: Brand.primary }]}
+                onPress={() => setProModalVisible(true)}
+              >
+                <Ionicons name="card-outline" size={18} color="#fff" />
+                <Text style={styles.proCtaText}>Subscribe to Buyinz Pro</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* Grid Header */}
@@ -139,6 +172,8 @@ export default function ProfileScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <BuyinzProSubscribeModal visible={proModalVisible} onClose={() => setProModalVisible(false)} />
     </View>
   );
 }
@@ -203,6 +238,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginRight: 6,
   },
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginRight: 6,
+    gap: 4,
+  },
+  proBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -243,6 +291,35 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontWeight: '600',
     fontSize: 14,
+  },
+  accountCard: {
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  accountCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  accountCardLine: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  proCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  proCtaText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   gridHeader: {
     alignItems: 'center',
