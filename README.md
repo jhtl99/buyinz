@@ -1,73 +1,90 @@
-# Welcome to your Lovable project
+# Buyinz
 
-## Project info
+A peer-to-peer marketplace project: browse local listings, chat with buyers and sellers, and complete sales with mutual confirmation and star ratings. The repo contains a **web prototype** (Vite + React) and a **mobile app** (Expo) that talks to **Supabase** for auth, data, storage, and realtime messaging.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Repository layout
 
-## How can I edit this code?
+| Path | Description |
+|------|-------------|
+| `/` (this folder) | Web UI: Vite, React, TypeScript, Tailwind, shadcn-ui. Uses mock data for demos and UI work. |
+| `Buyinz/` | Production-oriented **Expo** app (iOS, Android, web). Supabase-backed listings, profiles, messages, and transaction ratings. |
 
-There are several ways of editing your application.
+Work in whichever app matches your task; the Expo app under `Buyinz/` is where backend integration lives.
 
-**Use Lovable**
+## Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Node.js** 20+ (LTS recommended) and npm
+- For **Buyinz**: an [Expo](https://docs.expo.dev/) environment (Expo Go or a dev build)
+- A **Supabase** project if you run `Buyinz` against a real backend (see below)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Web app (root)
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Opens the Vite dev server (default port from Vite, often `5173`). Use `npm run build` for production builds and `npm run test` for Vitest.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Buyinz (Expo mobile app)
 
-**Use GitHub Codespaces**
+```bash
+cd Buyinz
+npm install
+npx expo start
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Then press `i` / `a` / `w` for iOS simulator, Android emulator, or web. The app uses [Expo Router](https://docs.expo.dev/router/introduction/) (`app/` file-based routes).
 
-## What technologies are used for this project?
+### Environment
 
-This project is built with:
+Create `Buyinz/.env` (or use your shell) with your Supabase **anon** key:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```bash
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-## How can I deploy this project?
+The Supabase project URL is configured in `Buyinz/lib/supabase.ts`. Point it at your own project if you are not using the shared team instance.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Without a valid key, some calls fall back to a dummy key and will fail against a real database; keep the key out of public repos.
 
-## Can I connect a custom domain to my Lovable project?
+### Database (Supabase)
 
-Yes, you can!
+SQL migrations live in `Buyinz/supabase/migrations/`. Apply them in the Supabase SQL editor (or your migration runner) so tables and policies match the app. Migrations add things like:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- `users` profile fields (including `average_rating` / `rating_count` when using ratings)
+- `posts`, `conversations`, `messages`
+- `user_ratings` and transaction completion timestamps on `conversations`
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+If Row Level Security blocks an operation (for example updating a conversation when marking a transaction complete), add or adjust policies in the Supabase dashboard so authenticated users can only act as intended.
+
+Enable **Realtime** on relevant tables (e.g. `messages`, optionally `conversations`) if you want live updates without refreshing.
+
+### Auth notes
+
+Email signup and Google OAuth flows are wired through Supabase. For Google sign-in, configure redirect URLs in Supabase (Auth → URL Configuration) to match your Expo scheme (see comments in `Buyinz/lib/supabase.ts` and `Buyinz/app/create-profile.tsx`).
+
+## Features (Buyinz)
+
+- **Feed & discovery** — Listings with location/neighborhood-style discovery helpers.
+- **Profiles** — Display name, username, bio, avatar; profile shows **average rating** when reviews exist.
+- **Messaging** — Conversations per listing between buyer and seller; realtime message subscription.
+- **Transactions & ratings** — Both parties can mark a deal complete in chat; after both confirm, each can submit a **1–5 star** rating for the other person. Averages are stored on `users` and updated when ratings are inserted.
+
+## Scripts (Buyinz)
+
+| Command | Purpose |
+|---------|---------|
+| `npm start` | `expo start` |
+| `npm run ios` / `npm run android` / `npm run web` | Platform-specific dev |
+| `npm run lint` | ESLint via Expo |
+
+## Tech stack summary
+
+**Web (root):** Vite, React, TypeScript, Tailwind CSS, Radix/shadcn-style components, React Router (as configured).
+
+**Buyinz:** Expo SDK 54, React Native, Expo Router, Supabase JS client, `@expo/vector-icons`, `expo-image`, etc.
+
+## License
+
+Private / course use unless you add an explicit license.
