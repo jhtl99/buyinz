@@ -8,6 +8,7 @@ import {
   type GeoPoint,
 } from '@/lib/discoveryLocation';
 import type { ListingDraft, ImageAsset } from '@/lib/listings';
+import { formatBoostRpcError } from '@/lib/boostErrors';
 
 const DEFAULT_MOCK_USER_ID = '11111111-1111-1111-1111-111111111111';
 const IMAGE_BUCKET = 'listing-images';
@@ -67,6 +68,27 @@ function mapUserRowToSocialUser(row: any): SocialUser {
   };
 }
 
+/** Raw DB row ordering for Friends+ feed: boosted sale posts first, then recency. */
+function sortRowsForHomeFeed(rows: any[]): any[] {
+  const now = Date.now();
+
+  const rowBoostActive = (row: any): boolean => {
+    if (row.type !== 'sale') return false;
+    if (!row.boosted_until) return false;
+    return new Date(row.boosted_until).getTime() > now;
+  };
+
+  return [...rows].sort((a, b) => {
+    const aBoost = rowBoostActive(a);
+    const bBoost = rowBoostActive(b);
+    if (aBoost !== bBoost) return aBoost ? -1 : 1;
+    if (aBoost && bBoost) {
+      return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime();
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
 function timeAgo(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
@@ -124,6 +146,8 @@ function mapRowToPost(row: any): Post {
     images: row.images ?? [],
     price: row.price ?? 0,
     condition: row.condition ?? 'Good',
+    sold: row.sold ?? false,
+    boostedUntil: row.boosted_until ?? null,
   } as SalePost;
 }
 
@@ -135,6 +159,100 @@ export async function fetchFeedPosts(): Promise<Post[]> {
 
   if (error) throw error;
   return (data ?? []).map(mapRowToPost);
+}
+
+/** Accepted outgoing follows: user ids the current user follows (first degree). */
+export async function getFollowingUserIds(currentUserId: string): Promise<string[]> {
+  const { data: rows, error } = await supabase
+    .from('social_connections')
+    .select('addressee_id')
+    .eq('requester_id', currentUserId)
+    .eq('status', 'accepted');
+
+  if (error) {
+    if (isMissingSocialTable(error)) return [];
+    throw error;
+  }
+
+  return (rows ?? []).map((r) => r.addressee_id);
+}
+
+/**
+ * Home Friends+ feed: posts from followed users only; optional second degree (follows of follows).
+ * Excludes the current user's own posts. Chronological by created_at desc.
+ */
+export async function fetchFriendsFeedPosts(
+  currentUserId: string,
+  options: { includeSecondDegree: boolean },
+): Promise<Post[]> {
+  if (!currentUserId) return [];
+
+  const firstDegreeIds = await getFollowingUserIds(currentUserId);
+  const allowedUserIds = new Set<string>(firstDegreeIds);
+
+  if (options.includeSecondDegree && firstDegreeIds.length > 0) {
+    const { data: secondRows, error: secondError } = await supabase
+      .from('social_connections')
+      .select('addressee_id')
+      .in('requester_id', firstDegreeIds)
+      .eq('status', 'accepted');
+
+    if (secondError && !isMissingSocialTable(secondError)) throw secondError;
+
+    for (const row of secondRows ?? []) {
+      allowedUserIds.add(row.addressee_id);
+    }
+  }
+
+  allowedUserIds.delete(currentUserId);
+
+  const ids = [...allowedUserIds];
+  if (!ids.length) return [];
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, users(*)')
+    .in('user_id', ids)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return sortRowsForHomeFeed(data ?? []).map(mapRowToPost);
+}
+
+/**
+ * Current user's sale listings (profile grid). Newest first.
+ */
+export async function fetchUserSaleListings(userId: string): Promise<SalePost[]> {
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, users(*)')
+    .eq('user_id', userId)
+    .eq('type', 'sale')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => mapRowToPost(row) as SalePost);
+}
+
+/** Single sale listing for detail screen (DB). */
+export async function fetchSaleListingById(id: string): Promise<SalePost | null> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, users(*)')
+    .eq('id', id)
+    .eq('type', 'sale')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return mapRowToPost(data) as SalePost;
+}
+
+export async function applyListingBoost(listingId: string): Promise<void> {
+  const { error } = await supabase.rpc('apply_listing_boost', { p_listing_id: listingId });
+  if (error) throw new Error(formatBoostRpcError(error));
 }
 
 export async function searchUsers(
@@ -345,18 +463,7 @@ export async function getFollowers(currentUserId: string): Promise<SocialUser[]>
 }
 
 export async function getFollowing(currentUserId: string): Promise<SocialUser[]> {
-  const { data: rows, error } = await supabase
-    .from('social_connections')
-    .select('addressee_id')
-    .eq('requester_id', currentUserId)
-    .eq('status', 'accepted');
-
-  if (error) {
-    if (isMissingSocialTable(error)) return [];
-    throw error;
-  }
-
-  const ids = (rows ?? []).map((r) => r.addressee_id);
+  const ids = await getFollowingUserIds(currentUserId);
   if (!ids.length) return [];
 
   const { data: usersData, error: usersError } = await supabase
@@ -703,7 +810,6 @@ export async function fetchUserRatingStats(userId: string): Promise<UserRatingSt
     .maybeSingle();
 
   if (error) {
-    // Quiet until ratings migration is applied (see supabase/migrations/20250325120000_transaction_ratings.sql).
     if (!isMissingUserRatingColumnsError(error)) {
       console.warn('[fetchUserRatingStats]', error.message);
     }

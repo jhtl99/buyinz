@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   ScrollView,
   Dimensions,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,12 +15,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MOCK_FEED_POSTS } from '@/data/mockData';
+import type { SalePost } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { deleteProfile } from '@/lib/supabase';
-import { getFollowers, getFollowing, fetchUserRatingStats } from '@/supabase/queries';
+import { getFollowers, getFollowing, fetchUserSaleListings } from '@/supabase/queries';
 import { BuyinzProSubscribeModal } from '@/components/pro/BuyinzProSubscribeModal';
+import { ProfileReceivedRatingsRow } from '@/components/profile/ProfileReceivedRatingsRow';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_ITEM_SIZE = SCREEN_WIDTH / 3;
@@ -57,52 +57,62 @@ export default function ProfileScreen() {
   const { user, setUser } = useAuth();
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [receivedRatings, setReceivedRatings] = useState<{
-    averageRating: number;
-    ratingCount: number;
-  } | null>(null);
-
-  const userListings = MOCK_FEED_POSTS.filter(p => p.type === 'sale').slice(0, 6);
+  
+  const [userListings, setUserListings] = useState<SalePost[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
   const { isBuyinzPro, listingCount, maxFreeListings, isReady } = useSubscription();
   const [proModalVisible, setProModalVisible] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user?.id) {
+  const paddedGridItems = useMemo(() => {
+    const items: (SalePost | null)[] = [...userListings];
+    const remainder = items.length % 3;
+    if (remainder !== 0) {
+      for (let i = 0; i < 3 - remainder; i++) items.push(null);
+    }
+    return items;
+  }, [userListings]);
+
+  const loadListings = useCallback(() => {
+    if (!user?.id) {
+      setUserListings([]);
+      setListingsLoading(false);
+      return;
+    }
+    setListingsLoading(true);
+    fetchUserSaleListings(user.id)
+      .then(setUserListings)
+      .catch((e) => {
+        console.error(e);
+        setUserListings([]);
+      })
+      .finally(() => setListingsLoading(false));
+  }, [user?.id]);
+
+
+  const loadConnectionCounts = useCallback(() => {
+    if (!user?.id) {
+      setFollowersCount(0);
+      setFollowingCount(0);
+      return Promise.resolve();
+    }
+
+    return Promise.all([getFollowers(user.id), getFollowing(user.id)])
+      .then(([followers, following]) => {
+        setFollowersCount(followers.length);
+        setFollowingCount(following.length);
+      })
+      .catch((e) => {
+        console.error(e);
         setFollowersCount(0);
         setFollowingCount(0);
-        setReceivedRatings(null);
-        return undefined;
-      }
+      });
+  }, [user?.id]);
 
-      let cancelled = false;
-      setReceivedRatings(null);
-
-      (async () => {
-        try {
-          const [followers, following, stats] = await Promise.all([
-            getFollowers(user.id!),
-            getFollowing(user.id!),
-            fetchUserRatingStats(user.id!),
-          ]);
-          if (cancelled) return;
-          setFollowersCount(followers.length);
-          setFollowingCount(following.length);
-          setReceivedRatings(stats ?? { averageRating: 0, ratingCount: 0 });
-        } catch (e) {
-          console.error(e);
-          if (!cancelled) {
-            setFollowersCount(0);
-            setFollowingCount(0);
-            setReceivedRatings({ averageRating: 0, ratingCount: 0 });
-          }
-        }
-      })();
-
-      return () => {
-        cancelled = true;
-      };
-    }, [user?.id]),
+  useFocusEffect(
+    useCallback(() => {
+      loadConnectionCounts();
+      loadListings();
+    }, [loadConnectionCounts, loadListings]),
   );
 
   const handleDeleteAccount = () => {
@@ -176,28 +186,7 @@ export default function ProfileScreen() {
               <Text style={[styles.location, { color: colors.tabIconDefault }]}>{user.location}</Text>
             </View>
 
-            {/* From `users.average_rating` / `rating_count`, maintained when others insert `user_ratings`. */}
-            <View style={[styles.ratingRow, { marginTop: 10 }]}>
-              {receivedRatings === null ? (
-                <ActivityIndicator size="small" color={Brand.primary} />
-              ) : receivedRatings.ratingCount < 1 ? (
-                <Text style={[styles.noRatingsText, { color: colors.textSecondary }]}>
-                  No Ratings yet
-                </Text>
-              ) : (
-                <>
-                  <Ionicons name="star" size={18} color="#F59E0B" />
-                  <Text style={[styles.ratingMain, { color: colors.text }]}>
-                    {receivedRatings.averageRating.toFixed(1)}
-                    <Text style={[styles.ratingOutOf, { color: colors.textSecondary }]}> / 5</Text>
-                  </Text>
-                  <Text style={[styles.ratingCount, { color: colors.textSecondary }]}>
-                    · {receivedRatings.ratingCount}{' '}
-                    {receivedRatings.ratingCount === 1 ? 'rating' : 'ratings'}
-                  </Text>
-                </>
-              )}
-            </View>
+            <ProfileReceivedRatingsRow userId={user.id} />
           </View>
 
           <View style={styles.actionButtons}>
@@ -245,16 +234,44 @@ export default function ProfileScreen() {
         </View>
 
         {/* Listings Grid */}
-        <View style={styles.gridContainer}>
-          {userListings.map((listing, i) => (
-            <View key={listing.id} style={[styles.gridItem, { width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE }]}>
-              <Image 
-                source={{ uri: listing.type === 'sale' ? listing.images[0] : 'https://via.placeholder.com/150' }} 
-                style={styles.gridImage} 
-              />
-            </View>
-          ))}
-        </View>
+        {listingsLoading ? (
+          <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+            <Text style={{ color: colors.tabIconDefault }}>Loading listings…</Text>
+          </View>
+        ) : userListings.length === 0 ? (
+          <View style={{ paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' }}>
+            <Ionicons name="images-outline" size={40} color={colors.tabIconDefault} style={{ marginBottom: 12 }} />
+            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 6 }}>No listings yet</Text>
+            <Text style={{ color: colors.tabIconDefault, textAlign: 'center', fontSize: 14 }}>
+              When you post items for sale, they will show here in a grid.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.gridContainer}>
+            {paddedGridItems.map((listing, i) => (
+              <View
+                key={listing ? listing.id : `grid-pad-${i}`}
+                style={[styles.gridItem, { width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE }]}
+              >
+                {listing ? (
+                  <Pressable
+                    style={{ flex: 1 }}
+                    onPress={() => router.push(`/listing/${listing.id}`)}
+                  >
+                    <Image
+                      source={{
+                        uri: listing.images[0] ?? 'https://via.placeholder.com/150',
+                      }}
+                      style={styles.gridImage}
+                    />
+                  </Pressable>
+                ) : (
+                  <View style={[styles.gridImage, { backgroundColor: colors.muted }]} />
+                )}
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <BuyinzProSubscribeModal visible={proModalVisible} onClose={() => setProModalVisible(false)} />
@@ -361,29 +378,6 @@ const styles = StyleSheet.create({
   location: {
     fontSize: 13,
     marginLeft: 4,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    minHeight: 22,
-  },
-  noRatingsText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  ratingMain: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  ratingOutOf: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  ratingCount: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   actionButtons: {
     flexDirection: 'row',
