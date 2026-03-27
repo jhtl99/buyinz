@@ -120,9 +120,9 @@ export function ListingBoostModal({
       await applyListingBoost(listingId);
       setStep('success');
       onBoostSuccess?.();
-    } catch (e: any) {
-      const msg = e?.message ?? e?.error_description ?? 'Could not apply boost.';
-      Alert.alert('Boost failed', String(msg));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not apply boost.';
+      Alert.alert('Boost failed', msg);
     } finally {
       setBusy(false);
     }

@@ -27,10 +27,12 @@ export default function ListingDetailScreen() {
   const [offerModalVisible, setOfferModalVisible] = useState(false);
   const [boostModalVisible, setBoostModalVisible] = useState(false);
   const [countdownLabel, setCountdownLabel] = useState('00:00');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadPost = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const fromDb = await fetchSaleListingById(id);
       if (fromDb) {
@@ -39,9 +41,12 @@ export default function ListingDetailScreen() {
       }
       const found = MOCK_FEED_POSTS.find((p) => p.id === id && p.type === 'sale') as SalePost | undefined;
       setPost(found ?? null);
-    } catch {
-      const found = MOCK_FEED_POSTS.find((p) => p.id === id && p.type === 'sale') as SalePost | undefined;
-      setPost(found ?? null);
+    } catch (e) {
+      console.error('[listing detail] fetchSaleListingById failed', e);
+      setPost(null);
+      setLoadError(
+        e instanceof Error ? e.message : 'Could not load this listing. Check your connection and try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -98,8 +103,25 @@ export default function ListingDetailScreen() {
 
   if (!post) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>Listing not found</Text>
+      <View style={[styles.center, { backgroundColor: colors.background, padding: 24 }]}>
+        {loadError ? (
+          <>
+            <Text style={{ color: colors.text, textAlign: 'center', marginBottom: 12, fontWeight: '600' }}>
+              {"Couldn't load listing"}
+            </Text>
+            <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 20 }}>
+              {loadError}
+            </Text>
+            <Pressable
+              style={[styles.retryBtn, { backgroundColor: Brand.primary }]}
+              onPress={() => void loadPost()}
+            >
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Text style={{ color: colors.text }}>Listing not found</Text>
+        )}
       </View>
     );
   }
@@ -350,6 +372,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   buttonText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  retryBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryBtnText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '700',
   },

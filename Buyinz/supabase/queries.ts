@@ -8,6 +8,7 @@ import {
   type GeoPoint,
 } from '@/lib/discoveryLocation';
 import type { ListingDraft, ImageAsset } from '@/lib/listings';
+import { formatBoostRpcError } from '@/lib/boostErrors';
 
 const DEFAULT_MOCK_USER_ID = '11111111-1111-1111-1111-111111111111';
 const IMAGE_BUCKET = 'listing-images';
@@ -251,7 +252,7 @@ export async function fetchSaleListingById(id: string): Promise<SalePost | null>
 
 export async function applyListingBoost(listingId: string): Promise<void> {
   const { error } = await supabase.rpc('apply_listing_boost', { p_listing_id: listingId });
-  if (error) throw error;
+  if (error) throw new Error(formatBoostRpcError(error));
 }
 
 export async function searchUsers(
