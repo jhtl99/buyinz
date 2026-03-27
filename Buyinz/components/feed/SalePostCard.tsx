@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { Colors, ConditionColors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SalePost } from '@/data/mockData';
+import { isBoostActive, formatBoostCountdownHHMM } from '@/lib/boost';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_H_PADDING = 12;
@@ -37,6 +38,18 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
   const [imgIndex, setImgIndex] = useState(0);
   const [saved, setSaved] = useState(false);
   const [imgAreaHeight, setImgAreaHeight] = useState(300);
+  const [boostCountdown, setBoostCountdown] = useState('');
+
+  useEffect(() => {
+    if (!isBoostActive(post.boostedUntil)) {
+      setBoostCountdown('');
+      return;
+    }
+    const tick = () => setBoostCountdown(formatBoostCountdownHHMM(post.boostedUntil));
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, [post.boostedUntil, post.id]);
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -107,6 +120,16 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
             />
           ))}
         </ScrollView>
+
+        {isBoostActive(post.boostedUntil) && (
+          <View style={styles.boostOverlay} pointerEvents="none">
+            <View style={styles.boostedPill}>
+              <Ionicons name="rocket-outline" size={12} color="#fff" />
+              <Text style={styles.boostedPillText}>Boosted</Text>
+            </View>
+            {isOwnListing && <Text style={styles.boostTimer}>{boostCountdown}</Text>}
+          </View>
+        )}
 
         {/* Dot indicators */}
         {post.images.length > 1 && (
@@ -223,6 +246,37 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 200,
     overflow: 'hidden',
+  },
+  boostOverlay: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  boostedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  boostedPillText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  boostTimer: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    textShadowColor: 'rgba(0,0,0,0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   dotsRow: {
     position: 'absolute',
