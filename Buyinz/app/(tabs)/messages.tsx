@@ -1,12 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  FlatList,
-  ActivityIndicator,
-} from 'react-native';
+import { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,6 +9,14 @@ import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchConversations, type ConversationRow } from '@/supabase/queries';
+import {
+  getMockRatingDemoPost,
+  getMockSellingRatingDemoPost,
+  getSyntheticBuyingConversationRow,
+  getSyntheticSellingConversationRow,
+  SYNTHETIC_RATING_CONVERSATION_ID,
+  SYNTHETIC_SELLING_RATING_CONVERSATION_ID,
+} from '@/lib/mockRatingDemo';
 
 type ChatTab = 'buying' | 'selling';
 
@@ -65,7 +66,6 @@ export default function MessagesScreen() {
     }
   }, [currentUserId]);
 
-  // Reload conversations every time the tab gains focus
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
@@ -73,8 +73,38 @@ export default function MessagesScreen() {
     }, [loadConversations]),
   );
 
-  const buyingChats = conversations.filter((c) => c.buyer_id === currentUserId);
-  const sellingChats = conversations.filter((c) => c.seller_id === currentUserId);
+  const demoListingId = useMemo(() => getMockRatingDemoPost().id, []);
+  const sellingDemoListingId = useMemo(() => getMockSellingRatingDemoPost().id, []);
+
+  const buyingChats = useMemo(() => {
+    const fromServer = conversations.filter((c) => c.buyer_id === currentUserId);
+    if (!user?.id) return fromServer;
+
+    // Synthetic buying row — skip if a real thread exists for the same listing.
+    if (fromServer.some((c) => c.listing_id === demoListingId)) return fromServer;
+
+    const synthetic = getSyntheticBuyingConversationRow({
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      avatar_url: user.avatar_url ?? null,
+    });
+    return [synthetic, ...fromServer];
+  }, [conversations, currentUserId, user, demoListingId]);
+
+  const sellingChats = useMemo(() => {
+    const fromServer = conversations.filter((c) => c.seller_id === currentUserId);
+    if (!user?.id) return fromServer;
+    if (fromServer.some((c) => c.listing_id === sellingDemoListingId)) return fromServer;
+
+    const synthetic = getSyntheticSellingConversationRow({
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      avatar_url: user.avatar_url ?? null,
+    });
+    return [synthetic, ...fromServer];
+  }, [conversations, currentUserId, user, sellingDemoListingId]);
   const currentChats = activeTab === 'buying' ? buyingChats : sellingChats;
   const accent = TAB_ACCENT[activeTab];
 
@@ -99,6 +129,12 @@ export default function MessagesScreen() {
     const listing = item.listing;
     const lastMsg = item.last_message;
     const isMyLastMsg = lastMsg?.sender_id === currentUserId;
+    const localMockDemo =
+      item.id === SYNTHETIC_RATING_CONVERSATION_ID
+        ? '1'
+        : item.id === SYNTHETIC_SELLING_RATING_CONVERSATION_ID
+          ? '2'
+          : undefined;
 
     return (
       <Pressable
@@ -110,10 +146,13 @@ export default function MessagesScreen() {
               id: listing.id,
               buyerId: item.buyer_id,
               sellerId: item.seller_id,
-              sellerUsername: otherUser.username,
+              sellerUsername: item.seller.username,
+              buyerUsername: item.buyer.username,
+              peerUsername: otherUser.username,
               listingTitle: listing.title,
               listingPrice: String(listing.price ?? 0),
               listingImage: listing.images?.[0] ?? '',
+              ...(localMockDemo ? { mockDemo: localMockDemo } : {}),
             },
           })
         }
@@ -155,7 +194,6 @@ export default function MessagesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      {/* Header */}
       <View style={styles.headerArea}>
         <Text style={[styles.title, { color: colors.text }]}>Messages</Text>
 
@@ -186,7 +224,6 @@ export default function MessagesScreen() {
         </View>
       </View>
 
-      {/* Conversation list */}
       {loading ? (
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" color={Brand.primary} />

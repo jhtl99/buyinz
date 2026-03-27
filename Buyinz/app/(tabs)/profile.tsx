@@ -21,6 +21,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { deleteProfile } from '@/lib/supabase';
 import { getFollowers, getFollowing, fetchUserSaleListings } from '@/supabase/queries';
 import { BuyinzProSubscribeModal } from '@/components/pro/BuyinzProSubscribeModal';
+import { ProfileReceivedRatingsRow } from '@/components/profile/ProfileReceivedRatingsRow';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_ITEM_SIZE = SCREEN_WIDTH / 3;
@@ -184,6 +185,8 @@ export default function ProfileScreen() {
               <Ionicons name="location-outline" size={14} color={colors.tint} />
               <Text style={[styles.location, { color: colors.tabIconDefault }]}>{user.location}</Text>
             </View>
+
+            <ProfileReceivedRatingsRow userId={user.id} />
           </View>
 
           <View style={styles.actionButtons}>
