@@ -67,6 +67,27 @@ function mapUserRowToSocialUser(row: any): SocialUser {
   };
 }
 
+/** Raw DB row ordering for Friends+ feed: boosted sale posts first, then recency. */
+function sortRowsForHomeFeed(rows: any[]): any[] {
+  const now = Date.now();
+
+  const rowBoostActive = (row: any): boolean => {
+    if (row.type !== 'sale') return false;
+    if (!row.boosted_until) return false;
+    return new Date(row.boosted_until).getTime() > now;
+  };
+
+  return [...rows].sort((a, b) => {
+    const aBoost = rowBoostActive(a);
+    const bBoost = rowBoostActive(b);
+    if (aBoost !== bBoost) return aBoost ? -1 : 1;
+    if (aBoost && bBoost) {
+      return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime();
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
 function timeAgo(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
@@ -124,6 +145,8 @@ function mapRowToPost(row: any): Post {
     images: row.images ?? [],
     price: row.price ?? 0,
     condition: row.condition ?? 'Good',
+    sold: row.sold ?? false,
+    boostedUntil: row.boosted_until ?? null,
   } as SalePost;
 }
 
@@ -192,7 +215,43 @@ export async function fetchFriendsFeedPosts(
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return (data ?? []).map(mapRowToPost);
+  return sortRowsForHomeFeed(data ?? []).map(mapRowToPost);
+}
+
+/**
+ * Current user's sale listings (profile grid). Newest first.
+ */
+export async function fetchUserSaleListings(userId: string): Promise<SalePost[]> {
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, users(*)')
+    .eq('user_id', userId)
+    .eq('type', 'sale')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => mapRowToPost(row) as SalePost);
+}
+
+/** Single sale listing for detail screen (DB). */
+export async function fetchSaleListingById(id: string): Promise<SalePost | null> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, users(*)')
+    .eq('id', id)
+    .eq('type', 'sale')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return mapRowToPost(data) as SalePost;
+}
+
+export async function applyListingBoost(listingId: string): Promise<void> {
+  const { error } = await supabase.rpc('apply_listing_boost', { p_listing_id: listingId });
+  if (error) throw error;
 }
 
 export async function searchUsers(

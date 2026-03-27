@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,11 +15,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MOCK_FEED_POSTS } from '@/data/mockData';
+import type { SalePost } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { deleteProfile } from '@/lib/supabase';
-import { getFollowers, getFollowing } from '@/supabase/queries';
+import { getFollowers, getFollowing, fetchUserSaleListings } from '@/supabase/queries';
 import { BuyinzProSubscribeModal } from '@/components/pro/BuyinzProSubscribeModal';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -57,12 +57,38 @@ export default function ProfileScreen() {
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   
-  const userListings = MOCK_FEED_POSTS.filter(p => p.type === 'sale').slice(0, 6);
+  const [userListings, setUserListings] = useState<SalePost[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
   const { isBuyinzPro, listingCount, maxFreeListings, isReady } = useSubscription();
   const [proModalVisible, setProModalVisible] = useState(false);
 
+  const paddedGridItems = useMemo(() => {
+    const items: (SalePost | null)[] = [...userListings];
+    const remainder = items.length % 3;
+    if (remainder !== 0) {
+      for (let i = 0; i < 3 - remainder; i++) items.push(null);
+    }
+    return items;
+  }, [userListings]);
 
-  const loadConnectionCounts = () => {
+  const loadListings = useCallback(() => {
+    if (!user?.id) {
+      setUserListings([]);
+      setListingsLoading(false);
+      return;
+    }
+    setListingsLoading(true);
+    fetchUserSaleListings(user.id)
+      .then(setUserListings)
+      .catch((e) => {
+        console.error(e);
+        setUserListings([]);
+      })
+      .finally(() => setListingsLoading(false));
+  }, [user?.id]);
+
+
+  const loadConnectionCounts = useCallback(() => {
     if (!user?.id) {
       setFollowersCount(0);
       setFollowingCount(0);
@@ -79,16 +105,13 @@ export default function ProfileScreen() {
         setFollowersCount(0);
         setFollowingCount(0);
       });
-  };
-
-  useEffect(() => {
-    loadConnectionCounts();
   }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
       loadConnectionCounts();
-    }, [user?.id]),
+      loadListings();
+    }, [loadConnectionCounts, loadListings]),
   );
 
   const handleDeleteAccount = () => {
@@ -208,16 +231,44 @@ export default function ProfileScreen() {
         </View>
 
         {/* Listings Grid */}
-        <View style={styles.gridContainer}>
-          {userListings.map((listing, i) => (
-            <View key={listing.id} style={[styles.gridItem, { width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE }]}>
-              <Image 
-                source={{ uri: listing.type === 'sale' ? listing.images[0] : 'https://via.placeholder.com/150' }} 
-                style={styles.gridImage} 
-              />
-            </View>
-          ))}
-        </View>
+        {listingsLoading ? (
+          <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+            <Text style={{ color: colors.tabIconDefault }}>Loading listings…</Text>
+          </View>
+        ) : userListings.length === 0 ? (
+          <View style={{ paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' }}>
+            <Ionicons name="images-outline" size={40} color={colors.tabIconDefault} style={{ marginBottom: 12 }} />
+            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 6 }}>No listings yet</Text>
+            <Text style={{ color: colors.tabIconDefault, textAlign: 'center', fontSize: 14 }}>
+              When you post items for sale, they will show here in a grid.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.gridContainer}>
+            {paddedGridItems.map((listing, i) => (
+              <View
+                key={listing ? listing.id : `grid-pad-${i}`}
+                style={[styles.gridItem, { width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE }]}
+              >
+                {listing ? (
+                  <Pressable
+                    style={{ flex: 1 }}
+                    onPress={() => router.push(`/listing/${listing.id}`)}
+                  >
+                    <Image
+                      source={{
+                        uri: listing.images[0] ?? 'https://via.placeholder.com/150',
+                      }}
+                      style={styles.gridImage}
+                    />
+                  </Pressable>
+                ) : (
+                  <View style={[styles.gridImage, { backgroundColor: colors.muted }]} />
+                )}
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <BuyinzProSubscribeModal visible={proModalVisible} onClose={() => setProModalVisible(false)} />

@@ -1,10 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
+import { supabase } from '@/supabase/client';
 
-const supabaseUrl = 'https://xoohzqggqzpdzaymztvq.supabase.co';
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'dummy_key_for_testing';
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+/** Re-export the shared client (SecureStore session) — same instance as @/supabase/queries. */
+export { supabase };
 
 export interface UserProfile {
   id?: string;

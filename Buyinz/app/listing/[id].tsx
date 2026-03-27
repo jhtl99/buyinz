@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Brand, ConditionColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { OfferModal } from '@/components/offers/OfferModal';
-import { getOrCreateConversation, sendMessage } from '@/supabase/queries';
-import { supabase } from '@/supabase/client';
-// For demo purposes, we will fetch directly or use mock if not found, 
-// normally we'd pass a query, but since we have a mock system:
+import { getOrCreateConversation, sendMessage, fetchSaleListingById } from '@/supabase/queries';
+import { ListingBoostModal } from '@/components/pro/ListingBoostModal';
+import { isBoostActive, formatBoostCountdownHHMM } from '@/lib/boost';
 import { MOCK_FEED_POSTS, SalePost } from '@/data/mockData';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -25,57 +25,54 @@ export default function ListingDetailScreen() {
   const [post, setPost] = useState<SalePost | null>(null);
   const [loading, setLoading] = useState(true);
   const [offerModalVisible, setOfferModalVisible] = useState(false);
+  const [boostModalVisible, setBoostModalVisible] = useState(false);
+  const [countdownLabel, setCountdownLabel] = useState('00:00');
+
+  const loadPost = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const fromDb = await fetchSaleListingById(id);
+      if (fromDb) {
+        setPost(fromDb);
+        return;
+      }
+      const found = MOCK_FEED_POSTS.find((p) => p.id === id && p.type === 'sale') as SalePost | undefined;
+      setPost(found ?? null);
+    } catch {
+      const found = MOCK_FEED_POSTS.find((p) => p.id === id && p.type === 'sale') as SalePost | undefined;
+      setPost(found ?? null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadPost();
+    }, [loadPost]),
+  );
 
   useEffect(() => {
-    // 1. In a real app we would fetch the single item based on `id`
-    // Just pulling from mock feed for immediate prototyping:
-    const found = MOCK_FEED_POSTS.find(p => p.id === id && p.type === 'sale') as SalePost;
-    
-    // As backup if it's from DB
-    if (!found) {
-      const fetchFromDb = async () => {
-         const { data, error } = await supabase.from('posts').select('*, users(*)').eq('id', id).single();
-         if (data) {
-             setPost({
-               id: data.id,
-               type: 'sale',
-               seller: {
-                 id: data.users.id,
-                 username: data.users.username,
-                 displayName: data.users.display_name,
-                 avatar: data.users.avatar_url || '',
-                 location: data.users.location || '',
-                 bio: data.users.bio || '',
-                 followers: 0, following: 0, posts: 0
-               },
-               images: data.images || [],
-               title: data.title,
-               price: data.price || 0,
-               condition: data.condition || 'Good',
-               category: data.category,
-               description: data.description || '',
-               likes: 0, comments: 0, liked: false, createdAt: 'Just now', hashtags: data.hashtags || []
-             } as SalePost);
-         }
-         setLoading(false);
-      };
-      fetchFromDb();
+    if (!post?.boostedUntil || !isBoostActive(post.boostedUntil)) {
+      setCountdownLabel('00:00');
       return;
     }
-
-    setPost(found);
-    setLoading(false);
-  }, [id]);
+    const update = () => setCountdownLabel(formatBoostCountdownHHMM(post.boostedUntil));
+    update();
+    const timer = setInterval(update, 30000);
+    return () => clearInterval(timer);
+  }, [post?.boostedUntil]);
 
   const handleMakeOffer = async (amount: number) => {
     if (!user || !user.id) {
       Alert.alert('Not Signed In', 'Please sign in to make an offer.', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => router.push('/create-profile') } // Adjust route to your login screen
+        { text: 'Sign In', onPress: () => router.push('/create-profile') },
       ]);
       throw new Error('Not Signed In');
     }
-    
+
     if (!post) return;
 
     const convoId = await getOrCreateConversation(post.id, user.id, post.seller.id);
@@ -83,24 +80,28 @@ export default function ListingDetailScreen() {
     const offerMessage = `Offer: $${amount} for "${post.title}" (listed at ${listedLabel})`;
 
     await sendMessage(convoId, user.id, offerMessage);
-    
+
     Alert.alert('Offer Sent!', `You offered $${amount}. The seller will be notified.`);
   };
+
+  const isOwner = user?.id === post?.seller.id;
+  const showBoostCta = isOwner && post && !post.sold && !isBoostActive(post.boostedUntil);
+  const showBoostedRow = post && !post.sold && isBoostActive(post.boostedUntil);
 
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-         <ActivityIndicator size="large" color={Brand.primary} />
+        <ActivityIndicator size="large" color={Brand.primary} />
       </View>
     );
   }
 
   if (!post) {
-      return (
-        <View style={[styles.center, { backgroundColor: colors.background }]}>
-            <Text style={{ color: colors.text }}>Listing not found</Text>
-        </View>
-      );
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.text }}>Listing not found</Text>
+      </View>
+    );
   }
 
   const condColors = ConditionColors[post.condition];
@@ -108,68 +109,114 @@ export default function ListingDetailScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView>
-        {/* Images */}
         <ScrollView horizontal pagingEnabled style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }}>
-          {post.images.length > 0 ? post.images.map((uri, i) => (
-             <Image key={i} source={{ uri }} style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }} contentFit="cover" />
-          )) : (
-             <View style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH, backgroundColor: colors.muted, alignItems: 'center', justifyContent: 'center'}}>
-                 <Ionicons name="image-outline" size={48} color={colors.textSecondary} />
-             </View>
+          {post.images.length > 0 ? (
+            post.images.map((uri, i) => (
+              <Image
+                key={i}
+                source={{ uri }}
+                style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }}
+                contentFit="cover"
+              />
+            ))
+          ) : (
+            <View
+              style={{
+                width: SCREEN_WIDTH,
+                height: SCREEN_WIDTH,
+                backgroundColor: colors.muted,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="image-outline" size={48} color={colors.textSecondary} />
+            </View>
           )}
         </ScrollView>
 
         <View style={styles.content}>
-           {/* Price and Title */}
-           <View style={styles.titleRow}>
-             <Text style={[styles.title, { color: colors.text }]}>{post.title}</Text>
-             <Text style={[styles.price, { color: Brand.primary }]}>${post.price}</Text>
-           </View>
-           
-           <View style={[styles.conditionBadge, { backgroundColor: condColors.bg, borderColor: condColors.border, alignSelf: 'flex-start' }]}>
-              <Text style={[styles.conditionText, { color: condColors.text }]}>{post.condition}</Text>
-           </View>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, { color: colors.text }]}>{post.title}</Text>
+            <Text style={[styles.price, { color: Brand.primary }]}>${post.price}</Text>
+          </View>
 
-           {/* Seller */}
-           <View style={[styles.sellerRow, { borderBottomColor: colors.border, borderTopColor: colors.border }]}>
-             <Image source={{ uri: post.seller.avatar }} style={[styles.avatar, { borderColor: colors.border }]} />
-             <View style={styles.sellerInfo}>
-                <Text style={[styles.sellerName, { color: colors.text }]}>{post.seller.displayName}</Text>
-                <Text style={[styles.sellerMeta, { color: colors.textSecondary }]}>@{post.seller.username}</Text>
-             </View>
-           </View>
+          <View
+            style={[
+              styles.conditionBadge,
+              { backgroundColor: condColors.bg, borderColor: condColors.border, alignSelf: 'flex-start' },
+            ]}
+          >
+            <Text style={[styles.conditionText, { color: condColors.text }]}>{post.condition}</Text>
+          </View>
 
-           {/* Details */}
-           <Text style={[styles.description, { color: colors.text }]}>{post.description}</Text>
+          {showBoostedRow && (
+            <View style={styles.boostRow}>
+              <View style={[styles.boostedBadge, { backgroundColor: `${Brand.primary}22` }]}>
+                <Ionicons name="rocket-outline" size={14} color={Brand.primary} />
+                <Text style={[styles.boostedBadgeText, { color: Brand.primary }]}>Boosted</Text>
+              </View>
+              {isOwner && (
+                <Text style={[styles.countdown, { color: colors.textSecondary }]}>{countdownLabel}</Text>
+              )}
+            </View>
+          )}
+
+          {showBoostCta && (
+            <Pressable
+              style={[styles.boostCta, { backgroundColor: Brand.primary }]}
+              onPress={() => setBoostModalVisible(true)}
+            >
+              <Ionicons name="rocket-outline" size={18} color="#fff" />
+              <Text style={styles.boostCtaText}>Boost for $1.99 · 24 hours</Text>
+            </Pressable>
+          )}
+
+          <View style={[styles.sellerRow, { borderBottomColor: colors.border, borderTopColor: colors.border }]}>
+            <Image source={{ uri: post.seller.avatar }} style={[styles.avatar, { borderColor: colors.border }]} />
+            <View style={styles.sellerInfo}>
+              <Text style={[styles.sellerName, { color: colors.text }]}>{post.seller.displayName}</Text>
+              <Text style={[styles.sellerMeta, { color: colors.textSecondary }]}>@{post.seller.username}</Text>
+            </View>
+          </View>
+
+          <Text style={[styles.description, { color: colors.text }]}>{post.description}</Text>
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom Actions */}
       <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-         <Pressable 
-            style={[styles.bottomButton, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
-            onPress={() => Alert.alert('Message', 'Messaging UI coming soon.')}
-         >
-             <Ionicons name="chatbubble-outline" size={20} color={colors.text} />
-             <Text style={[styles.buttonText, { color: colors.text }]}>Message</Text>
-         </Pressable>
-         
-         {/* Cannot make offer on your own item */}
-         {user?.id !== post.seller.id && (
-             <Pressable 
-                style={[styles.bottomButton, { backgroundColor: Brand.primary }]}
-                onPress={() => setOfferModalVisible(true)}
-             >
-                 <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Make Offer</Text>
-             </Pressable>
-         )}
+        <Pressable
+          style={[styles.bottomButton, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+          onPress={() => Alert.alert('Message', 'Messaging UI coming soon.')}
+        >
+          <Ionicons name="chatbubble-outline" size={20} color={colors.text} />
+          <Text style={[styles.buttonText, { color: colors.text }]}>Message</Text>
+        </Pressable>
+
+        {user?.id !== post.seller.id && (
+          <Pressable
+            style={[styles.bottomButton, { backgroundColor: Brand.primary }]}
+            onPress={() => setOfferModalVisible(true)}
+          >
+            <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Make Offer</Text>
+          </Pressable>
+        )}
       </View>
 
-      <OfferModal 
-        visible={offerModalVisible} 
-        onClose={() => setOfferModalVisible(false)} 
+      <OfferModal
+        visible={offerModalVisible}
+        onClose={() => setOfferModalVisible(false)}
         onSubmit={handleMakeOffer}
         originalPrice={post.price}
+      />
+
+      <ListingBoostModal
+        visible={boostModalVisible}
+        onClose={() => setBoostModalVisible(false)}
+        listingId={post.id}
+        listingTitle={post.title}
+        onBoostSuccess={() => {
+          void loadPost();
+        }}
       />
     </View>
   );
@@ -186,7 +233,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 100, // Make room for bottom bar
+    paddingBottom: 100,
   },
   titleRow: {
     flexDirection: 'row',
@@ -213,6 +260,43 @@ const styles = StyleSheet.create({
   },
   conditionText: {
     fontSize: 12,
+    fontWeight: '700',
+  },
+  boostRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  boostedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  boostedBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  countdown: {
+    fontSize: 16,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '600',
+  },
+  boostCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  boostCtaText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '700',
   },
   sellerRow: {
@@ -252,7 +336,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 32, // Safe area padding can be added
+    paddingBottom: 32,
     borderTopWidth: 1,
     gap: 12,
   },
@@ -268,5 +352,5 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '700',
-  }
+  },
 });
