@@ -810,7 +810,6 @@ export async function fetchUserRatingStats(userId: string): Promise<UserRatingSt
     .maybeSingle();
 
   if (error) {
-    // Quiet until ratings migration is applied (see supabase/migrations/20250325120000_transaction_ratings.sql).
     if (!isMissingUserRatingColumnsError(error)) {
       console.warn('[fetchUserRatingStats]', error.message);
     }
