@@ -22,3 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Expo app lives in Buyinz/ — ignore patterns there apply when working in that folder
