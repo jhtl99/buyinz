@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buyinz — Buy and sell within your network</title>
+  <meta name="description" content="The social marketplace for buying and selling with people you trust. Join the waitlist.">
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,900&f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset & Variables ── */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --brand: #0BCCB8;
+      --brand-dark: #099E8E;
+      --gradient-end: #098CB3;
+      --text: #1A1D2E;
+      --text-secondary: #71788A;
+      --bg-light: #F7F7F7;
+      --bg-white: #FFFFFF;
+      --bg-dark: #12141C;
+      --card: #FFFFFF;
+      --border: #E0E2EA;
+      --muted: #ECEEF2;
+
+      --font-display: 'Satoshi', system-ui, sans-serif;
+      --font-body: 'General Sans', system-ui, sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--text);
+      background: var(--bg-light);
+      overflow-x: hidden;
+    }
+
+    /* ── Utilities ── */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ── Scroll Reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 20px 0;
+      background: rgba(247, 247, 247, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(224, 226, 234, 0.5);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.5rem;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: var(--brand);
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      background: var(--text);
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+      text-decoration: none;
+    }
+
+    .nav-cta:hover {
+      background: #2a2d3e;
+      transform: translateY(-1px);
+    }
+
+    /* ── Phone Frame ── */
+    .phone {
+      width: 260px;
+      height: 530px;
+      background: var(--bg-white);
+      border-radius: 36px;
+      border: 6px solid #1A1D2E;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 24px 48px rgba(26, 29, 46, 0.12),
+        0 8px 16px rgba(26, 29, 46, 0.08);
+      flex-shrink: 0;
+    }
+
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 28px;
+      background: #1A1D2E;
+      border-radius: 0 0 18px 18px;
+      z-index: 2;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      padding: 40px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--bg-light);
+    }
+
+    /* ── Phone Screen: Home Feed ── */
+    .screen-home .screen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .screen-home .screen-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .screen-home .screen-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--gradient-end));
+    }
+
+    .screen-home .toggle-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .screen-home .toggle-pill {
+      padding: 5px 14px;
+      border-radius: 100px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      font-family: var(--font-body);
+    }
+
+    .screen-home .toggle-pill.active {
+      background: var(--text);
+      color: #fff;
+    }
+
+    .screen-home .toggle-pill.inactive {
+      background: var(--muted);
+      color: var(--text-secondary);
+    }
+
+    .listing-card {
+      background: var(--bg-white);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .listing-img {
+      width: 100%;
+      height: 80px;
+      background: linear-gradient(135deg, #e8e8e8, #d4d4d4);
+    }
+
+    .listing-img.teal {
+      background: linear-gradient(135deg, rgba(11, 204, 184, 0.15), rgba(9, 140, 179, 0.15));
+    }
+
+    .listing-img.warm {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.1), rgba(245, 158, 11, 0.1));
+    }
+
+    .listing-info {
+      padding: 8px 10px;
+    }
+
+    .listing-name {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .listing-price {
+      font-size: 0.6rem;
+      color: var(--brand-dark);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .listing-condition {
+      display: inline-block;
+      font-size: 0.5rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .condition-new {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10B981;
+    }
+
+    .condition-like-new {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3B82F6;
+    }
+
+    .listing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* ── Phone Screen: Offer ── */
+    .screen-offer .screen-header-bar {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .screen-offer .screen-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    .screen-offer .offer-item {
+      background: var(--bg-white);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .screen-offer .offer-thumb {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #e8e8e8, #d4d4d4);
+      flex-shrink: 0;
+    }
+
+    .screen-offer .offer-detail {
+      flex: 1;
+    }
+
+    .screen-offer .offer-name {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .screen-offer .offer-seller {
+      font-size: 0.55rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .screen-offer .offer-ask {
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .screen-offer .offer-input-group {
+      background: var(--bg-white);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .screen-offer .offer-label {
+      font-size: 0.55rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .screen-offer .offer-amount {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .screen-offer .offer-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--brand), var(--gradient-end));
+      border: none;
+      color: #fff;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.7rem;
+      text-align: center;
+    }
+
+    /* ── Phone Screen: Chat ── */
+    .screen-chat .screen-header-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .screen-chat .chat-back {
+      font-size: 0.8rem;
+      color: var(--brand);
+    }
+
+    .screen-chat .chat-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e0e0e0, #ccc);
+    }
+
+    .screen-chat .chat-name {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .screen-chat .chat-messages {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .chat-bubble {
+      max-width: 75%;
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 0.6rem;
+      line-height: 1.4;
+    }
+
+    .chat-bubble.received {
+      background: var(--bg-white);
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-bubble.sent {
+      background: linear-gradient(135deg, var(--brand), var(--gradient-end));
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .screen-chat .chat-input {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .screen-chat .chat-input-field {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 100px;
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      font-size: 0.55rem;
+      color: var(--text-secondary);
+    }
+
+    .screen-chat .chat-send {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--brand);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .screen-chat .chat-send svg {
+      width: 14px;
+      height: 14px;
+      fill: #fff;
+    }
+
+    /* ── Hero Section ── */
+    .hero {
+      padding: 140px 0 80px;
+      background: var(--bg-light);
+      min-height: 90vh;
+      display: flex;
+      align-items: center;
+    }
+
+    .hero .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    .hero-text {
+      max-width: 480px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(11, 204, 184, 0.1);
+      border: 1px solid rgba(11, 204, 184, 0.2);
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--brand-dark);
+      margin-bottom: 24px;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--brand);
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.5); }
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    h1 .accent {
+      background: linear-gradient(135deg, var(--brand), var(--gradient-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.125rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-bottom: 36px;
+      max-width: 400px;
+    }
+
+    .cta-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 36px;
+      background: linear-gradient(135deg, var(--brand), var(--gradient-end));
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(11, 204, 184, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(11, 204, 184, 0.4);
+    }
+
+    .btn-primary svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .cta-note {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .hero-phone {
+      display: flex;
+      justify-content: center;
+    }
+
+    .hero-phone .phone {
+      width: 280px;
+      height: 570px;
+      transform: rotate(2deg);
+    }
+
+    /* ── Feature Sections ── */
+    .feature-section {
+      padding: 100px 0;
+    }
+
+    .feature-section .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .feature-section h2 {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .feature-section p {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      max-width: 400px;
+    }
+
+    .feature-phone {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Section: Browse */
+    .section-browse {
+      background: linear-gradient(135deg, var(--brand), var(--gradient-end));
+    }
+
+    .section-browse h2,
+    .section-browse p {
+      color: #fff;
+    }
+
+    .section-browse p {
+      opacity: 0.85;
+    }
+
+    .section-browse .feature-icon {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .section-browse .feature-icon svg {
+      fill: #fff;
+    }
+
+    .section-browse .phone {
+      border-color: rgba(255,255,255,0.3);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+    }
+
+    /* Section: Offer */
+    .section-offer {
+      background: var(--bg-white);
+    }
+
+    .section-offer .feature-icon {
+      background: rgba(11, 204, 184, 0.1);
+    }
+
+    .section-offer .feature-icon svg {
+      fill: var(--brand);
+    }
+
+    .section-offer .container {
+      direction: rtl;
+    }
+
+    .section-offer .container > * {
+      direction: ltr;
+    }
+
+    /* Section: Chat */
+    .section-chat {
+      background: var(--bg-dark);
+    }
+
+    .section-chat h2,
+    .section-chat p {
+      color: #ECF0F5;
+    }
+
+    .section-chat p {
+      opacity: 0.7;
+    }
+
+    .section-chat .feature-icon {
+      background: rgba(11, 204, 184, 0.15);
+    }
+
+    .section-chat .feature-icon svg {
+      fill: var(--brand);
+    }
+
+    .section-chat .phone {
+      border-color: #2C3040;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.3);
+    }
+
+    /* ── Footer / CTA ── */
+    .footer-cta {
+      padding: 100px 0 60px;
+      background: var(--bg-light);
+      text-align: center;
+    }
+
+    .footer-cta h2 {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .footer-cta p {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      margin-bottom: 36px;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+
+    .footer-cta .btn-primary {
+      margin-bottom: 48px;
+    }
+
+    .footer-bottom {
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.1rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .footer-logo span {
+      color: var(--brand);
+    }
+
+    .footer-note {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hero {
+        padding: 120px 0 60px;
+        min-height: auto;
+      }
+
+      .hero .container,
+      .feature-section .container {
+        grid-template-columns: 1fr;
+        gap: 48px;
+        text-align: center;
+      }
+
+      .hero-text {
+        max-width: 100%;
+      }
+
+      .hero-sub {
+        max-width: 100%;
+      }
+
+      .cta-group {
+        justify-content: center;
+      }
+
+      .feature-section p {
+        max-width: 100%;
+      }
+
+      .hero-phone .phone {
+        width: 240px;
+        height: 490px;
+        transform: none;
+      }
+
+      .phone {
+        width: 240px;
+        height: 490px;
+      }
+
+      .section-offer .container {
+        direction: ltr;
+      }
+
+      .feature-section h2 {
+        text-align: center;
+      }
+
+      .feature-section p {
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .feature-icon {
+        margin: 0 auto 20px;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      nav .nav-cta {
+        padding: 8px 18px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="container">
+      <a href="#" class="logo">buy<span>inz</span></a>
+      <a href="#waitlist" class="nav-cta">Join Waitlist</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-text">
+        <div class="hero-badge reveal">Coming Soon</div>
+        <h1 class="reveal reveal-delay-1">
+          Buy and sell<br>
+          <span class="accent">in your network.</span>
+        </h1>
+        <p class="hero-sub reveal reveal-delay-2">
+          The marketplace built around people you trust. Browse listings from friends and neighbors, make offers, and close deals — all within your local community.
+        </p>
+        <div class="cta-group reveal reveal-delay-3">
+          <a href="#waitlist" class="btn-primary">
+            Join the Waitlist
+            <svg viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </a>
+          <span class="cta-note">Free &middot; iOS &amp; Android</span>
+        </div>
+      </div>
+      <div class="hero-phone reveal reveal-delay-2">
+        <div class="phone">
+          <div class="phone-screen screen-home">
+            <div class="screen-header">
+              <div class="screen-title">Marketplace</div>
+              <div class="screen-avatar"></div>
+            </div>
+            <div class="toggle-bar">
+              <div class="toggle-pill active">Friends</div>
+              <div class="toggle-pill inactive">Nearby</div>
+            </div>
+            <div class="listing-grid">
+              <div class="listing-card">
+                <div class="listing-img teal"></div>
+                <div class="listing-info">
+                  <div class="listing-name">MacBook Pro M2</div>
+                  <div class="listing-price">$850</div>
+                  <div class="listing-condition condition-like-new">Like New</div>
+                </div>
+              </div>
+              <div class="listing-card">
+                <div class="listing-img warm"></div>
+                <div class="listing-info">
+                  <div class="listing-name">Nike Air Max</div>
+                  <div class="listing-price">$65</div>
+                  <div class="listing-condition condition-new">New</div>
+                </div>
+              </div>
+              <div class="listing-card">
+                <div class="listing-img"></div>
+                <div class="listing-info">
+                  <div class="listing-name">Studio Pro ANC</div>
+                  <div class="listing-price">$120</div>
+                  <div class="listing-condition condition-like-new">Like New</div>
+                </div>
+              </div>
+              <div class="listing-card">
+                <div class="listing-img teal"></div>
+                <div class="listing-info">
+                  <div class="listing-name">Canvas High Tops</div>
+                  <div class="listing-price">$40</div>
+                  <div class="listing-condition condition-new">New</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature: Browse -->
+  <section class="feature-section section-browse">
+    <div class="container">
+      <div class="feature-text">
+        <div class="feature-icon reveal">
+          <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </div>
+        <h2 class="reveal reveal-delay-1">Browse what's nearby</h2>
+        <p class="reveal reveal-delay-2">
+          See listings from friends, classmates, and neighbors. Toggle between your network and everything nearby to find exactly what you're looking for.
+        </p>
+      </div>
+      <div class="feature-phone reveal reveal-delay-1">
+        <div class="phone">
+          <div class="phone-screen screen-home">
+            <div class="screen-header">
+              <div class="screen-title">Marketplace</div>
+              <div class="screen-avatar"></div>
+            </div>
+            <div class="toggle-bar">
+              <div class="toggle-pill inactive">Friends</div>
+              <div class="toggle-pill active">Nearby</div>
+            </div>
+            <div class="listing-grid">
+              <div class="listing-card">
+                <div class="listing-img warm"></div>
+                <div class="listing-info">
+                  <div class="listing-name">Vintage Lamp</div>
+                  <div class="listing-price">$35</div>
+                  <div class="listing-condition condition-like-new">Like New</div>
+                </div>
+              </div>
+              <div class="listing-card">
+                <div class="listing-img teal"></div>
+                <div class="listing-info">
+                  <div class="listing-name">Desk Chair</div>
+                  <div class="listing-price">$90</div>
+                  <div class="listing-condition condition-new">New</div>
+                </div>
+              </div>
+              <div class="listing-card">
+                <div class="listing-img teal"></div>
+                <div class="listing-info">
+                  <div class="listing-name">AirPods Pro</div>
+                  <div class="listing-price">$140</div>
+                  <div class="listing-condition condition-new">New</div>
+                </div>
+              </div>
+              <div class="listing-card">
+                <div class="listing-img"></div>
+                <div class="listing-info">
+                  <div class="listing-name">Textbook Set</div>
+                  <div class="listing-price">$25</div>
+                  <div class="listing-condition condition-like-new">Like New</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature: Offer -->
+  <section class="feature-section section-offer">
+    <div class="container">
+      <div class="feature-phone reveal reveal-delay-1">
+        <div class="phone">
+          <div class="phone-screen screen-offer">
+            <div class="screen-header-bar">
+              <div class="screen-title">Make an Offer</div>
+            </div>
+            <div class="offer-item">
+              <div class="offer-thumb"></div>
+              <div class="offer-detail">
+                <div class="offer-name">MacBook Pro M2</div>
+                <div class="offer-seller">@zach.choy</div>
+                <div class="offer-ask">Asking $850</div>
+              </div>
+            </div>
+            <div class="offer-input-group">
+              <div class="offer-label">Your Offer</div>
+              <div class="offer-amount">$750</div>
+            </div>
+            <div class="offer-input-group">
+              <div class="offer-label">Message (optional)</div>
+              <div style="font-size: 0.6rem; color: var(--text-secondary); margin-top: 4px;">Hey! Would you take $750?</div>
+            </div>
+            <div class="offer-btn">Submit Offer</div>
+          </div>
+        </div>
+      </div>
+      <div class="feature-text">
+        <div class="feature-icon reveal">
+          <svg viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </div>
+        <h2 class="reveal reveal-delay-1">Make an offer<br>instantly</h2>
+        <p class="reveal reveal-delay-2">
+          See something you like? Submit an offer with one tap. Add a message to negotiate directly. No awkward DMs — just clean, structured deals.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature: Chat -->
+  <section class="feature-section section-chat">
+    <div class="container">
+      <div class="feature-text">
+        <div class="feature-icon reveal">
+          <svg viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </div>
+        <h2 class="reveal reveal-delay-1">Chat with sellers<br>directly</h2>
+        <p class="reveal reveal-delay-2">
+          Every listing has a built-in conversation. Negotiate, ask questions, and arrange pickup — all without leaving the app.
+        </p>
+      </div>
+      <div class="feature-phone reveal reveal-delay-1">
+        <div class="phone">
+          <div class="phone-screen screen-chat" style="background: var(--bg-light);">
+            <div class="screen-header-bar">
+              <div class="chat-back">&larr;</div>
+              <div class="chat-avatar"></div>
+              <div class="chat-name">Zach Choy</div>
+            </div>
+            <div class="chat-messages">
+              <div class="chat-bubble received">Hey! Is the MacBook still available?</div>
+              <div class="chat-bubble sent">Yes it is! Just listed it today</div>
+              <div class="chat-bubble received">Awesome, would you do $750?</div>
+              <div class="chat-bubble sent">I can do $780, it's basically brand new</div>
+              <div class="chat-bubble received">Deal! Can I pick up tomorrow?</div>
+              <div class="chat-bubble sent">Works for me. I'll send you the address</div>
+            </div>
+            <div class="chat-input">
+              <div class="chat-input-field">Type a message...</div>
+              <div class="chat-send">
+                <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer CTA -->
+  <section class="footer-cta" id="waitlist">
+    <div class="container">
+      <h2 class="reveal">Ready to buy<span class="accent"> inz</span>?</h2>
+      <p class="reveal reveal-delay-1">
+        Join the waitlist and be the first to know when Buyinz launches in your area.
+      </p>
+      <a href="#" class="btn-primary reveal reveal-delay-2" onclick="event.preventDefault(); this.textContent='You\'re on the list!'; this.style.background='var(--brand-dark)'; this.style.pointerEvents='none';">
+        Join the Waitlist
+      </a>
+      <div class="footer-bottom reveal reveal-delay-3">
+        <a href="#" class="footer-logo">buy<span>inz</span></a>
+        <span class="footer-note">Coming soon to iOS &amp; Android</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scroll Reveal Script -->
+  <script>
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+  </script>
+
+</body>
+</html>
