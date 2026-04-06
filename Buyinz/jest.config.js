@@ -6,7 +6,10 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/$1',
   },
   // Assignment convention: colocate tests under `tests/`
-  testMatch: ['<rootDir>/tests/**/*.test.[jt]s?(x)'],
+  testMatch: [
+    '<rootDir>/tests/**/*.test.[jt]s?(x)',
+    '<rootDir>/tests/**/*-tests.ts',
+  ],
   testPathIgnorePatterns: ['/node_modules/', '/.expo/', '/dist/'],
   modulePathIgnorePatterns: ['<rootDir>/.expo/'],
 };
