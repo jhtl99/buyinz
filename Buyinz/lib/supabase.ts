@@ -14,13 +14,14 @@ export interface UserProfile {
   isVerified?: boolean;
 }
 
-export async function saveProfile(profile: UserProfile) {
+export function validateProfileForSave(profile: UserProfile): void {
   if (!profile.display_name || !profile.username || !profile.location) {
     throw new Error('Missing mandatory fields: Name, Username, or Zip Code');
   }
+}
 
-  // Set up payload specifically for the `users` table layout
-  const dbPayload = {
+export function buildUsersUpsertPayload(profile: UserProfile) {
+  return {
     id: profile.id,
     display_name: profile.display_name,
     username: profile.username,
@@ -28,6 +29,22 @@ export async function saveProfile(profile: UserProfile) {
     bio: profile.bio,
     avatar_url: profile.avatar_url,
   };
+}
+
+export function isPostgresUniqueViolation(error: { code?: string }): boolean {
+  return error.code === '23505';
+}
+
+export function validateEmailForAuth(email: string | undefined): asserts email is string {
+  if (!email) {
+    throw new Error('Valid email required');
+  }
+}
+
+export async function saveProfile(profile: UserProfile) {
+  validateProfileForSave(profile);
+
+  const dbPayload = buildUsersUpsertPayload(profile);
 
   const { data, error } = await supabase
     .from('users')
@@ -36,7 +53,7 @@ export async function saveProfile(profile: UserProfile) {
     .single();
 
   if (error) {
-    if (error.code === '23505') { // Postgres unique violation
+    if (isPostgresUniqueViolation(error)) {
       throw new Error('Username must be unique');
     }
     throw error;
@@ -45,15 +62,11 @@ export async function saveProfile(profile: UserProfile) {
 }
 
 export async function authenticate(email?: string) {
-  if (!email) {
-    throw new Error('Valid email required');
-  }
-  
-  // Actually sign up the user in Supabase auth so that the ID exists in auth.users
+  validateEmailForAuth(email);
+
   const authEmail = email;
-  const dummyPassword = 'BuyinzUser!123'; // Use a consistent dummy password for testing so we can log back in
-  
-  // 1. First, attempt to sign in. This avoids hitting the strict 3-per-hour signup limit for existing test users.
+  const dummyPassword = 'BuyinzUser!123';
+
   const { data: signInData } = await supabase.auth.signInWithPassword({
     email: authEmail,
     password: dummyPassword,
@@ -63,19 +76,20 @@ export async function authenticate(email?: string) {
     return { status: 200, user: { id: signInData.user.id } };
   }
 
-  // 2. If sign in fails (user doesn't exist), try to sign up
   const { data, error } = await supabase.auth.signUp({
     email: authEmail,
     password: dummyPassword,
   });
-  
+
   if (error) {
     if (error.message.includes('rate limit')) {
-      throw new Error(`Auth Error: You've hit the Supabase 3-per-hour signup limit! Please either use an email you already tested with, or go to your Supabase Dashboard -> Authentication -> Rate Limits and disable the email limit.`);
+      throw new Error(
+        `Auth Error: You've hit the Supabase 3-per-hour signup limit! Please either use an email you already tested with, or go to your Supabase Dashboard -> Authentication -> Rate Limits and disable the email limit.`,
+      );
     }
     throw new Error(`Auth Error: ${error.message}`);
   }
-  
+
   if (!data?.user) {
     throw new Error('Failed to create internal auth session.');
   }
@@ -83,17 +97,14 @@ export async function authenticate(email?: string) {
   return {
     status: 200,
     user: {
-      id: data.user.id
-    }
+      id: data.user.id,
+    },
   };
 }
 
 export async function authenticateWithGoogle() {
-  // Must match Supabase Dashboard → Auth → URL Configuration → Redirect URLs (e.g. exp://**/--/auth/callback).
-  // If redirectTo is not allowlisted, Supabase falls back to Site URL (e.g. localhost:3000) and breaks on device.
   const redirectUrl = Linking.createURL('auth/callback');
 
-  // Using Supabase OAuth for Google
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -110,14 +121,10 @@ export async function authenticateWithGoogle() {
 }
 
 export async function deleteProfile(username: string) {
-  const { error } = await supabase
-    .from('users')
-    .delete()
-    .match({ username });
-    
+  const { error } = await supabase.from('users').delete().match({ username });
+
   if (error) {
     console.error('Error deleting profile:', error);
-    // Ignore error for mock purposes if table doesn't exist yet
   }
   return true;
 }

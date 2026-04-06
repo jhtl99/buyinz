@@ -161,8 +161,13 @@ export function resolveNeighborhood(point: GeoPoint): string {
   return nearest.name;
 }
 
+/** Lowercase trim for matching neighborhood substrings in `LOCATION_TO_COORDINATE`. */
+export function normalizeLocationQuery(location: string): string {
+  return location.trim().toLowerCase();
+}
+
 export function coordinateFromLocation(location: string): GeoPoint | null {
-  const normalized = location.toLowerCase();
+  const normalized = normalizeLocationQuery(location);
   const mapping = LOCATION_TO_COORDINATE.find((entry) => normalized.includes(entry.match));
   return mapping?.point ?? null;
 }
