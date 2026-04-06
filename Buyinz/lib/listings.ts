@@ -41,15 +41,25 @@ export const CATEGORIES: SalePost['category'][] = [
 
 export const MAX_PHOTOS = 5;
 
+/** Parses listing price string; non-numeric or empty yields 0 (matches insert behavior). */
+export function parsePriceToNumber(price: string): number {
+  const n = parseFloat(price);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function isValidZip5(zip: string): boolean {
+  return /^\d{5}$/.test(zip);
+}
+
 export function isDraftValid(draft: ListingDraft): boolean {
   return (
     draft.images.length > 0 &&
     draft.title.trim().length > 0 &&
     draft.price.trim().length > 0 &&
-    parseFloat(draft.price) >= 0 &&
+    parsePriceToNumber(draft.price) >= 0 &&
     draft.condition !== null &&
     draft.category !== null &&
-    /^\d{5}$/.test(draft.zipCode)
+    isValidZip5(draft.zipCode)
   );
 }
 

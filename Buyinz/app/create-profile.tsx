@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, ScrollView, Alert, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Brand } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { saveProfile, authenticate, authenticateWithGoogle } from '@/lib/supabase';
+import { Brand, Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { authenticate, authenticateWithGoogle, saveProfile, supabase } from '@/lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '@/lib/supabase';
+import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Required for web browser session handling
 WebBrowser.maybeCompleteAuthSession();
