@@ -1,4 +1,5 @@
 import type { SalePost } from '@/data/mockData';
+import { insertPost } from '@/supabase/queries';
 
 export interface ImageAsset {
   uri: string;
@@ -75,7 +76,6 @@ export async function submitListing(
   draft: ListingDraft,
   userId?: string,
 ): Promise<{ success: boolean; id: string }> {
-  const { insertPost } = await import('@/supabase/queries');
   const id = await insertPost(draft, userId);
   return { success: true, id };
 }
