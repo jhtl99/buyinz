@@ -31,6 +31,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# local chat data
+chat.json
+
 # typescript
 *.tsbuildinfo
 
