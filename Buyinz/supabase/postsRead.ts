@@ -1,6 +1,6 @@
-import { supabase } from './client';
 import type { Post, SalePost } from '@/data/mockData';
 import { formatBoostRpcError } from '@/lib/boostErrors';
+import { supabase } from './client';
 import { mapRowToPost, sortRowsForHomeFeed } from './postMappers';
 import { getFollowingUserIds } from './socialQueries';
 import { isMissingSocialTable } from './socialTable';
