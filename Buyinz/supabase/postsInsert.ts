@@ -5,19 +5,19 @@ import { parseHashtags, parsePriceToNumber } from '@/lib/listings';
 const DEFAULT_MOCK_USER_ID = '11111111-1111-1111-1111-111111111111';
 const IMAGE_BUCKET = 'listing-images';
 
-function extensionFromUri(uri: string): string {
+export function extensionFromUri(uri: string): string {
   return uri.split('.').pop()?.toLowerCase() ?? 'jpg';
 }
 
-function buildListingImageStoragePath(ext: string): string {
+export function buildListingImageStoragePath(ext: string): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 }
 
-function contentTypeForImageExtension(ext: string): string {
+export function contentTypeForImageExtension(ext: string): string {
   return `image/${ext === 'jpg' ? 'jpeg' : ext}`;
 }
 
-async function uploadArrayBufferToListingImages(
+export async function uploadArrayBufferToListingImages(
   path: string,
   body: ArrayBuffer,
   contentType: string,
@@ -26,12 +26,12 @@ async function uploadArrayBufferToListingImages(
   if (error) throw error;
 }
 
-function publicUrlForListingImagePath(path: string): string {
+export function publicUrlForListingImagePath(path: string): string {
   const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
 
-async function uploadListingImages(images: ImageAsset[]): Promise<string[]> {
+export async function uploadListingImages(images: ImageAsset[]): Promise<string[]> {
   const urls: string[] = [];
 
   for (const img of images) {
