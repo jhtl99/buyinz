@@ -15,7 +15,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { deleteProfile } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { getFollowers, getFollowing, fetchUserSaleListings } from '@/supabase/queries';
 import { BuyinzProSubscribeModal } from '@/components/pro/BuyinzProSubscribeModal';
 import { ProfileBody } from '@/components/profile/ProfileBody';
@@ -76,16 +76,14 @@ export default function ProfileScreen() {
     }, [loadConnectionCounts, loadListings]),
   );
 
-  const handleDeleteAccount = () => {
-    Alert.alert('Delete Account', 'Are you sure you want to delete your profile?', [
+  const handleSignOut = () => {
+    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Sign out',
         style: 'destructive',
         onPress: async () => {
-          if (user?.username) {
-            await deleteProfile(user.username);
-          }
+          await supabase.auth.signOut();
           setUser(null);
         },
       },
@@ -114,8 +112,8 @@ export default function ProfileScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: colors.border }]}>
         <Text style={[styles.username, { color: colors.text }]}>{user.username}</Text>
-        <Pressable hitSlop={8} onPress={handleDeleteAccount}>
-          <Ionicons name="trash-outline" size={24} color="#ef4444" />
+        <Pressable hitSlop={8} onPress={handleSignOut} accessibilityLabel="Sign out">
+          <Ionicons name="log-out-outline" size={24} color={colors.text} />
         </Pressable>
       </View>
 
@@ -141,7 +139,7 @@ export default function ProfileScreen() {
             <View style={styles.actionButtons}>
               <Pressable
                 style={[styles.actionBtn, { backgroundColor: scheme === 'light' ? '#EFEFEF' : '#2A2A2A' }]}
-                onPress={() => router.push('/create-profile')}
+                onPress={() => router.push('/edit-profile')}
               >
                 <Text style={[styles.actionBtnText, { color: colors.text }]}>Edit Profile</Text>
               </Pressable>

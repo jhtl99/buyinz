@@ -19,7 +19,11 @@ import {
   authenticate,
   authenticateWithGoogle,
   buildUsersUpsertPayload,
+  checkUsernameAvailable,
+  isBuyinzProfileComplete,
   isPostgresUniqueViolation,
+  isProfileOnboardingComplete,
+  profileCoreComplete,
   saveProfile,
   validateProfileForSave,
 } from '../lib/supabase';
@@ -42,6 +46,15 @@ function mockUsersUpsertChain(data: unknown, error: unknown | null) {
   return builder;
 }
 
+function mockUsersSelectUsernameChain(data: unknown, error: unknown | null) {
+  const payload = { data, error };
+  const builder: Record<string, unknown> = {};
+  builder.maybeSingle = async () => payload;
+  builder.eq = () => builder;
+  builder.select = () => builder;
+  return builder;
+}
+
 describe('validateProfileForSave', () => {
   it('throws when username is missing', () => {
     expect(() =>
@@ -51,6 +64,78 @@ describe('validateProfileForSave', () => {
         location: '90210',
       }),
     ).toThrow('Missing mandatory fields: Name, Username, or Zip Code');
+  });
+
+  it('allows missing bio', () => {
+    expect(() =>
+      validateProfileForSave({
+        display_name: 'Test User',
+        username: 'u1',
+        location: '90210',
+      }),
+    ).not.toThrow();
+  });
+});
+
+describe('profileCoreComplete and onboarding', () => {
+  it('profileCoreComplete ignores bio', () => {
+    expect(
+      profileCoreComplete({
+        display_name: 'A',
+        username: 'b',
+        location: '90210',
+      }),
+    ).toBe(true);
+  });
+
+  it('isProfileOnboardingComplete is true without bio', () => {
+    expect(
+      isProfileOnboardingComplete({
+        display_name: 'A',
+        username: 'b',
+        location: '90210',
+        bio: '',
+      }),
+    ).toBe(true);
+  });
+
+  it('isBuyinzProfileComplete matches isProfileOnboardingComplete', () => {
+    expect(
+      isBuyinzProfileComplete({
+        display_name: 'Jane',
+        username: 'jane',
+        location: '10001',
+        bio: null,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe('checkUsernameAvailable', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns true when no row', async () => {
+    mockedFrom.mockReturnValue(mockUsersSelectUsernameChain(null, null));
+    await expect(checkUsernameAvailable('newuser')).resolves.toBe(true);
+    expect(mockedFrom).toHaveBeenCalledWith('users');
+  });
+
+  it('returns false when another user has username', async () => {
+    mockedFrom.mockReturnValue(
+      mockUsersSelectUsernameChain({ id: 'other-id' }, null),
+    );
+    await expect(checkUsernameAvailable('taken')).resolves.toBe(false);
+  });
+
+  it('returns true when row is excludeUserId', async () => {
+    mockedFrom.mockReturnValue(
+      mockUsersSelectUsernameChain({ id: 'same-id' }, null),
+    );
+    await expect(
+      checkUsernameAvailable('self', { excludeUserId: 'same-id' }),
+    ).resolves.toBe(true);
   });
 });
 

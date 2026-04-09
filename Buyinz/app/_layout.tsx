@@ -34,7 +34,15 @@ export default function RootLayout() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="user" options={{ headerShown: false }} />
-            <Stack.Screen name="create-profile" options={{ headerShown: false, presentation: 'modal' }} />
+            <Stack.Screen
+              name="create-profile"
+              options={{
+                headerShown: false,
+                presentation: 'modal',
+                gestureEnabled: false,
+              }}
+            />
+            <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
             <Stack.Screen
               name="create-listing"
               options={{

@@ -14,19 +14,57 @@ export interface UserProfile {
   isVerified?: boolean;
 }
 
-export function validateProfileForSave(profile: UserProfile): void {
-  if (!profile.display_name || !profile.username || !profile.location) {
+/** Name, username, zip — bio optional (onboarding + main app entry). */
+export function profileCoreComplete(profile: {
+  display_name?: string | null;
+  username?: string | null;
+  location?: string | null;
+}): boolean {
+  const dn = profile.display_name?.trim();
+  const un = profile.username?.trim();
+  const loc = profile.location?.trim();
+  return !!(dn && un && loc);
+}
+
+/** Row qualifies as a returning user: can skip onboarding (bio optional). */
+export function isProfileOnboardingComplete(profile: {
+  display_name?: string | null;
+  username?: string | null;
+  location?: string | null;
+  bio?: string | null;
+}): boolean {
+  return profileCoreComplete(profile);
+}
+
+/** @deprecated Use isProfileOnboardingComplete */
+export const isBuyinzProfileComplete = isProfileOnboardingComplete;
+
+export function normalizeUsername(username: string): string {
+  return username.trim();
+}
+
+export function validateOnboardingSave(profile: UserProfile): void {
+  if (!profileCoreComplete(profile)) {
     throw new Error('Missing mandatory fields: Name, Username, or Zip Code');
   }
+}
+
+/** Edit profile: same required core fields; bio optional. */
+export function validateProfileUpdate(profile: UserProfile): void {
+  validateOnboardingSave(profile);
+}
+
+export function validateProfileForSave(profile: UserProfile): void {
+  validateOnboardingSave(profile);
 }
 
 export function buildUsersUpsertPayload(profile: UserProfile) {
   return {
     id: profile.id,
-    display_name: profile.display_name,
-    username: profile.username,
-    location: profile.location,
-    bio: profile.bio,
+    display_name: profile.display_name.trim(),
+    username: normalizeUsername(profile.username),
+    location: profile.location.trim(),
+    bio: profile.bio?.trim() || undefined,
     avatar_url: profile.avatar_url,
   };
 }
@@ -39,6 +77,26 @@ export function validateEmailForAuth(email: string | undefined): asserts email i
   if (!email) {
     throw new Error('Valid email required');
   }
+}
+
+/** Returns true if username is not taken, or only taken by excludeUserId. */
+export async function checkUsernameAvailable(
+  username: string,
+  options?: { excludeUserId?: string },
+): Promise<boolean> {
+  const normalized = normalizeUsername(username);
+  if (!normalized) return false;
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id')
+    .eq('username', normalized)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return true;
+  if (options?.excludeUserId && data.id === options.excludeUserId) return true;
+  return false;
 }
 
 export async function saveProfile(profile: UserProfile) {
@@ -100,6 +158,29 @@ export async function authenticate(email?: string) {
       id: data.user.id,
     },
   };
+}
+
+export type BuyinzUsersRow = {
+  id: string;
+  display_name: string;
+  username: string;
+  location: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  buyinz_pro: boolean;
+};
+
+/** Load `public.users` for the authenticated user id (e.g. after OAuth). */
+export async function fetchBuyinzUserRowByAuthId(userId: string): Promise<BuyinzUsersRow | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, display_name, username, location, bio, avatar_url, buyinz_pro')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return data as BuyinzUsersRow;
 }
 
 export async function authenticateWithGoogle() {
