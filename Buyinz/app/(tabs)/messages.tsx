@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import {
   SYNTHETIC_RATING_CONVERSATION_ID,
   SYNTHETIC_SELLING_RATING_CONVERSATION_ID,
 } from '@/lib/mockRatingDemo';
+import { openUserProfile } from '@/lib/openUserProfile';
 
 type ChatTab = 'buying' | 'selling';
 
@@ -109,19 +110,7 @@ export default function MessagesScreen() {
   const accent = TAB_ACCENT[activeTab];
 
   if (!currentUserId) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-        <View style={styles.headerArea}>
-          <Text style={[styles.title, { color: colors.text }]}>Messages</Text>
-        </View>
-        <View style={styles.emptyState}>
-          <Ionicons name="person-outline" size={48} color={colors.muted} />
-          <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 12 }]}>
-            Sign in to see your messages
-          </Text>
-        </View>
-      </View>
-    );
+    return <Redirect href="/(tabs)/profile" />;
   }
 
   const renderConversation = ({ item }: { item: ConversationRow }) => {
@@ -136,59 +125,70 @@ export default function MessagesScreen() {
           ? '2'
           : undefined;
 
-    return (
-      <Pressable
-        style={[styles.chatRow, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() =>
-          router.push({
-            pathname: '/chat/[id]',
-            params: {
-              id: listing.id,
-              buyerId: item.buyer_id,
-              sellerId: item.seller_id,
-              sellerUsername: item.seller.username,
-              buyerUsername: item.buyer.username,
-              peerUsername: otherUser.username,
-              listingTitle: listing.title,
-              listingPrice: String(listing.price ?? 0),
-              listingImage: listing.images?.[0] ?? '',
-              ...(localMockDemo ? { mockDemo: localMockDemo } : {}),
-            },
-          })
-        }
-      >
-        <View style={[styles.chatThumb, { backgroundColor: colors.muted }]}>
-          {listing.images?.[0] ? (
-            <Image source={{ uri: listing.images[0] }} style={styles.chatThumbImg} contentFit="cover" />
-          ) : (
-            <Ionicons name="image-outline" size={20} color={colors.textSecondary} />
-          )}
-        </View>
+    const goChat = () =>
+      router.push({
+        pathname: '/chat/[id]',
+        params: {
+          id: listing.id,
+          buyerId: item.buyer_id,
+          sellerId: item.seller_id,
+          sellerUsername: item.seller.username,
+          buyerUsername: item.buyer.username,
+          peerUsername: otherUser.username,
+          listingTitle: listing.title,
+          listingPrice: String(listing.price ?? 0),
+          listingImage: listing.images?.[0] ?? '',
+          ...(localMockDemo ? { mockDemo: localMockDemo } : {}),
+        },
+      });
 
-        <View style={styles.chatBody}>
-          <View style={styles.chatTopRow}>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[styles.chatTitle, { color: colors.text }]} numberOfLines={1}>
-                {listing.title}
-              </Text>
-              <Text style={[styles.chatUsername, { color: colors.textSecondary }]}>
-                @{otherUser.username}
-              </Text>
+    return (
+      <View style={[styles.chatRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Pressable
+          onPress={() => openUserProfile(router, otherUser.id, currentUserId)}
+          accessibilityRole="button"
+          accessibilityLabel={`View ${otherUser.username} profile`}
+        >
+          <View style={[styles.chatThumb, { backgroundColor: colors.muted }]}>
+            {listing.images?.[0] ? (
+              <Image source={{ uri: listing.images[0] }} style={styles.chatThumbImg} contentFit="cover" />
+            ) : (
+              <Ionicons name="image-outline" size={20} color={colors.textSecondary} />
+            )}
+          </View>
+        </Pressable>
+
+        <Pressable style={styles.chatBodyPressable} onPress={goChat}>
+          <View style={styles.chatBody}>
+            <View style={styles.chatTopRow}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[styles.chatTitle, { color: colors.text }]} numberOfLines={1}>
+                  {listing.title}
+                </Text>
+                <Pressable
+                  onPress={() => openUserProfile(router, otherUser.id, currentUserId)}
+                  hitSlop={6}
+                >
+                  <Text style={[styles.chatUsername, { color: colors.textSecondary }]}>
+                    @{otherUser.username}
+                  </Text>
+                </Pressable>
+              </View>
+              {lastMsg && (
+                <Text style={[styles.chatTime, { color: colors.textSecondary }]}>
+                  {timeAgo(lastMsg.created_at)}
+                </Text>
+              )}
             </View>
             {lastMsg && (
-              <Text style={[styles.chatTime, { color: colors.textSecondary }]}>
-                {timeAgo(lastMsg.created_at)}
+              <Text style={[styles.chatPreview, { color: colors.textSecondary }]} numberOfLines={1}>
+                {isMyLastMsg ? 'You: ' : ''}
+                {lastMsg.body}
               </Text>
             )}
           </View>
-          {lastMsg && (
-            <Text style={[styles.chatPreview, { color: colors.textSecondary }]} numberOfLines={1}>
-              {isMyLastMsg ? 'You: ' : ''}
-              {lastMsg.body}
-            </Text>
-          )}
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     );
   };
 
@@ -310,6 +310,10 @@ const styles = StyleSheet.create({
   chatThumbImg: {
     width: '100%',
     height: '100%',
+  },
+  chatBodyPressable: {
+    flex: 1,
+    minWidth: 0,
   },
   chatBody: {
     flex: 1,

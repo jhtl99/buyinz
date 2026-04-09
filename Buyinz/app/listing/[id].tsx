@@ -12,6 +12,7 @@ import { getOrCreateConversation, sendMessage, fetchSaleListingById } from '@/su
 import { ListingBoostModal } from '@/components/pro/ListingBoostModal';
 import { isBoostActive, formatBoostCountdownHHMM } from '@/lib/boost';
 import { MOCK_FEED_POSTS, SalePost } from '@/data/mockData';
+import { openUserProfile } from '@/lib/openUserProfile';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -193,36 +194,52 @@ export default function ListingDetailScreen() {
             </Pressable>
           )}
 
-          <View style={[styles.sellerRow, { borderBottomColor: colors.border, borderTopColor: colors.border }]}>
+          <Pressable
+            style={[styles.sellerRow, { borderBottomColor: colors.border, borderTopColor: colors.border }]}
+            onPress={() => openUserProfile(router, post.seller.id, user?.id)}
+          >
             <Image source={{ uri: post.seller.avatar }} style={[styles.avatar, { borderColor: colors.border }]} />
             <View style={styles.sellerInfo}>
               <Text style={[styles.sellerName, { color: colors.text }]}>{post.seller.displayName}</Text>
               <Text style={[styles.sellerMeta, { color: colors.textSecondary }]}>@{post.seller.username}</Text>
             </View>
-          </View>
+          </Pressable>
 
           <Text style={[styles.description, { color: colors.text }]}>{post.description}</Text>
         </View>
       </ScrollView>
 
-      <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-        <Pressable
-          style={[styles.bottomButton, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
-          onPress={() => Alert.alert('Message', 'Messaging UI coming soon.')}
-        >
-          <Ionicons name="chatbubble-outline" size={20} color={colors.text} />
-          <Text style={[styles.buttonText, { color: colors.text }]}>Message</Text>
-        </Pressable>
+      {!isOwner && (
+        <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+          <Pressable
+            style={[styles.bottomButton, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+            onPress={() =>
+              router.push({
+                pathname: '/chat/[id]',
+                params: {
+                  id: post.id,
+                  sellerId: post.seller.id,
+                  sellerUsername: post.seller.username,
+                  peerUsername: post.seller.username,
+                  listingTitle: post.title,
+                  listingPrice: String(post.price),
+                  listingImage: post.images[0] ?? '',
+                },
+              })
+            }
+          >
+            <Ionicons name="chatbubble-outline" size={20} color={colors.text} />
+            <Text style={[styles.buttonText, { color: colors.text }]}>Message</Text>
+          </Pressable>
 
-        {user?.id !== post.seller.id && (
           <Pressable
             style={[styles.bottomButton, { backgroundColor: Brand.primary }]}
             onPress={() => setOfferModalVisible(true)}
           >
             <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Make Offer</Text>
           </Pressable>
-        )}
-      </View>
+        </View>
+      )}
 
       <OfferModal
         visible={offerModalVisible}

@@ -33,6 +33,7 @@ export default function RootLayout() {
         <ThemeProvider value={customTheme}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="user" options={{ headerShown: false }} />
             <Stack.Screen name="create-profile" options={{ headerShown: false, presentation: 'modal' }} />
             <Stack.Screen
               name="create-listing"

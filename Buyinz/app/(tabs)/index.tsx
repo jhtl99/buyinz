@@ -11,6 +11,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -36,10 +37,11 @@ export default function HomeScreen() {
   const feedRequestId = useRef(0);
 
   useEffect(() => {
+    if (!user?.id) return;
     const id = ++feedRequestId.current;
     setLoading(true);
-    const uid = user?.id;
-    fetchFriendsFeedPosts(uid ?? '', { includeSecondDegree: includeFriendsOfFriends })
+    const uid = user.id;
+    fetchFriendsFeedPosts(uid, { includeSecondDegree: includeFriendsOfFriends })
       .then((data) => {
         if (feedRequestId.current === id) setPosts(data);
       })
@@ -47,7 +49,7 @@ export default function HomeScreen() {
       .finally(() => {
         if (feedRequestId.current === id) setLoading(false);
       });
-  }, [user?.id, includeFriendsOfFriends]);
+  }, [user, includeFriendsOfFriends]);
 
   const cardWidth = SCREEN_WIDTH - CARD_H_PADDING * 2;
 
@@ -90,6 +92,10 @@ export default function HomeScreen() {
     }),
     [pageHeight],
   );
+
+  if (!user) {
+    return <Redirect href="/(tabs)/profile" />;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

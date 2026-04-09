@@ -2,7 +2,12 @@
  * Barrel: re-exports the public Supabase query API (same surface as the former monolithic module).
  */
 
-export type { SocialConnectionStatus, SocialUser, IncomingFollowRequest } from './socialTypes';
+export type {
+  SocialConnectionStatus,
+  SocialUser,
+  IncomingFollowRequest,
+  PublicUserProfile,
+} from './socialTypes';
 
 export { DEFAULT_PITTSBURGH_COORDS } from './discoveryFeed';
 export type { GeoPoint } from './discoveryFeed';
@@ -26,7 +31,10 @@ export {
   respondToFollowRequest,
   getFollowers,
   getFollowing,
+  fetchUserPublicProfileById,
 } from './socialQueries';
+
+export { syncBuyinzProToSupabase } from './userProfileSync';
 
 export { fetchDiscoveryFeed } from './discoveryFeed';
 

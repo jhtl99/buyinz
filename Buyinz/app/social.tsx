@@ -27,6 +27,7 @@ import {
   type SocialConnectionStatus,
   type SocialUser,
 } from '@/supabase/queries';
+import { openUserProfile } from '@/lib/openUserProfile';
 
 type SocialTab = 'discover' | 'requests' | 'followers' | 'following';
 
@@ -93,15 +94,17 @@ function UserCard({
   textColor,
   subtextColor,
   cardColor,
+  onProfilePress,
 }: {
   user: SocialUser;
   right?: React.ReactNode;
   textColor: string;
   subtextColor: string;
   cardColor: string;
+  onProfilePress?: () => void;
 }) {
-  return (
-    <View style={[styles.userCard, { backgroundColor: cardColor }]}>
+  const main = (
+    <>
       <Image
         source={{
           uri:
@@ -110,10 +113,22 @@ function UserCard({
         }}
         style={styles.avatar}
       />
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[styles.name, { color: textColor }]}>{user.display_name || user.username}</Text>
         <Text style={[styles.username, { color: subtextColor }]}>@{user.username}</Text>
       </View>
+    </>
+  );
+
+  return (
+    <View style={[styles.userCard, { backgroundColor: cardColor }]}>
+      {onProfilePress ? (
+        <Pressable onPress={onProfilePress} style={styles.userCardMain}>
+          {main}
+        </Pressable>
+      ) : (
+        <View style={styles.userCardMain}>{main}</View>
+      )}
       {right}
     </View>
   );
@@ -273,6 +288,7 @@ export default function SocialScreen() {
         textColor={colors.text}
         subtextColor={colors.tabIconDefault}
         cardColor={cardColor}
+        onProfilePress={() => openUserProfile(router, candidate.id, user?.id)}
         right={
           <ConnectionAction
             status="none"
@@ -282,7 +298,17 @@ export default function SocialScreen() {
         }
       />
     ));
-  }, [hasSearch, pendingActionUserId, recommended, searchResults, colors.text, colors.tabIconDefault, cardColor]);
+  }, [
+    hasSearch,
+    pendingActionUserId,
+    recommended,
+    searchResults,
+    colors.text,
+    colors.tabIconDefault,
+    cardColor,
+    router,
+    user?.id,
+  ]);
 
   if (!user) {
     return (
@@ -368,6 +394,7 @@ export default function SocialScreen() {
                   textColor={colors.text}
                   subtextColor={colors.tabIconDefault}
                   cardColor={cardColor}
+                  onProfilePress={() => openUserProfile(router, req.fromUser.id, user?.id)}
                   right={
                     <View style={styles.requestActionsRow}>
                       <Pressable
@@ -405,6 +432,7 @@ export default function SocialScreen() {
                   textColor={colors.text}
                   subtextColor={colors.tabIconDefault}
                   cardColor={cardColor}
+                  onProfilePress={() => openUserProfile(router, f.id, user?.id)}
                 />
               ))
             ) : (
@@ -424,6 +452,7 @@ export default function SocialScreen() {
                   textColor={colors.text}
                   subtextColor={colors.tabIconDefault}
                   cardColor={cardColor}
+                  onProfilePress={() => openUserProfile(router, f.id, user?.id)}
                 />
               ))
             ) : (
@@ -503,6 +532,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 10,
     borderRadius: 10,
+  },
+  userCardMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minWidth: 0,
   },
   avatar: {
     width: 42,

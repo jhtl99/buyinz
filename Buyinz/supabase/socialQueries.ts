@@ -4,7 +4,12 @@ import {
   mapUserRowToSocialUser,
   isNoRowsPostgrestError,
 } from './socialTable';
-import type { IncomingFollowRequest, SocialConnectionStatus, SocialUser } from './socialTypes';
+import type {
+  IncomingFollowRequest,
+  PublicUserProfile,
+  SocialConnectionStatus,
+  SocialUser,
+} from './socialTypes';
 
 type SocialConnectionRow = {
   id: string;
@@ -251,4 +256,21 @@ export async function getFollowing(currentUserId: string): Promise<SocialUser[]>
 
   if (usersError) throw usersError;
   return (usersData ?? []).map(mapUserRowToSocialUser);
+}
+
+export async function fetchUserPublicProfileById(userId: string): Promise<PublicUserProfile | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, username, display_name, avatar_url, location, bio, buyinz_pro')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const base = mapUserRowToSocialUser(data);
+  return {
+    ...base,
+    buyinz_pro: data.buyinz_pro === true,
+  };
 }

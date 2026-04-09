@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SalePost } from '@/data/mockData';
 import { isBoostActive, formatBoostCountdownHHMM } from '@/lib/boost';
+import { openUserProfile } from '@/lib/openUserProfile';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_H_PADDING = 12;
@@ -61,8 +62,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
   );
 
   return (
-    <Pressable
-      onPress={() => router.push(`/listing/${post.id}`)}
+    <View
       style={[
         styles.card,
         {
@@ -74,18 +74,24 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
     >
       {/* Seller Header */}
       <View style={styles.header}>
-        <Image
-          source={{ uri: post.seller.avatar }}
-          style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.muted }]}
-        />
-        <View style={styles.headerText}>
-          <Text style={[styles.sellerName, { color: colors.text }]} numberOfLines={1}>
-            {post.seller.displayName}
-          </Text>
-          <Text style={[styles.sellerMeta, { color: colors.textSecondary }]}>
-            @{post.seller.username} · {post.createdAt}
-          </Text>
-        </View>
+        <Pressable
+          onPress={() => openUserProfile(router, post.seller.id, user?.id)}
+          style={styles.headerSellerPressable}
+          hitSlop={4}
+        >
+          <Image
+            source={{ uri: post.seller.avatar }}
+            style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.muted }]}
+          />
+          <View style={styles.headerText}>
+            <Text style={[styles.sellerName, { color: colors.text }]} numberOfLines={1}>
+              {post.seller.displayName}
+            </Text>
+            <Text style={[styles.sellerMeta, { color: colors.textSecondary }]}>
+              @{post.seller.username} · {post.createdAt}
+            </Text>
+          </View>
+        </Pressable>
         <View
           style={[
             styles.conditionBadge,
@@ -98,6 +104,10 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
         </View>
       </View>
 
+      <Pressable
+        onPress={() => router.push(`/listing/${post.id}`)}
+        style={styles.listingBodyPressable}
+      >
       {/* Image Carousel */}
       <View
         style={[styles.imageArea, { backgroundColor: colors.muted }]}
@@ -197,7 +207,8 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
           </Text>
         </View>
       </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 
@@ -213,6 +224,18 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
+  },
+  headerSellerPressable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minWidth: 0,
+  },
+  listingBodyPressable: {
+    flex: 1,
+    minHeight: 200,
+    flexDirection: 'column',
   },
   avatar: {
     width: 36,

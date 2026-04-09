@@ -1,12 +1,9 @@
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   Pressable,
-  ScrollView,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,33 +18,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { deleteProfile } from '@/lib/supabase';
 import { getFollowers, getFollowing, fetchUserSaleListings } from '@/supabase/queries';
 import { BuyinzProSubscribeModal } from '@/components/pro/BuyinzProSubscribeModal';
-import { ProfileReceivedRatingsRow } from '@/components/profile/ProfileReceivedRatingsRow';
-
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const GRID_ITEM_SIZE = SCREEN_WIDTH / 3;
-
-function Stat({ label, value, onPress }: { label: string; value: number; onPress?: () => void }) {
-  const scheme = useColorScheme() ?? 'light';
-  const colors = Colors[scheme];
-  const content = (
-    <View style={styles.statContainer}>
-      <Text style={[styles.statValue, { color: colors.text }]}>
-        {value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
-      </Text>
-      <Text style={[styles.statLabel, { color: colors.tabIconDefault }]}>{label}</Text>
-    </View>
-  );
-
-  if (onPress) {
-    return (
-      <Pressable onPress={onPress} hitSlop={8}>
-        {content}
-      </Pressable>
-    );
-  }
-
-  return content;
-}
+import { ProfileBody } from '@/components/profile/ProfileBody';
 
 export default function ProfileScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -57,20 +28,11 @@ export default function ProfileScreen() {
   const { user, setUser } = useAuth();
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  
+
   const [userListings, setUserListings] = useState<SalePost[]>([]);
   const [listingsLoading, setListingsLoading] = useState(true);
   const { isBuyinzPro, listingCount, maxFreeListings, isReady } = useSubscription();
   const [proModalVisible, setProModalVisible] = useState(false);
-
-  const paddedGridItems = useMemo(() => {
-    const items: (SalePost | null)[] = [...userListings];
-    const remainder = items.length % 3;
-    if (remainder !== 0) {
-      for (let i = 0; i < 3 - remainder; i++) items.push(null);
-    }
-    return items;
-  }, [userListings]);
 
   const loadListings = useCallback(() => {
     if (!user?.id) {
@@ -87,7 +49,6 @@ export default function ProfileScreen() {
       })
       .finally(() => setListingsLoading(false));
   }, [user?.id]);
-
 
   const loadConnectionCounts = useCallback(() => {
     if (!user?.id) {
@@ -118,12 +79,16 @@ export default function ProfileScreen() {
   const handleDeleteAccount = () => {
     Alert.alert('Delete Account', 'Are you sure you want to delete your profile?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
           if (user?.username) {
             await deleteProfile(user.username);
           }
           setUser(null);
-      }}
+        },
+      },
     ]);
   };
 
@@ -131,13 +96,15 @@ export default function ProfileScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
         <Ionicons name="person-circle-outline" size={80} color={colors.tabIconDefault} style={{ marginBottom: 16 }} />
-        <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' }}>No Profile Found</Text>
-        <Text style={{ color: colors.tabIconDefault, textAlign: 'center', marginBottom: 24, fontSize: 16 }}>Create an account to establish your identity and build trust with your community.</Text>
-        <Pressable 
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' }}>Sign in to continue</Text>
+        <Text style={{ color: colors.tabIconDefault, textAlign: 'center', marginBottom: 24, fontSize: 16 }}>
+          Sign in or create a profile to use Buyinz—browse the feed, message sellers, and list items.
+        </Text>
+        <Pressable
           style={{ backgroundColor: '#2563eb', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8 }}
           onPress={() => router.push('/create-profile')}
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Create Profile</Text>
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Sign in / Create profile</Text>
         </Pressable>
       </View>
     );
@@ -145,7 +112,6 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: colors.border }]}>
         <Text style={[styles.username, { color: colors.text }]}>{user.username}</Text>
         <Pressable hitSlop={8} onPress={handleDeleteAccount}>
@@ -153,126 +119,60 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Profile Info */}
-        <View style={styles.profileSection}>
-          <View style={styles.avatarStatsRow}>
-            <Image source={{ uri: user.avatar_url }} style={[styles.avatar, { borderColor: colors.border }]} />
-            <View style={styles.statsRow}>
-              <Stat label="Posts" value={userListings.length} />
-              <Stat label="Followers" value={followersCount} onPress={() => router.push('/social?tab=followers')} />
-              <Stat label="Following" value={followingCount} onPress={() => router.push('/social?tab=following')} />
-            </View>
-          </View>
-
-          <View style={styles.bioSection}>
-            <View style={styles.nameRow}>
-              <Text style={[styles.displayName, { color: colors.text }]}>{user.display_name}</Text>
-              {isBuyinzPro && (
-                <View style={[styles.proBadge, { backgroundColor: `${Brand.primary}22` }]}>
-                  <Ionicons name="sparkles" size={14} color={Brand.primary} />
-                  <Text style={[styles.proBadgeText, { color: Brand.primary }]}>Pro</Text>
-                </View>
-              )}
-              {/* Profile is verified once account exists properly */}
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
-            </View>
-            <Text style={[styles.bio, { color: colors.text }]}>{user.bio}</Text>
-            <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={14} color={colors.tint} />
-              <Text style={[styles.location, { color: colors.tabIconDefault }]}>{user.location}</Text>
-            </View>
-
-            <ProfileReceivedRatingsRow userId={user.id} />
-          </View>
-
-          <View style={styles.actionButtons}>
-            <Pressable 
-              style={[styles.actionBtn, { backgroundColor: scheme === 'light' ? '#EFEFEF' : '#2A2A2A' }]}
-              onPress={() => router.push('/create-profile')}
-            >
-              <Text style={[styles.actionBtnText, { color: colors.text }]}>Edit Profile</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.actionBtn, { backgroundColor: scheme === 'light' ? '#EFEFEF' : '#2A2A2A' }]}
-              onPress={() => router.push('/social')}
-            >
-              <Text style={[styles.actionBtnText, { color: colors.text }]}>Connections</Text>
-            </Pressable>
-          </View>
-
-          {!isBuyinzPro && (
-            <View
-              style={[
-                styles.accountCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.accountCardTitle, { color: colors.text }]}>Account</Text>
-              <Text style={[styles.accountCardLine, { color: colors.textSecondary }]}>
-                {isReady
-                  ? `${listingCount} of ${maxFreeListings} free listings used`
-                  : 'Loading listing allowance…'}
-              </Text>
+      <ProfileBody
+        username={user.username}
+        displayName={user.display_name}
+        bio={user.bio}
+        location={user.location}
+        avatarUrl={user.avatar_url}
+        showProBadge={isBuyinzPro}
+        followersCount={followersCount}
+        followingCount={followingCount}
+        postsCount={userListings.length}
+        userIdForRatings={user.id!}
+        listings={userListings}
+        listingsLoading={listingsLoading}
+        onPressFollowers={() => router.push('/social?tab=followers')}
+        onPressFollowing={() => router.push('/social?tab=following')}
+        onPressListing={(listingId) => router.push(`/listing/${listingId}`)}
+        listingsEmptyVariant="self"
+        footerBeforeGrid={
+          <>
+            <View style={styles.actionButtons}>
               <Pressable
-                style={[styles.proCta, { backgroundColor: Brand.primary }]}
-                onPress={() => setProModalVisible(true)}
+                style={[styles.actionBtn, { backgroundColor: scheme === 'light' ? '#EFEFEF' : '#2A2A2A' }]}
+                onPress={() => router.push('/create-profile')}
               >
-                <Ionicons name="card-outline" size={18} color="#fff" />
-                <Text style={styles.proCtaText}>Subscribe to Buyinz Pro</Text>
+                <Text style={[styles.actionBtnText, { color: colors.text }]}>Edit Profile</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: scheme === 'light' ? '#EFEFEF' : '#2A2A2A' }]}
+                onPress={() => router.push('/social')}
+              >
+                <Text style={[styles.actionBtnText, { color: colors.text }]}>Connections</Text>
               </Pressable>
             </View>
-          )}
-        </View>
 
-        {/* Grid Header */}
-        <View style={[styles.gridHeader, { borderTopColor: colors.border }]}>
-          <Ionicons name="grid-outline" size={20} color={colors.text} />
-        </View>
-
-        {/* Listings Grid */}
-        {listingsLoading ? (
-          <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-            <Text style={{ color: colors.tabIconDefault }}>Loading listings…</Text>
-          </View>
-        ) : userListings.length === 0 ? (
-          <View style={{ paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' }}>
-            <Ionicons name="images-outline" size={40} color={colors.tabIconDefault} style={{ marginBottom: 12 }} />
-            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 6 }}>No listings yet</Text>
-            <Text style={{ color: colors.tabIconDefault, textAlign: 'center', fontSize: 14 }}>
-              When you post items for sale, they will show here in a grid.
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.gridContainer}>
-            {paddedGridItems.map((listing, i) => (
+            {!isBuyinzPro && (
               <View
-                key={listing ? listing.id : `grid-pad-${i}`}
-                style={[styles.gridItem, { width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE }]}
+                style={[
+                  styles.accountCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
               >
-                {listing ? (
-                  <Pressable
-                    style={{ flex: 1 }}
-                    onPress={() => router.push(`/listing/${listing.id}`)}
-                  >
-                    <Image
-                      source={{
-                        uri: listing.images[0] ?? 'https://via.placeholder.com/150',
-                      }}
-                      style={styles.gridImage}
-                    />
-                  </Pressable>
-                ) : (
-                  <View style={[styles.gridImage, { backgroundColor: colors.muted }]} />
-                )}
+                <Text style={[styles.accountCardTitle, { color: colors.text }]}>Account</Text>
+                <Text style={[styles.accountCardLine, { color: colors.textSecondary }]}>
+                  {isReady ? `${listingCount} of ${maxFreeListings} free listings used` : 'Loading listing allowance…'}
+                </Text>
+                <Pressable style={[styles.proCta, { backgroundColor: Brand.primary }]} onPress={() => setProModalVisible(true)}>
+                  <Ionicons name="card-outline" size={18} color="#fff" />
+                  <Text style={styles.proCtaText}>Subscribe to Buyinz Pro</Text>
+                </Pressable>
               </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+            )}
+          </>
+        }
+      />
 
       <BuyinzProSubscribeModal visible={proModalVisible} onClose={() => setProModalVisible(false)} />
     </View>
@@ -295,93 +195,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  profileSection: {
-    padding: 16,
-  },
-  avatarStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 1,
-  },
-  statsRow: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    marginLeft: 16,
-  },
-  statContainer: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  statLabel: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  bioSection: {
-    marginBottom: 16,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  displayName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 6,
-  },
-  proBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    marginRight: 6,
-    gap: 4,
-  },
-  proBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  verifiedText: {
-    color: '#3b82f6',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 2,
-  },
-  bio: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 6,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  location: {
-    fontSize: 13,
-    marginLeft: 4,
-  },
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 0,
   },
   actionBtn: {
     flex: 1,
@@ -421,21 +238,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
-  },
-  gridHeader: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-  },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  gridItem: {
-    padding: 1,
-  },
-  gridImage: {
-    width: '100%',
-    height: '100%',
   },
 });

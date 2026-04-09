@@ -36,6 +36,7 @@ import {
   LOCAL_DEMO_SELLING_CONVERSATION_ID,
 } from '@/lib/mockRatingDemo';
 import { TransactionRatingModal } from '@/components/chat/TransactionRatingModal';
+import { openUserProfile } from '@/lib/openUserProfile';
 
 /**
  * Route params:
@@ -124,6 +125,9 @@ export default function ChatScreen() {
       : (peerUsername ?? buyerUsername ?? 'buyer');
 
   const headerPeerHandle = peerUsername ?? (amBuyer ? sellerUsername : buyerUsername) ?? 'user';
+
+  const peerProfileUserId =
+    myRole === 'buyer' ? effectiveSellerId : myRole === 'seller' ? effectiveBuyerId : null;
 
   const convIdForMocks = localDemoConvId ?? conversationId;
 
@@ -573,9 +577,20 @@ export default function ChatScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
             {listingTitle ?? 'Listing'}
           </Text>
-          <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-            @{headerPeerHandle}
-          </Text>
+          {!isLocalOnlyMock && peerProfileUserId ? (
+            <Pressable
+              onPress={() => openUserProfile(router, peerProfileUserId, currentUserId)}
+              hitSlop={6}
+            >
+              <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
+                @{headerPeerHandle}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
+              @{headerPeerHandle}
+            </Text>
+          )}
         </View>
 
         {price > 0 && (
