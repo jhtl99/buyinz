@@ -92,3 +92,11 @@ export async function applyListingBoost(listingId: string): Promise<void> {
   const { error } = await supabase.rpc('apply_listing_boost', { p_listing_id: listingId });
   if (error) throw new Error(formatBoostRpcError(error));
 }
+
+/** Deletes the listing and related conversations/messages; server enforces seller ownership. */
+export async function deleteOwnSaleListing(listingId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_own_sale_listing', {
+    p_listing_id: listingId,
+  });
+  if (error) throw new Error(error.message);
+}

@@ -7,14 +7,37 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
+  const { user } = useAuth();
+  const signedIn = !!user;
+
+  const hiddenWhenLoggedOut = signedIn ? {} : { href: null };
+
+  // Sell tab: cannot combine `href` (e.g. href: null) with custom `tabBarButton` — Expo Router throws.
+  const sellTabOptions = signedIn
+    ? {
+        title: '',
+        tabBarButton: () => (
+          <Pressable
+            style={styles.sellButtonOuter}
+            onPress={() => router.push('/create-listing')}
+          >
+            <View style={styles.sellButtonCircle}>
+              <Ionicons name="add" size={28} color="#FFF" />
+            </View>
+          </Pressable>
+        ),
+      }
+    : { href: null };
 
   return (
     <Tabs
+      initialRouteName={signedIn ? 'index' : 'profile'}
       screenOptions={{
         tabBarActiveTintColor: Brand.primary,
         tabBarInactiveTintColor: colors.tabIconDefault,
@@ -30,6 +53,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          ...hiddenWhenLoggedOut,
         }}
       />
       <Tabs.Screen
@@ -37,29 +61,16 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          ...hiddenWhenLoggedOut,
         }}
       />
-      <Tabs.Screen
-        name="sell"
-        options={{
-          title: '',
-          tabBarButton: () => (
-            <Pressable
-              style={styles.sellButtonOuter}
-              onPress={() => router.push('/create-listing')}
-            >
-              <View style={styles.sellButtonCircle}>
-                <Ionicons name="add" size={28} color="#FFF" />
-              </View>
-            </Pressable>
-          ),
-        }}
-      />
+      <Tabs.Screen name="sell" options={sellTabOptions} />
       <Tabs.Screen
         name="messages"
         options={{
           title: 'Messages',
           tabBarIcon: ({ color }) => <Ionicons size={24} name="chatbubbles-outline" color={color} />,
+          ...hiddenWhenLoggedOut,
         }}
       />
       <Tabs.Screen

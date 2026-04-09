@@ -25,6 +25,8 @@ import {
   isValidExpiry,
 } from '@/lib/cardValidation';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { syncBuyinzProToSupabase } from '@/supabase/queries';
 
 type Props = {
   visible: boolean;
@@ -37,6 +39,7 @@ export function BuyinzProSubscribeModal({ visible, onClose }: Props) {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const { setBuyinzPro } = useSubscription();
+  const { user } = useAuth();
 
   const [mode, setMode] = useState<Mode>('manual');
   const [cardNumber, setCardNumber] = useState('');
@@ -101,6 +104,13 @@ export function BuyinzProSubscribeModal({ visible, onClose }: Props) {
     setBusy(true);
     try {
       await setBuyinzPro(true);
+      if (user?.id) {
+        try {
+          await syncBuyinzProToSupabase(user.id, true);
+        } catch (e) {
+          console.warn('[BuyinzPro] syncBuyinzProToSupabase failed', e);
+        }
+      }
       Alert.alert('Welcome to Buyinz Pro', 'You can now create unlimited listings.', [
         { text: 'Great', onPress: handleClose },
       ]);

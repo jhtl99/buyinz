@@ -25,6 +25,7 @@ export function mapUserRowToSocialUser(row: any): SocialUser {
     avatar_url: row.avatar_url,
     location: row.location,
     bio: row.bio,
+    ...(typeof row.buyinz_pro === 'boolean' ? { buyinz_pro: row.buyinz_pro } : {}),
   };
 }
 

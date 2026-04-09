@@ -12,7 +12,11 @@ export type SocialUser = {
   avatar_url?: string | null;
   location?: string | null;
   bio?: string | null;
+  /** Present when selected from DB; used for Pro badge on public profiles. */
+  buyinz_pro?: boolean;
 };
+
+export type PublicUserProfile = SocialUser & { buyinz_pro: boolean };
 
 export type IncomingFollowRequest = {
   requestId: string;

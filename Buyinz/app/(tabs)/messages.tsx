@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,14 +9,6 @@ import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchConversations, type ConversationRow } from '@/supabase/queries';
-import {
-  getMockRatingDemoPost,
-  getMockSellingRatingDemoPost,
-  getSyntheticBuyingConversationRow,
-  getSyntheticSellingConversationRow,
-  SYNTHETIC_RATING_CONVERSATION_ID,
-  SYNTHETIC_SELLING_RATING_CONVERSATION_ID,
-} from '@/lib/mockRatingDemo';
 
 type ChatTab = 'buying' | 'selling';
 
@@ -73,55 +65,20 @@ export default function MessagesScreen() {
     }, [loadConversations]),
   );
 
-  const demoListingId = useMemo(() => getMockRatingDemoPost().id, []);
-  const sellingDemoListingId = useMemo(() => getMockSellingRatingDemoPost().id, []);
+  const buyingChats = useMemo(
+    () => conversations.filter((c) => c.buyer_id === currentUserId),
+    [conversations, currentUserId],
+  );
 
-  const buyingChats = useMemo(() => {
-    const fromServer = conversations.filter((c) => c.buyer_id === currentUserId);
-    if (!user?.id) return fromServer;
-
-    // Synthetic buying row — skip if a real thread exists for the same listing.
-    if (fromServer.some((c) => c.listing_id === demoListingId)) return fromServer;
-
-    const synthetic = getSyntheticBuyingConversationRow({
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
-      avatar_url: user.avatar_url ?? null,
-    });
-    return [synthetic, ...fromServer];
-  }, [conversations, currentUserId, user, demoListingId]);
-
-  const sellingChats = useMemo(() => {
-    const fromServer = conversations.filter((c) => c.seller_id === currentUserId);
-    if (!user?.id) return fromServer;
-    if (fromServer.some((c) => c.listing_id === sellingDemoListingId)) return fromServer;
-
-    const synthetic = getSyntheticSellingConversationRow({
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
-      avatar_url: user.avatar_url ?? null,
-    });
-    return [synthetic, ...fromServer];
-  }, [conversations, currentUserId, user, sellingDemoListingId]);
+  const sellingChats = useMemo(
+    () => conversations.filter((c) => c.seller_id === currentUserId),
+    [conversations, currentUserId],
+  );
   const currentChats = activeTab === 'buying' ? buyingChats : sellingChats;
   const accent = TAB_ACCENT[activeTab];
 
   if (!currentUserId) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-        <View style={styles.headerArea}>
-          <Text style={[styles.title, { color: colors.text }]}>Messages</Text>
-        </View>
-        <View style={styles.emptyState}>
-          <Ionicons name="person-outline" size={48} color={colors.muted} />
-          <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 12 }]}>
-            Sign in to see your messages
-          </Text>
-        </View>
-      </View>
-    );
+    return <Redirect href="/(tabs)/profile" />;
   }
 
   const renderConversation = ({ item }: { item: ConversationRow }) => {
@@ -129,33 +86,29 @@ export default function MessagesScreen() {
     const listing = item.listing;
     const lastMsg = item.last_message;
     const isMyLastMsg = lastMsg?.sender_id === currentUserId;
-    const localMockDemo =
-      item.id === SYNTHETIC_RATING_CONVERSATION_ID
-        ? '1'
-        : item.id === SYNTHETIC_SELLING_RATING_CONVERSATION_ID
-          ? '2'
-          : undefined;
+
+    const goChat = () =>
+      router.push({
+        pathname: '/chat/[id]',
+        params: {
+          id: listing.id,
+          buyerId: item.buyer_id,
+          sellerId: item.seller_id,
+          sellerUsername: item.seller.username,
+          buyerUsername: item.buyer.username,
+          peerUsername: otherUser.username,
+          listingTitle: listing.title,
+          listingPrice: String(listing.price ?? 0),
+          listingImage: listing.images?.[0] ?? '',
+        },
+      });
 
     return (
       <Pressable
         style={[styles.chatRow, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() =>
-          router.push({
-            pathname: '/chat/[id]',
-            params: {
-              id: listing.id,
-              buyerId: item.buyer_id,
-              sellerId: item.seller_id,
-              sellerUsername: item.seller.username,
-              buyerUsername: item.buyer.username,
-              peerUsername: otherUser.username,
-              listingTitle: listing.title,
-              listingPrice: String(listing.price ?? 0),
-              listingImage: listing.images?.[0] ?? '',
-              ...(localMockDemo ? { mockDemo: localMockDemo } : {}),
-            },
-          })
-        }
+        onPress={goChat}
+        accessibilityRole="button"
+        accessibilityLabel={`Open conversation with ${otherUser.username} about ${listing.title}`}
       >
         <View style={[styles.chatThumb, { backgroundColor: colors.muted }]}>
           {listing.images?.[0] ? (

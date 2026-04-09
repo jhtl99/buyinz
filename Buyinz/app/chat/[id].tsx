@@ -6,10 +6,11 @@ import {
   StyleSheet,
   Pressable,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert,
+  Keyboard,
+  type KeyboardEvent,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -36,6 +37,7 @@ import {
   LOCAL_DEMO_SELLING_CONVERSATION_ID,
 } from '@/lib/mockRatingDemo';
 import { TransactionRatingModal } from '@/components/chat/TransactionRatingModal';
+import { openUserProfile } from '@/lib/openUserProfile';
 
 /**
  * Route params:
@@ -100,6 +102,8 @@ export default function ChatScreen() {
   const [finishingTxn, setFinishingTxn] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  /** Lifts composer above the keyboard; avoids relying on KeyboardAvoidingView alone (often fails with edge-to-edge / stack). */
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const currentUserId = user?.id;
   const price = parseFloat(listingPrice ?? '0');
@@ -124,6 +128,9 @@ export default function ChatScreen() {
       : (peerUsername ?? buyerUsername ?? 'buyer');
 
   const headerPeerHandle = peerUsername ?? (amBuyer ? sellerUsername : buyerUsername) ?? 'user';
+
+  const peerProfileUserId =
+    myRole === 'buyer' ? effectiveSellerId : myRole === 'seller' ? effectiveBuyerId : null;
 
   const convIdForMocks = localDemoConvId ?? conversationId;
 
@@ -479,6 +486,29 @@ export default function ChatScreen() {
     [currentUserId, colors],
   );
 
+  useEffect(() => {
+    const onShow = (e: KeyboardEvent) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      });
+    };
+    const onHide = () => setKeyboardHeight(0);
+
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      onShow,
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      onHide,
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   if (!currentUserId) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -529,10 +559,7 @@ export default function ChatScreen() {
   const showFinishButton = !!myRole && !iMarked && (isMockChat || !txnMetaLoading);
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TransactionRatingModal
         visible={showRatingModal && ratingEligible}
         otherUsername={rateeHandle}
@@ -547,7 +574,6 @@ export default function ChatScreen() {
               : undefined
         }
       />
-
 
       <View
         style={[
@@ -573,9 +599,20 @@ export default function ChatScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
             {listingTitle ?? 'Listing'}
           </Text>
-          <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-            @{headerPeerHandle}
-          </Text>
+          {!isLocalOnlyMock && peerProfileUserId ? (
+            <Pressable
+              onPress={() => openUserProfile(router, peerProfileUserId, currentUserId)}
+              hitSlop={6}
+            >
+              <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
+                @{headerPeerHandle}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
+              @{headerPeerHandle}
+            </Text>
+          )}
         </View>
 
         {price > 0 && (
@@ -630,63 +667,72 @@ export default function ChatScreen() {
         </View>
       )}
 
-      {loading ? (
-        <View style={[styles.container, styles.centered]}>
-          <ActivityIndicator size="large" color={Brand.primary} />
-        </View>
-      ) : listMessages.length === 0 ? (
-        <View style={[styles.container, styles.centered]}>
-          <Ionicons name="chatbubbles-outline" size={48} color={colors.muted} />
-          <Text style={[styles.emptyChatText, { color: colors.textSecondary }]}>
-            Start the conversation!
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={listMessages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          contentContainerStyle={styles.messagesList}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <View style={[styles.container, { paddingBottom: keyboardHeight }]}>
+        {loading ? (
+          <View style={[styles.container, styles.centered]}>
+            <ActivityIndicator size="large" color={Brand.primary} />
+          </View>
+        ) : listMessages.length === 0 ? (
+          <View style={[styles.container, styles.centered]}>
+            <Ionicons name="chatbubbles-outline" size={48} color={colors.muted} />
+            <Text style={[styles.emptyChatText, { color: colors.textSecondary }]}>
+              Start the conversation!
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            style={styles.container}
+            data={listMessages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.messagesList}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+          />
+        )}
 
-      <View
-        style={[
-          styles.inputBar,
-          { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: insets.bottom + 8 },
-        ]}
-      >
-        <TextInput
-          style={[styles.textInput, { backgroundColor: colors.muted, color: colors.text }]}
-          placeholder="Type a message..."
-          placeholderTextColor={colors.textSecondary}
-          value={input}
-          onChangeText={setInput}
-          multiline
-          maxLength={1000}
-          onSubmitEditing={handleSend}
-          blurOnSubmit={false}
-        />
-        <Pressable
-          onPress={handleSend}
-          disabled={!hasText || sending}
+        <View
           style={[
-            styles.sendBtn,
-            hasText && !sending
-              ? { backgroundColor: Brand.primary }
-              : { backgroundColor: colors.muted },
+            styles.inputBar,
+            {
+              backgroundColor: colors.card,
+              borderTopColor: colors.border,
+              paddingBottom: keyboardHeight > 0 ? 8 : insets.bottom + 8,
+            },
           ]}
         >
-          {sending ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <Ionicons name="send" size={18} color={hasText ? '#FFF' : colors.textSecondary} />
-          )}
-        </Pressable>
+          <TextInput
+            style={[styles.textInput, { backgroundColor: colors.muted, color: colors.text }]}
+            placeholder="Type a message..."
+            placeholderTextColor={colors.textSecondary}
+            value={input}
+            onChangeText={setInput}
+            multiline
+            maxLength={1000}
+            onSubmitEditing={handleSend}
+            blurOnSubmit={false}
+          />
+          <Pressable
+            onPress={handleSend}
+            disabled={!hasText || sending}
+            style={[
+              styles.sendBtn,
+              hasText && !sending
+                ? { backgroundColor: Brand.primary }
+                : { backgroundColor: colors.muted },
+            ]}
+          >
+            {sending ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <Ionicons name="send" size={18} color={hasText ? '#FFF' : colors.textSecondary} />
+            )}
+          </Pressable>
+        </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

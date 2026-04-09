@@ -11,10 +11,12 @@ import {
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Redirect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DEFAULT_PITTSBURGH_COORDS,
   fetchDiscoveryFeed,
@@ -65,11 +67,13 @@ function milesBetween(a: GeoPoint, b: GeoPoint): number {
 }
 
 function ExploreCard({ post }: { post: DiscoverySalePost }) {
+  const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
 
   return (
-    <View
+    <Pressable
+      onPress={() => router.push(`/listing/${post.id}`, { withAnchor: true })}
       style={[
         styles.card,
         {
@@ -97,7 +101,7 @@ function ExploreCard({ post }: { post: DiscoverySalePost }) {
           <Text style={styles.distanceText}>{post.distanceMiles.toFixed(1)} mi</Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -105,6 +109,7 @@ export default function ExploreTabScreen() {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<ShelfId>('All');
@@ -119,6 +124,7 @@ export default function ExploreTabScreen() {
   const lastCoordsRef = useRef<GeoPoint>(DEFAULT_PITTSBURGH_COORDS);
 
   useEffect(() => {
+    if (!user) return;
     let mounted = true;
     let subscription: Location.LocationSubscription | null = null;
 
@@ -170,9 +176,10 @@ export default function ExploreTabScreen() {
       mounted = false;
       subscription?.remove();
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    if (!user) return;
     let mounted = true;
     setLoading(true);
 
@@ -190,7 +197,7 @@ export default function ExploreTabScreen() {
     return () => {
       mounted = false;
     };
-  }, [activeRadius, userCoords]);
+  }, [user, activeRadius, userCoords]);
 
   const filtered = useMemo(() => {
     return listings.filter((post) => {
@@ -219,6 +226,10 @@ export default function ExploreTabScreen() {
 
     return [left, right];
   }, [filtered]);
+
+  if (!user) {
+    return <Redirect href="/(tabs)/profile" />;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

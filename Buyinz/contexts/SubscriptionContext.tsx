@@ -23,6 +23,7 @@ type SubscriptionContextType = {
   canCreateListing: boolean;
   setBuyinzPro: (value: boolean) => Promise<void>;
   incrementListingCount: () => Promise<void>;
+  decrementListingCount: () => Promise<void>;
   resetForCurrentUser: () => Promise<void>;
 };
 
@@ -74,6 +75,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     });
   }, [storageId]);
 
+  const decrementListingCount = useCallback(async () => {
+    setListingCountState((c) => {
+      const next = Math.max(0, c - 1);
+      void AsyncStorage.setItem(keyCount(storageId), String(next));
+      return next;
+    });
+  }, [storageId]);
+
   const resetForCurrentUser = useCallback(async () => {
     setIsBuyinzProState(false);
     setListingCountState(0);
@@ -94,6 +103,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       canCreateListing,
       setBuyinzPro,
       incrementListingCount,
+      decrementListingCount,
       resetForCurrentUser,
     }),
     [
@@ -103,6 +113,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       canCreateListing,
       setBuyinzPro,
       incrementListingCount,
+      decrementListingCount,
       resetForCurrentUser,
     ],
   );

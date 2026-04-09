@@ -1,18 +1,23 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 import type { ISOPost } from '@/data/mockData';
+import { openUserProfile } from '@/lib/openUserProfile';
 
 interface Props {
   post: ISOPost;
 }
 
 export function ISOPostCard({ post: initialPost }: Props) {
+  const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
+  const { user } = useAuth();
 
   const [post, setPost] = useState(initialPost);
 
@@ -36,18 +41,24 @@ export function ISOPostCard({ post: initialPost }: Props) {
     >
       {/* Seller Header */}
       <View style={styles.header}>
-        <Image
-          source={{ uri: post.seller.avatar }}
-          style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.muted }]}
-        />
-        <View style={styles.headerText}>
-          <Text style={[styles.sellerName, { color: colors.text }]} numberOfLines={1}>
-            {post.seller.displayName}
-          </Text>
-          <Text style={[styles.sellerMeta, { color: colors.textSecondary }]}>
-            @{post.seller.username} · {post.createdAt}
-          </Text>
-        </View>
+        <Pressable
+          onPress={() => openUserProfile(router, post.seller.id, user?.id)}
+          style={styles.headerSellerPressable}
+          hitSlop={4}
+        >
+          <Image
+            source={{ uri: post.seller.avatar }}
+            style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.muted }]}
+          />
+          <View style={styles.headerText}>
+            <Text style={[styles.sellerName, { color: colors.text }]} numberOfLines={1}>
+              {post.seller.displayName}
+            </Text>
+            <Text style={[styles.sellerMeta, { color: colors.textSecondary }]}>
+              @{post.seller.username} · {post.createdAt}
+            </Text>
+          </View>
+        </Pressable>
         <View style={styles.isoBadge}>
           <Text style={styles.isoBadgeText}>ISO</Text>
         </View>
@@ -143,6 +154,13 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
+  },
+  headerSellerPressable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minWidth: 0,
   },
   avatar: {
     width: 36,
