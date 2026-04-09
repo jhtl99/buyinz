@@ -44,6 +44,13 @@ export default function RootLayout() {
             />
             <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
             <Stack.Screen
+              name="listing/[id]"
+              options={{
+                headerShown: true,
+                title: 'Listing',
+              }}
+            />
+            <Stack.Screen
               name="create-listing"
               options={{
                 presentation: 'modal',

@@ -105,7 +105,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
       </View>
 
       <View style={styles.listingBody}>
-        {/* Image carousel: no parent Pressable so horizontal swipes never open listing */}
+        {/* Per-image Pressable opens listing on tap; horizontal ScrollView still handles swipes */}
         <View
           style={[styles.imageArea, { backgroundColor: colors.muted }]}
           onLayout={(e) => setImgAreaHeight(e.nativeEvent.layout.height)}
@@ -118,13 +118,17 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
             scrollEventThrottle={16}
           >
             {post.images.map((uri, i) => (
-              <Image
+              <Pressable
                 key={i}
-                source={{ uri }}
-                style={{ width: cardWidth, height: imgAreaHeight }}
-                contentFit="cover"
-                transition={200}
-              />
+                onPress={() => router.push(`/listing/${post.id}`, { withAnchor: true })}
+              >
+                <Image
+                  source={{ uri }}
+                  style={{ width: cardWidth, height: imgAreaHeight }}
+                  contentFit="cover"
+                  transition={200}
+                />
+              </Pressable>
             ))}
           </ScrollView>
 
@@ -196,7 +200,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
           </View>
           <Pressable
             style={styles.footerListingPressable}
-            onPress={() => router.push(`/listing/${post.id}`)}
+            onPress={() => router.push(`/listing/${post.id}`, { withAnchor: true })}
           >
             <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
               {post.title}

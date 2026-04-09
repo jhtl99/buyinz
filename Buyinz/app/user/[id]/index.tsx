@@ -136,7 +136,9 @@ export default function PublicUserProfileScreen() {
         listingsLoading={listingsLoading}
         onPressFollowers={() => router.push(`/user/${id}/followers`)}
         onPressFollowing={() => router.push(`/user/${id}/following`)}
-        onPressListing={(listingId) => router.push(`/listing/${listingId}`)}
+        onPressListing={(listingId) =>
+          router.push(`/listing/${listingId}`, { withAnchor: true })
+        }
         listingsEmptyVariant="other"
       />
     </View>

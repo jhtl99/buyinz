@@ -9,15 +9,6 @@ import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchConversations, type ConversationRow } from '@/supabase/queries';
-import {
-  getMockRatingDemoPost,
-  getMockSellingRatingDemoPost,
-  getSyntheticBuyingConversationRow,
-  getSyntheticSellingConversationRow,
-  SYNTHETIC_RATING_CONVERSATION_ID,
-  SYNTHETIC_SELLING_RATING_CONVERSATION_ID,
-} from '@/lib/mockRatingDemo';
-import { openUserProfile } from '@/lib/openUserProfile';
 
 type ChatTab = 'buying' | 'selling';
 
@@ -74,38 +65,15 @@ export default function MessagesScreen() {
     }, [loadConversations]),
   );
 
-  const demoListingId = useMemo(() => getMockRatingDemoPost().id, []);
-  const sellingDemoListingId = useMemo(() => getMockSellingRatingDemoPost().id, []);
+  const buyingChats = useMemo(
+    () => conversations.filter((c) => c.buyer_id === currentUserId),
+    [conversations, currentUserId],
+  );
 
-  const buyingChats = useMemo(() => {
-    const fromServer = conversations.filter((c) => c.buyer_id === currentUserId);
-    if (!user?.id) return fromServer;
-
-    // Synthetic buying row — skip if a real thread exists for the same listing.
-    if (fromServer.some((c) => c.listing_id === demoListingId)) return fromServer;
-
-    const synthetic = getSyntheticBuyingConversationRow({
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
-      avatar_url: user.avatar_url ?? null,
-    });
-    return [synthetic, ...fromServer];
-  }, [conversations, currentUserId, user, demoListingId]);
-
-  const sellingChats = useMemo(() => {
-    const fromServer = conversations.filter((c) => c.seller_id === currentUserId);
-    if (!user?.id) return fromServer;
-    if (fromServer.some((c) => c.listing_id === sellingDemoListingId)) return fromServer;
-
-    const synthetic = getSyntheticSellingConversationRow({
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
-      avatar_url: user.avatar_url ?? null,
-    });
-    return [synthetic, ...fromServer];
-  }, [conversations, currentUserId, user, sellingDemoListingId]);
+  const sellingChats = useMemo(
+    () => conversations.filter((c) => c.seller_id === currentUserId),
+    [conversations, currentUserId],
+  );
   const currentChats = activeTab === 'buying' ? buyingChats : sellingChats;
   const accent = TAB_ACCENT[activeTab];
 
@@ -118,12 +86,6 @@ export default function MessagesScreen() {
     const listing = item.listing;
     const lastMsg = item.last_message;
     const isMyLastMsg = lastMsg?.sender_id === currentUserId;
-    const localMockDemo =
-      item.id === SYNTHETIC_RATING_CONVERSATION_ID
-        ? '1'
-        : item.id === SYNTHETIC_SELLING_RATING_CONVERSATION_ID
-          ? '2'
-          : undefined;
 
     const goChat = () =>
       router.push({
@@ -138,57 +100,48 @@ export default function MessagesScreen() {
           listingTitle: listing.title,
           listingPrice: String(listing.price ?? 0),
           listingImage: listing.images?.[0] ?? '',
-          ...(localMockDemo ? { mockDemo: localMockDemo } : {}),
         },
       });
 
     return (
-      <View style={[styles.chatRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Pressable
-          onPress={() => openUserProfile(router, otherUser.id, currentUserId)}
-          accessibilityRole="button"
-          accessibilityLabel={`View ${otherUser.username} profile`}
-        >
-          <View style={[styles.chatThumb, { backgroundColor: colors.muted }]}>
-            {listing.images?.[0] ? (
-              <Image source={{ uri: listing.images[0] }} style={styles.chatThumbImg} contentFit="cover" />
-            ) : (
-              <Ionicons name="image-outline" size={20} color={colors.textSecondary} />
-            )}
-          </View>
-        </Pressable>
+      <Pressable
+        style={[styles.chatRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+        onPress={goChat}
+        accessibilityRole="button"
+        accessibilityLabel={`Open conversation with ${otherUser.username} about ${listing.title}`}
+      >
+        <View style={[styles.chatThumb, { backgroundColor: colors.muted }]}>
+          {listing.images?.[0] ? (
+            <Image source={{ uri: listing.images[0] }} style={styles.chatThumbImg} contentFit="cover" />
+          ) : (
+            <Ionicons name="image-outline" size={20} color={colors.textSecondary} />
+          )}
+        </View>
 
-        <Pressable style={styles.chatBodyPressable} onPress={goChat}>
-          <View style={styles.chatBody}>
-            <View style={styles.chatTopRow}>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[styles.chatTitle, { color: colors.text }]} numberOfLines={1}>
-                  {listing.title}
-                </Text>
-                <Pressable
-                  onPress={() => openUserProfile(router, otherUser.id, currentUserId)}
-                  hitSlop={6}
-                >
-                  <Text style={[styles.chatUsername, { color: colors.textSecondary }]}>
-                    @{otherUser.username}
-                  </Text>
-                </Pressable>
-              </View>
-              {lastMsg && (
-                <Text style={[styles.chatTime, { color: colors.textSecondary }]}>
-                  {timeAgo(lastMsg.created_at)}
-                </Text>
-              )}
+        <View style={styles.chatBody}>
+          <View style={styles.chatTopRow}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[styles.chatTitle, { color: colors.text }]} numberOfLines={1}>
+                {listing.title}
+              </Text>
+              <Text style={[styles.chatUsername, { color: colors.textSecondary }]}>
+                @{otherUser.username}
+              </Text>
             </View>
             {lastMsg && (
-              <Text style={[styles.chatPreview, { color: colors.textSecondary }]} numberOfLines={1}>
-                {isMyLastMsg ? 'You: ' : ''}
-                {lastMsg.body}
+              <Text style={[styles.chatTime, { color: colors.textSecondary }]}>
+                {timeAgo(lastMsg.created_at)}
               </Text>
             )}
           </View>
-        </Pressable>
-      </View>
+          {lastMsg && (
+            <Text style={[styles.chatPreview, { color: colors.textSecondary }]} numberOfLines={1}>
+              {isMyLastMsg ? 'You: ' : ''}
+              {lastMsg.body}
+            </Text>
+          )}
+        </View>
+      </Pressable>
     );
   };
 
@@ -310,10 +263,6 @@ const styles = StyleSheet.create({
   chatThumbImg: {
     width: '100%',
     height: '100%',
-  },
-  chatBodyPressable: {
-    flex: 1,
-    minWidth: 0,
   },
   chatBody: {
     flex: 1,

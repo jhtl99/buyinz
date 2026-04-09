@@ -132,7 +132,9 @@ export default function ProfileScreen() {
         listingsLoading={listingsLoading}
         onPressFollowers={() => router.push('/social?tab=followers')}
         onPressFollowing={() => router.push('/social?tab=following')}
-        onPressListing={(listingId) => router.push(`/listing/${listingId}`)}
+        onPressListing={(listingId) =>
+          router.push(`/listing/${listingId}`, { withAnchor: true })
+        }
         listingsEmptyVariant="self"
         footerBeforeGrid={
           <>

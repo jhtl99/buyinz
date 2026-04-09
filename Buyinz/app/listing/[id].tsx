@@ -1,14 +1,30 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  Dimensions,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { HeaderBackButton } from '@react-navigation/elements';
 import { Colors, Brand, ConditionColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { OfferModal } from '@/components/offers/OfferModal';
-import { getOrCreateConversation, sendMessage, fetchSaleListingById } from '@/supabase/queries';
+import {
+  getOrCreateConversation,
+  sendMessage,
+  fetchSaleListingById,
+  deleteOwnSaleListing,
+} from '@/supabase/queries';
 import { ListingBoostModal } from '@/components/pro/ListingBoostModal';
 import { isBoostActive, formatBoostCountdownHHMM } from '@/lib/boost';
 import { MOCK_FEED_POSTS, SalePost } from '@/data/mockData';
@@ -19,12 +35,16 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const { user } = useAuth();
+  const { decrementListingCount } = useSubscription();
 
   const [post, setPost] = useState<SalePost | null>(null);
+  const [listingSource, setListingSource] = useState<'db' | 'mock' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [offerModalVisible, setOfferModalVisible] = useState(false);
   const [boostModalVisible, setBoostModalVisible] = useState(false);
   const [countdownLabel, setCountdownLabel] = useState('00:00');
@@ -34,19 +54,27 @@ export default function ListingDetailScreen() {
     if (!id) return;
     setLoading(true);
     setLoadError(null);
+    setListingSource(null);
     try {
       const fromDb = await fetchSaleListingById(id);
       if (fromDb) {
         setPost(fromDb);
+        setListingSource('db');
         return;
       }
-      const found = MOCK_FEED_POSTS.find((p) => p.id === id && p.type === 'sale') as SalePost | undefined;
+      const found = MOCK_FEED_POSTS.find((p) => p.id === id && p.type === 'sale') as
+        | SalePost
+        | undefined;
+      setListingSource(found ? 'mock' : null);
       setPost(found ?? null);
     } catch (e) {
       console.error('[listing detail] fetchSaleListingById failed', e);
       setPost(null);
+      setListingSource(null);
       setLoadError(
-        e instanceof Error ? e.message : 'Could not load this listing. Check your connection and try again.',
+        e instanceof Error
+          ? e.message
+          : 'Could not load this listing. Check your connection and try again.',
       );
     } finally {
       setLoading(false);
@@ -69,6 +97,105 @@ export default function ListingDetailScreen() {
     const timer = setInterval(update, 30000);
     return () => clearInterval(timer);
   }, [post?.boostedUntil]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!post || listingSource !== 'db') return;
+    setDeleting(true);
+    try {
+      await deleteOwnSaleListing(post.id);
+      await decrementListingCount();
+      router.back();
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : 'Could not delete this listing.';
+      Alert.alert('Could not delete listing', message);
+    } finally {
+      setDeleting(false);
+    }
+  }, [post, listingSource, decrementListingCount, router]);
+
+  const requestDelete = useCallback(() => {
+    if (!post || listingSource !== 'db') return;
+    Alert.alert(
+      'Delete this listing?',
+      'This permanently removes the listing from Buyinz and deletes related message threads. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void handleConfirmDelete();
+          },
+        },
+      ],
+    );
+  }, [post, listingSource, handleConfirmDelete]);
+
+  const handleHeaderBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  }, [router]);
+
+  useLayoutEffect(() => {
+    const headerLeft = () => (
+      <HeaderBackButton tintColor={colors.text} onPress={handleHeaderBack} />
+    );
+
+    if (loading) {
+      navigation.setOptions({
+        title: 'Listing',
+        headerLeft,
+        headerRight: () => null,
+      });
+      return;
+    }
+    if (!post) {
+      navigation.setOptions({
+        title: 'Listing',
+        headerLeft,
+        headerRight: () => null,
+      });
+      return;
+    }
+    const showTrash = user?.id === post.seller.id && listingSource === 'db';
+    const title =
+      post.title.length > 32 ? `${post.title.slice(0, 32)}…` : post.title;
+    navigation.setOptions({
+      title,
+      headerLeft,
+      headerRight: showTrash
+        ? () =>
+            deleting ? (
+              <View style={{ paddingHorizontal: 12 }}>
+                <ActivityIndicator color={Brand.primary} />
+              </View>
+            ) : (
+              <Pressable
+                onPress={requestDelete}
+                hitSlop={12}
+                accessibilityLabel="Delete listing"
+                style={{ paddingHorizontal: 8 }}
+              >
+                <Ionicons name="trash-outline" size={22} color="#ef4444" />
+              </Pressable>
+            )
+        : undefined,
+    });
+  }, [
+    loading,
+    post,
+    user?.id,
+    listingSource,
+    deleting,
+    navigation,
+    requestDelete,
+    colors.text,
+    handleHeaderBack,
+  ]);
 
   const handleMakeOffer = async (amount: number) => {
     if (!user || !user.id) {
@@ -107,7 +234,14 @@ export default function ListingDetailScreen() {
       <View style={[styles.center, { backgroundColor: colors.background, padding: 24 }]}>
         {loadError ? (
           <>
-            <Text style={{ color: colors.text, textAlign: 'center', marginBottom: 12, fontWeight: '600' }}>
+            <Text
+              style={{
+                color: colors.text,
+                textAlign: 'center',
+                marginBottom: 12,
+                fontWeight: '600',
+              }}
+            >
               {"Couldn't load listing"}
             </Text>
             <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 20 }}>
@@ -166,7 +300,11 @@ export default function ListingDetailScreen() {
           <View
             style={[
               styles.conditionBadge,
-              { backgroundColor: condColors.bg, borderColor: condColors.border, alignSelf: 'flex-start' },
+              {
+                backgroundColor: condColors.bg,
+                borderColor: condColors.border,
+                alignSelf: 'flex-start',
+              },
             ]}
           >
             <Text style={[styles.conditionText, { color: condColors.text }]}>{post.condition}</Text>
@@ -179,7 +317,9 @@ export default function ListingDetailScreen() {
                 <Text style={[styles.boostedBadgeText, { color: Brand.primary }]}>Boosted</Text>
               </View>
               {isOwner && (
-                <Text style={[styles.countdown, { color: colors.textSecondary }]}>{countdownLabel}</Text>
+                <Text style={[styles.countdown, { color: colors.textSecondary }]}>
+                  {countdownLabel}
+                </Text>
               )}
             </View>
           )}

@@ -73,7 +73,7 @@ function ExploreCard({ post }: { post: DiscoverySalePost }) {
 
   return (
     <Pressable
-      onPress={() => router.push(`/listing/${post.id}`)}
+      onPress={() => router.push(`/listing/${post.id}`, { withAnchor: true })}
       style={[
         styles.card,
         {

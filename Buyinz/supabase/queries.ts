@@ -20,6 +20,7 @@ export {
   fetchUserSaleListings,
   fetchSaleListingById,
   applyListingBoost,
+  deleteOwnSaleListing,
 } from './postsRead';
 
 export {
