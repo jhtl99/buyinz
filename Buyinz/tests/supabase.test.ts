@@ -20,6 +20,7 @@ import {
   authenticateWithGoogle,
   buildUsersUpsertPayload,
   checkUsernameAvailable,
+  deleteProfileForCurrentUser,
   isBuyinzProfileComplete,
   isPostgresUniqueViolation,
   isProfileOnboardingComplete,
@@ -53,6 +54,14 @@ function mockUsersSelectUsernameChain(data: unknown, error: unknown | null) {
   builder.eq = () => builder;
   builder.select = () => builder;
   return builder;
+}
+
+function mockUsersDeleteChain(error: unknown | null) {
+  return {
+    delete: () => ({
+      eq: () => Promise.resolve({ error, data: null }),
+    }),
+  };
 }
 
 describe('validateProfileForSave', () => {
@@ -170,6 +179,23 @@ describe('isPostgresUniqueViolation', () => {
     expect(isPostgresUniqueViolation({ code: '42P01' })).toBe(false);
     expect(isPostgresUniqueViolation({ code: undefined })).toBe(false);
     expect(isPostgresUniqueViolation({})).toBe(false);
+  });
+});
+
+describe('deleteProfileForCurrentUser', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('deletes by user id', async () => {
+    mockedFrom.mockReturnValue(mockUsersDeleteChain(null));
+    await deleteProfileForCurrentUser('user-uuid-1');
+    expect(mockedFrom).toHaveBeenCalledWith('users');
+  });
+
+  it('throws when delete returns error', async () => {
+    mockedFrom.mockReturnValue(mockUsersDeleteChain({ message: 'rls' }));
+    await expect(deleteProfileForCurrentUser('user-uuid-1')).rejects.toThrow('rls');
   });
 });
 

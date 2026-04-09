@@ -201,11 +201,11 @@ export async function authenticateWithGoogle() {
   return { data, redirectUrl };
 }
 
-export async function deleteProfile(username: string) {
-  const { error } = await supabase.from('users').delete().match({ username });
+/** Deletes the signed-in user's row in `public.users`. RLS must allow delete where `auth.uid() = id`. */
+export async function deleteProfileForCurrentUser(userId: string): Promise<void> {
+  const { error } = await supabase.from('users').delete().eq('id', userId);
 
   if (error) {
-    console.error('Error deleting profile:', error);
+    throw new Error(error.message);
   }
-  return true;
 }

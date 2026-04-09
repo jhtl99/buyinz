@@ -3,9 +3,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   checkUsernameAvailable,
+  deleteProfileForCurrentUser,
   fetchBuyinzUserRowByAuthId,
   normalizeUsername,
   saveProfile,
+  supabase,
   validateProfileUpdate,
 } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,6 +48,7 @@ export default function EditProfileScreen() {
   const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [usernameCheck, setUsernameCheck] = useState<UsernameCheck>('idle');
   const [hydrated, setHydrated] = useState(false);
 
@@ -149,12 +152,59 @@ export default function EditProfileScreen() {
     }
   };
 
+  const performDelete = async () => {
+    if (!user?.id) return;
+    setDeleting(true);
+    try {
+      await deleteProfileForCurrentUser(user.id);
+      await supabase.auth.signOut();
+      setUser(null);
+      router.replace('/(tabs)/profile');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Could not delete profile';
+      Alert.alert('Could not delete profile', message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const requestDelete = () => {
+    Alert.alert(
+      'Delete profile?',
+      'This will remove your Buyinz profile from our database, including your display name, username, and profile details. Your Google account is not deleted—you can sign in again to create a new profile. Related data (such as listings or messages) may be affected by how your account is linked.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          onPress: () => {
+            Alert.alert(
+              'Permanently delete profile?',
+              'This cannot be undone. You will be signed out.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete profile',
+                  style: 'destructive',
+                  onPress: () => {
+                    void performDelete();
+                  },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
+
   const coreFilled =
     !!displayName.trim() &&
     !!normalizeUsername(username) &&
     !!location.trim();
 
-  const saveDisabled = isLoading || !coreFilled || usernameCheck !== 'ok';
+  const saveDisabled =
+    isLoading || deleting || !coreFilled || usernameCheck !== 'ok';
 
   const usernameHint = () => {
     if (!normalizeUsername(username)) return null;
@@ -306,6 +356,42 @@ export default function EditProfileScreen() {
             )}
           </Pressable>
         </View>
+
+        <View
+          style={[
+            styles.dangerSection,
+            {
+              backgroundColor: scheme === 'light' ? '#fff5f5' : '#2c1518',
+              borderColor: '#fecaca',
+            },
+          ]}
+        >
+          <Text style={[styles.dangerTitle, { color: colors.text }]}>
+            Delete profile
+          </Text>
+          <Text
+            style={[styles.dangerCopy, { color: colors.textSecondary }]}
+          >
+            Permanently remove your Buyinz profile from our servers. You will be
+            signed out. Your Google account stays the same—you can sign in again
+            later to set up a new profile if you choose.
+          </Text>
+          <Pressable
+            style={[
+              styles.dangerBtn,
+              { borderColor: '#ef4444' },
+              (isLoading || deleting) && styles.primaryBtnDisabled,
+            ]}
+            onPress={requestDelete}
+            disabled={isLoading || deleting}
+          >
+            {deleting ? (
+              <ActivityIndicator color="#ef4444" />
+            ) : (
+              <Text style={styles.dangerBtnText}>Delete profile</Text>
+            )}
+          </Pressable>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -388,5 +474,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  dangerSection: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+    borderWidth: 1,
+  },
+  dangerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  dangerCopy: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  dangerBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  dangerBtnText: {
+    color: '#ef4444',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
