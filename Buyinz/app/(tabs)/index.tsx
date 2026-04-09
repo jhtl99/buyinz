@@ -165,6 +165,8 @@ export default function HomeScreen() {
             snapToAlignment="start"
             decelerationRate="fast"
             bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
           />
         ) : null}
       </View>

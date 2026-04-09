@@ -104,110 +104,111 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
         </View>
       </View>
 
-      <Pressable
-        onPress={() => router.push(`/listing/${post.id}`)}
-        style={styles.listingBodyPressable}
-      >
-      {/* Image Carousel */}
-      <View
-        style={[styles.imageArea, { backgroundColor: colors.muted }]}
-        onLayout={(e) => setImgAreaHeight(e.nativeEvent.layout.height)}
-      >
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={handleScroll}
-          scrollEventThrottle={16}
+      <View style={styles.listingBody}>
+        {/* Image carousel: no parent Pressable so horizontal swipes never open listing */}
+        <View
+          style={[styles.imageArea, { backgroundColor: colors.muted }]}
+          onLayout={(e) => setImgAreaHeight(e.nativeEvent.layout.height)}
         >
-          {post.images.map((uri, i) => (
-            <Image
-              key={i}
-              source={{ uri }}
-              style={{ width: cardWidth, height: imgAreaHeight }}
-              contentFit="cover"
-              transition={200}
-            />
-          ))}
-        </ScrollView>
-
-        {isBoostActive(post.boostedUntil) && (
-          <View style={styles.boostOverlay} pointerEvents="none">
-            <View style={styles.boostedPill}>
-              <Ionicons name="rocket-outline" size={12} color="#fff" />
-              <Text style={styles.boostedPillText}>Boosted</Text>
-            </View>
-            {isOwnListing && <Text style={styles.boostTimer}>{boostCountdown}</Text>}
-          </View>
-        )}
-
-        {/* Dot indicators */}
-        {post.images.length > 1 && (
-          <View style={styles.dotsRow}>
-            {post.images.map((_, i) => (
-              <View
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleScroll}
+            scrollEventThrottle={16}
+          >
+            {post.images.map((uri, i) => (
+              <Image
                 key={i}
-                style={[
-                  styles.dot,
-                  i === imgIndex ? styles.dotActive : styles.dotInactive,
-                ]}
+                source={{ uri }}
+                style={{ width: cardWidth, height: imgAreaHeight }}
+                contentFit="cover"
+                transition={200}
               />
             ))}
-          </View>
-        )}
-      </View>
+          </ScrollView>
 
-      {/* Footer: bookmark + message + title | price */}
-      <View style={styles.footer}>
-        <View style={styles.footerLeft}>
-          <Pressable
-            onPress={() => setSaved((s) => !s)}
-            hitSlop={8}
-            style={styles.bookmarkBtn}
-          >
-            <Ionicons
-              name={saved ? 'bookmark' : 'bookmark-outline'}
-              size={22}
-              color={saved ? Brand.primary : colors.textSecondary}
-            />
-          </Pressable>
-          {!isOwnListing && (
+          {isBoostActive(post.boostedUntil) && (
+            <View style={styles.boostOverlay} pointerEvents="none">
+              <View style={styles.boostedPill}>
+                <Ionicons name="rocket-outline" size={12} color="#fff" />
+                <Text style={styles.boostedPillText}>Boosted</Text>
+              </View>
+              {isOwnListing && <Text style={styles.boostTimer}>{boostCountdown}</Text>}
+            </View>
+          )}
+
+          {post.images.length > 1 && (
+            <View style={styles.dotsRow}>
+              {post.images.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    i === imgIndex ? styles.dotActive : styles.dotInactive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Tap title or price to open listing (bookmark/chat are outside this Pressable) */}
+        <View style={styles.footer}>
+          <View style={styles.footerIcons}>
             <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/chat/[id]',
-                  params: {
-                    id: post.id,
-                    sellerId: post.seller.id,
-                    sellerUsername: post.seller.username,
-                    peerUsername: post.seller.username,
-                    listingTitle: post.title,
-                    listingPrice: String(post.price),
-                    listingImage: post.images[0] ?? '',
-                  },
-                })
-              }
+              onPress={() => setSaved((s) => !s)}
               hitSlop={8}
               style={styles.bookmarkBtn}
             >
               <Ionicons
-                name="chatbubble-outline"
-                size={20}
-                color={colors.textSecondary}
+                name={saved ? 'bookmark' : 'bookmark-outline'}
+                size={22}
+                color={saved ? Brand.primary : colors.textSecondary}
               />
             </Pressable>
-          )}
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-            {post.title}
-          </Text>
-        </View>
-        <View style={styles.priceBadge}>
-          <Text style={styles.priceText}>
-            {post.price === 0 ? 'Offer' : `$${post.price}`}
-          </Text>
+            {!isOwnListing && (
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/chat/[id]',
+                    params: {
+                      id: post.id,
+                      sellerId: post.seller.id,
+                      sellerUsername: post.seller.username,
+                      peerUsername: post.seller.username,
+                      listingTitle: post.title,
+                      listingPrice: String(post.price),
+                      listingImage: post.images[0] ?? '',
+                    },
+                  })
+                }
+                hitSlop={8}
+                style={styles.bookmarkBtn}
+              >
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            )}
+          </View>
+          <Pressable
+            style={styles.footerListingPressable}
+            onPress={() => router.push(`/listing/${post.id}`)}
+          >
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+              {post.title}
+            </Text>
+            <View style={styles.priceBadge}>
+              <Text style={styles.priceText}>
+                {post.price === 0 ? 'Offer' : `$${post.price}`}
+              </Text>
+            </View>
+          </Pressable>
         </View>
       </View>
-      </Pressable>
     </View>
   );
 }
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
     gap: 10,
     minWidth: 0,
   },
-  listingBodyPressable: {
+  listingBody: {
     flex: 1,
     minHeight: 200,
     flexDirection: 'column',
@@ -324,16 +325,21 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    gap: 12,
+    gap: 8,
   },
-  footerLeft: {
+  footerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  footerListingPressable: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     minWidth: 0,
   },
   bookmarkBtn: {
