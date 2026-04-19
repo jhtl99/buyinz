@@ -125,6 +125,9 @@ describe('mapRowToPost seller (sellerFromUserRow)', () => {
       followers: 0,
       following: 0,
       posts: 0,
+      accountType: 'user',
+      latitude: null,
+      longitude: null,
     });
   });
 
@@ -148,6 +151,26 @@ describe('mapRowToPost seller (sellerFromUserRow)', () => {
     expect(post.seller.followers).toBe(0);
     expect(post.seller.following).toBe(0);
     expect(post.seller.posts).toBe(0);
+    expect(post.seller.accountType).toBe('user');
+    expect(post.seller.latitude).toBeNull();
+    expect(post.seller.longitude).toBeNull();
+  });
+
+  it('maps store account_type and coordinates when present', () => {
+    const row = saleRowWithUsers({
+      id: 'store-1',
+      username: 'main_st_thrift',
+      display_name: 'Main St Thrift',
+      account_type: 'store',
+      latitude: 40.4741,
+      longitude: -79.9563,
+    });
+
+    const post = mapRowToPost(row);
+
+    expect(post.seller.accountType).toBe('store');
+    expect(post.seller.latitude).toBe(40.4741);
+    expect(post.seller.longitude).toBe(-79.9563);
   });
 });
 
