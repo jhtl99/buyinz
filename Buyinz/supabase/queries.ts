@@ -5,8 +5,8 @@
 export type { PublicUserProfile } from './usersRead';
 export { fetchUserPublicProfileById } from './usersRead';
 
-export { DEFAULT_PITTSBURGH_COORDS } from './discoveryFeed';
-export type { GeoPoint } from './discoveryFeed';
+export { DEFAULT_CMU_COORDS } from '@/lib/discoveryLocation';
+export type { GeoPoint } from '@/lib/discoveryLocation';
 
 export type { DiscoverySalePost, DiscoveryFeedResult } from './discoveryFeed';
 

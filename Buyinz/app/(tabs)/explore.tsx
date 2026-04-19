@@ -17,12 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  DEFAULT_PITTSBURGH_COORDS,
-  fetchDiscoveryFeed,
-  type DiscoverySalePost,
-  type GeoPoint,
-} from '@/supabase/queries';
+import { fetchDiscoveryFeed, type DiscoverySalePost, type GeoPoint } from '@/supabase/queries';
+import { DEFAULT_CMU_COORDS, milesBetween } from '@/lib/discoveryLocation';
 
 const SHELVES = [
   { id: 'All', label: 'All Shelves', emoji: '🏪' },
@@ -42,19 +38,7 @@ const RADIUS_OPTIONS: { label: string; miles: number }[] = [
   { label: '20 mi', miles: 20 },
 ];
 
-function milesBetween(a: GeoPoint, b: GeoPoint): number {
-  const earthRadiusMiles = 3958.8;
-  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
-  const dLon = ((b.longitude - a.longitude) * Math.PI) / 180;
-  const lat1 = (a.latitude * Math.PI) / 180;
-  const lat2 = (b.latitude * Math.PI) / 180;
-
-  const h =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
-
-  return 2 * earthRadiusMiles * Math.asin(Math.sqrt(h));
-}
+const DEFAULT_RADIUS_MILES = 10;
 
 function ExploreCard({ post }: { post: DiscoverySalePost }) {
   const router = useRouter();
@@ -100,14 +84,13 @@ export default function ExploreTabScreen() {
 
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<ShelfId>('All');
-  const [activeRadius, setActiveRadius] = useState(0);
+  const [activeRadius, setActiveRadius] = useState(DEFAULT_RADIUS_MILES);
 
-  const [userCoords, setUserCoords] = useState<GeoPoint>(DEFAULT_PITTSBURGH_COORDS);
-  const [neighborhood, setNeighborhood] = useState('Pittsburgh');
+  const [userCoords, setUserCoords] = useState<GeoPoint>(DEFAULT_CMU_COORDS);
   const [listings, setListings] = useState<DiscoverySalePost[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const lastCoordsRef = useRef<GeoPoint>(DEFAULT_PITTSBURGH_COORDS);
+  const lastCoordsRef = useRef<GeoPoint>(DEFAULT_CMU_COORDS);
 
   useEffect(() => {
     if (!user) return;
@@ -152,9 +135,15 @@ export default function ExploreTabScreen() {
               }
             },
           );
+        } else if (mounted) {
+          lastCoordsRef.current = DEFAULT_CMU_COORDS;
+          setUserCoords(DEFAULT_CMU_COORDS);
         }
       } catch {
-        // Fall back to default Pittsburgh center.
+        if (mounted) {
+          lastCoordsRef.current = DEFAULT_CMU_COORDS;
+          setUserCoords(DEFAULT_CMU_COORDS);
+        }
       }
     })();
 
@@ -172,7 +161,6 @@ export default function ExploreTabScreen() {
     fetchDiscoveryFeed({ userCoords, radiusMiles: activeRadius })
       .then((result) => {
         if (!mounted) return;
-        setNeighborhood(result.neighborhood);
         setListings(result.listings);
       })
       .catch(console.error)
@@ -229,7 +217,9 @@ export default function ExploreTabScreen() {
         ]}
       >
         <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.rounded }]}>Discover</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Trending in {neighborhood}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Store listings sorted by distance
+        </Text>
 
         <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}> 
           <Ionicons name="search" size={16} color={colors.textSecondary} />
@@ -461,17 +451,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-  },
-  neighborhoodPill: {
-    backgroundColor: 'rgba(255,255,255,0.24)',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  neighborhoodText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
   },
   distanceText: {
     color: '#FFFFFF',

@@ -43,7 +43,7 @@ export async function fetchSaleListingById(id: string): Promise<SalePost | null>
   return mapRowToPost(data) as SalePost;
 }
 
-/** Deletes the listing and related conversations/messages; server enforces seller ownership. */
+/** Deletes the listing and related conversations; server enforces seller ownership. */
 export async function deleteOwnSaleListing(listingId: string): Promise<void> {
   const { error } = await supabase.rpc('delete_own_sale_listing', {
     p_listing_id: listingId,
