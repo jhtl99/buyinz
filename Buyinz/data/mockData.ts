@@ -8,6 +8,9 @@ export interface Seller {
   followers: number;
   following: number;
   posts: number;
+  accountType: 'user' | 'store';
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface SalePost {
@@ -56,6 +59,9 @@ export const MOCK_SELLERS: Seller[] = [
     followers: 1240,
     following: 380,
     posts: 9,
+    accountType: "store",
+    latitude: 40.4741,
+    longitude: -79.9563,
   },
   {
     id: "u2",
@@ -67,6 +73,9 @@ export const MOCK_SELLERS: Seller[] = [
     followers: 214,
     following: 102,
     posts: 14,
+    accountType: "user",
+    latitude: null,
+    longitude: null,
   },
   {
     id: "u3",
@@ -78,6 +87,9 @@ export const MOCK_SELLERS: Seller[] = [
     followers: 3100,
     following: 220,
     posts: 41,
+    accountType: "user",
+    latitude: null,
+    longitude: null,
   },
   {
     id: "u4",
@@ -89,6 +101,9 @@ export const MOCK_SELLERS: Seller[] = [
     followers: 890,
     following: 450,
     posts: 22,
+    accountType: "store",
+    latitude: 40.4508,
+    longitude: -79.9913,
   },
   {
     id: "u5",
@@ -100,6 +115,9 @@ export const MOCK_SELLERS: Seller[] = [
     followers: 560,
     following: 310,
     posts: 18,
+    accountType: "user",
+    latitude: null,
+    longitude: null,
   },
 ];
 

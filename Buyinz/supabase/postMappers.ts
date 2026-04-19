@@ -16,6 +16,8 @@ function timeAgo(dateStr: string): string {
 }
 
 function sellerFromUserRow(user: any): Seller {
+  const lat = user.latitude;
+  const lng = user.longitude;
   return {
     id: user.id,
     username: user.username,
@@ -26,6 +28,9 @@ function sellerFromUserRow(user: any): Seller {
     followers: 0,
     following: 0,
     posts: 0,
+    accountType: user.account_type === 'store' ? 'store' : 'user',
+    latitude: typeof lat === 'number' && Number.isFinite(lat) ? lat : null,
+    longitude: typeof lng === 'number' && Number.isFinite(lng) ? lng : null,
   };
 }
 
