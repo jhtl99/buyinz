@@ -1,0 +1,52 @@
+# Runs Jest for machine acceptance tests when PRs touch files under Buyinz/tests/
+# that end in test.ts. npm commands run in the Buyinz/ app directory.
+
+name: Run Jest Tests
+
+on:
+  pull_request:
+    paths:
+      # Machine acceptance tests: Buyinz/tests/ only, filenames ending in test.ts
+      - "Buyinz/tests/**/*test.ts"
+
+jobs:
+  jest:
+    name: Jest (machine acceptance)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Buyinz
+
+    steps:
+      # Full history so we can diff the PR range for the "what triggered this" step
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: Buyinz/package-lock.json
+
+      - name: Show machine acceptance test files changed in this PR
+        run: |
+          echo "Base: ${{ github.event.pull_request.base.sha }}"
+          echo "Head: ${{ github.event.pull_request.head.sha }}"
+          echo "Changed *test.ts under Buyinz/tests/:"
+          git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}" \
+            -- Buyinz/tests/ \
+            | grep -E 'test\.ts$' \
+            || echo "(no matching files in diff; path filter may include renames or workflow-only edge cases)"
+
+      - name: Install dependencies
+        run: npm install
+
+      # Jest exits non-zero on failure, so the job fails if tests fail
+      - name: Run Jest
+        run: npm test
