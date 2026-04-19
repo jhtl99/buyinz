@@ -1,4 +1,3 @@
-import type { SalePost } from '@/data/mockData';
 import { insertPost } from '@/supabase/queries';
 
 export interface ImageAsset {
@@ -11,34 +10,13 @@ export interface ListingDraft {
   images: ImageAsset[];
   title: string;
   price: string;
-  condition: SalePost['condition'] | null;
-  category: SalePost['category'] | null;
-  zipCode: string;
-  description: string;
-  hashtags: string;
 }
 
 export const EMPTY_DRAFT: ListingDraft = {
   images: [],
   title: '',
   price: '',
-  condition: null,
-  category: null,
-  zipCode: '',
-  description: '',
-  hashtags: '',
 };
-
-export const CONDITIONS: SalePost['condition'][] = ['New', 'Like New', 'Good', 'Fair'];
-
-export const CATEGORIES: SalePost['category'][] = [
-  'Furniture',
-  'Clothing',
-  'Electronics',
-  'Books',
-  'Decor',
-  'Other',
-];
 
 export const MAX_PHOTOS = 5;
 
@@ -48,28 +26,12 @@ export function parsePriceToNumber(price: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-export function isValidZip5(zip: string): boolean {
-  return /^\d{5}$/.test(zip);
-}
-
+/** A listing is valid as long as it has at least one photo and a title. Price is optional. */
 export function isDraftValid(draft: ListingDraft): boolean {
-  return (
-    draft.images.length > 0 &&
-    draft.title.trim().length > 0 &&
-    draft.price.trim().length > 0 &&
-    parsePriceToNumber(draft.price) >= 0 &&
-    draft.condition !== null &&
-    draft.category !== null &&
-    isValidZip5(draft.zipCode)
-  );
-}
-
-export function parseHashtags(raw: string): string[] {
-  return raw
-    .split(/[\s,]+/)
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .map((t) => (t.startsWith('#') ? t : `#${t}`));
+  if (draft.images.length === 0) return false;
+  if (draft.title.trim().length === 0) return false;
+  if (draft.price.trim().length > 0 && parsePriceToNumber(draft.price) < 0) return false;
+  return true;
 }
 
 export async function submitListing(

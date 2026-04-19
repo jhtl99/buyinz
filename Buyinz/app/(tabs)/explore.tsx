@@ -36,17 +36,7 @@ const SHELVES = [
 
 type ShelfId = (typeof SHELVES)[number]['id'];
 
-const TRENDING_TAGS = [
-  '#VintageSteelers',
-  '#MCM',
-  '#PittMovingSale',
-  '#ThriftFinds',
-  '#Vinyl',
-  '#ISO',
-];
-
 const RADIUS_OPTIONS: { label: string; miles: number }[] = [
-  { label: 'Neighborhood', miles: 0 },
   { label: '5 mi', miles: 5 },
   { label: '10 mi', miles: 10 },
   { label: '20 mi', miles: 20 },
@@ -95,9 +85,6 @@ function ExploreCard({ post }: { post: DiscoverySalePost }) {
           {post.title}
         </Text>
         <View style={styles.metaRow}>
-          <View style={styles.neighborhoodPill}>
-            <Text style={styles.neighborhoodText}>{post.neighborhoodTag}</Text>
-          </View>
           <Text style={styles.distanceText}>{post.distanceMiles.toFixed(1)} mi</Text>
         </View>
       </View>
@@ -113,7 +100,6 @@ export default function ExploreTabScreen() {
 
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<ShelfId>('All');
-  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeRadius, setActiveRadius] = useState(0);
 
   const [userCoords, setUserCoords] = useState<GeoPoint>(DEFAULT_PITTSBURGH_COORDS);
@@ -207,10 +193,9 @@ export default function ExploreTabScreen() {
         q.length === 0 ||
         post.title.toLowerCase().includes(q) ||
         post.seller.username.toLowerCase().includes(q);
-      const matchesTag = activeTag == null || post.hashtags.includes(activeTag);
-      return matchesCategory && matchesSearch && matchesTag;
+      return matchesCategory && matchesSearch;
     });
-  }, [activeCategory, activeTag, listings, search]);
+  }, [activeCategory, listings, search]);
 
   const [leftCol, rightCol] = useMemo(() => {
     const left: DiscoverySalePost[] = [];
@@ -305,28 +290,6 @@ export default function ExploreTabScreen() {
             );
           })}
         </ScrollView>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-          {TRENDING_TAGS.map((tag) => {
-            const selected = activeTag === tag;
-            return (
-              <Pressable
-                key={tag}
-                onPress={() => setActiveTag((prev) => (prev === tag ? null : tag))}
-                style={[
-                  styles.tagChip,
-                  selected
-                    ? { backgroundColor: `${Brand.primary}22`, borderColor: Brand.primary }
-                    : { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-              >
-                <Text style={[styles.tagChipText, { color: selected ? Brand.primary : colors.textSecondary }]}>
-                  {tag}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
       </View>
 
       {loading ? (
@@ -336,7 +299,7 @@ export default function ExploreTabScreen() {
       ) : filtered.length === 0 ? (
         <View style={styles.emptyWrap}>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>No listings found</Text>
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Try another shelf, tag, or radius.</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Try another shelf or radius.</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.feedContent} showsVerticalScrollIndicator={false}>
@@ -413,16 +376,6 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 12,
     fontWeight: '700',
-  },
-  tagChip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  tagChipText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   loader: {
     flex: 1,

@@ -1,5 +1,5 @@
 import type { ISOPost, SalePost } from '@/data/mockData';
-import { mapRowToPost, sortRowsForHomeFeed } from '@/supabase/postMappers';
+import { mapRowToPost } from '@/supabase/postMappers';
 
 /** Fixed instant for fake timers; created_at values are derived from this. */
 const FIXED_NOW_MS = Date.UTC(2026, 3, 7, 12, 0, 0, 0);
@@ -301,10 +301,9 @@ describe('mapRowToPost type branches', () => {
     expect(post).not.toHaveProperty('price');
     expect(post).not.toHaveProperty('condition');
     expect(post).not.toHaveProperty('sold');
-    expect(post).not.toHaveProperty('boostedUntil');
   });
 
-  it('sale branch: maps images, price, condition, sold, boostedUntil from row', () => {
+  it('sale branch: maps images, price, condition, sold from row', () => {
     const row = {
       id: 'sale-1',
       type: 'sale' as const,
@@ -317,7 +316,6 @@ describe('mapRowToPost type branches', () => {
       price: 42,
       condition: 'Like New' as const,
       sold: true,
-      boosted_until: '2027-06-01T00:00:00.000Z',
     };
 
     const post = mapRowToPost(row);
@@ -328,10 +326,9 @@ describe('mapRowToPost type branches', () => {
     expect(sale.price).toBe(42);
     expect(sale.condition).toBe('Like New');
     expect(sale.sold).toBe(true);
-    expect(sale.boostedUntil).toBe('2027-06-01T00:00:00.000Z');
   });
 
-  it('sale branch: defaults images [], price 0, condition Good; sold false; boostedUntil null when missing', () => {
+  it('sale branch: defaults images [], price 0, condition Good; sold false when missing', () => {
     const row = {
       id: 'sale-2',
       type: 'sale' as const,
@@ -348,131 +345,6 @@ describe('mapRowToPost type branches', () => {
     expect(sale.price).toBe(0);
     expect(sale.condition).toBe('Good');
     expect(sale.sold).toBe(false);
-    expect(sale.boostedUntil).toBe(null);
-  });
-
-  it('sale branch: boosted_until null or undefined yields boostedUntil null', () => {
-    const base = {
-      type: 'sale' as const,
-      id: 'sale-3',
-      title: 'T',
-      category: 'Other' as const,
-      created_at,
-      users,
-    };
-
-    expect((mapRowToPost({ ...base, boosted_until: null }) as SalePost).boostedUntil).toBe(null);
-    expect((mapRowToPost({ ...base, boosted_until: undefined }) as SalePost).boostedUntil).toBe(
-      null,
-    );
   });
 });
 
-describe('sortRowsForHomeFeed', () => {
-  /** Matches Date.now() inside sortRowsForHomeFeed while fake timers are active. */
-  const SORT_NOW_MS = Date.UTC(2026, 5, 15, 12, 0, 0, 0);
-
-  beforeAll(() => {
-    jest.useFakeTimers({ now: SORT_NOW_MS });
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
-  });
-
-  it('non-sale rows (e.g. iso) are not boosted: future boosted_until is ignored; sort by created_at desc', () => {
-    const iso = {
-      id: 'iso-1',
-      type: 'iso',
-      created_at: '2026-01-01T00:00:00.000Z',
-      boosted_until: '2099-01-01T00:00:00.000Z',
-    };
-    const saleNewer = {
-      id: 'sale-newer',
-      type: 'sale',
-      created_at: '2026-06-10T00:00:00.000Z',
-    };
-    const sorted = sortRowsForHomeFeed([iso, saleNewer]);
-    expect(sorted.map((r) => r.id)).toEqual(['sale-newer', 'iso-1']);
-  });
-
-  it('sale without boosted_until is not boosted; orders by created_at desc vs another non-boosted sale', () => {
-    const older = { id: 'older', type: 'sale', created_at: '2026-03-01T00:00:00.000Z' };
-    const newer = { id: 'newer', type: 'sale', created_at: '2026-06-01T00:00:00.000Z' };
-    const sorted = sortRowsForHomeFeed([older, newer]);
-    expect(sorted.map((r) => r.id)).toEqual(['newer', 'older']);
-  });
-
-  it('sale with boosted_until in the past is not boosted; orders by created_at desc only', () => {
-    const pastBoost = {
-      id: 'past-boost',
-      type: 'sale',
-      created_at: '2026-01-01T00:00:00.000Z',
-      boosted_until: '2026-06-01T00:00:00.000Z',
-    };
-    const recentNoBoost = {
-      id: 'recent',
-      type: 'sale',
-      created_at: '2026-06-14T00:00:00.000Z',
-    };
-    const sorted = sortRowsForHomeFeed([pastBoost, recentNoBoost]);
-    expect(sorted.map((r) => r.id)).toEqual(['recent', 'past-boost']);
-  });
-
-  it('sale with boosted_until in the future is boosted and sorts before a non-boosted sale (even if older created_at)', () => {
-    const boostedOld = {
-      id: 'boosted-old',
-      type: 'sale',
-      created_at: '2026-01-01T00:00:00.000Z',
-      boosted_until: '2026-07-01T00:00:00.000Z',
-    };
-    const plainNew = {
-      id: 'plain-new',
-      type: 'sale',
-      created_at: '2026-06-14T00:00:00.000Z',
-    };
-    const sorted = sortRowsForHomeFeed([plainNew, boostedOld]);
-    expect(sorted.map((r) => r.id)).toEqual(['boosted-old', 'plain-new']);
-  });
-
-  it('among two boosted sales, sorts by boosted_until desc (later boosted_until first)', () => {
-    const earlierEnd = {
-      id: 'boost-ends-july',
-      type: 'sale',
-      created_at: '2026-01-01T00:00:00.000Z',
-      boosted_until: '2026-07-01T00:00:00.000Z',
-    };
-    const laterEnd = {
-      id: 'boost-ends-aug',
-      type: 'sale',
-      created_at: '2026-01-01T00:00:00.000Z',
-      boosted_until: '2026-08-01T00:00:00.000Z',
-    };
-    const sorted = sortRowsForHomeFeed([earlierEnd, laterEnd]);
-    expect(sorted.map((r) => r.id)).toEqual(['boost-ends-aug', 'boost-ends-july']);
-  });
-
-  it('among non-boosted rows (mixed iso and sale), sorts by created_at desc', () => {
-    const isoOld = { id: 'iso-old', type: 'iso', created_at: '2026-02-01T00:00:00.000Z' };
-    const saleMid = { id: 'sale-mid', type: 'sale', created_at: '2026-04-01T00:00:00.000Z' };
-    const isoNew = { id: 'iso-new', type: 'iso', created_at: '2026-06-01T00:00:00.000Z' };
-    const sorted = sortRowsForHomeFeed([saleMid, isoNew, isoOld]);
-    expect(sorted.map((r) => r.id)).toEqual(['iso-new', 'sale-mid', 'iso-old']);
-  });
-
-  it('sale with null boosted_until is not boosted (same as missing)', () => {
-    const a = {
-      id: 'a',
-      type: 'sale',
-      created_at: '2026-05-01T00:00:00.000Z',
-      boosted_until: null,
-    };
-    const b = {
-      id: 'b',
-      type: 'sale',
-      created_at: '2026-06-01T00:00:00.000Z',
-    };
-    const sorted = sortRowsForHomeFeed([a, b]);
-    expect(sorted.map((r) => r.id)).toEqual(['b', 'a']);
-  });
-});

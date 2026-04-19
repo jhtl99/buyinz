@@ -233,11 +233,6 @@ describe('postsInsert', () => {
         images: [{ uri: 'https://cdn/item.JPG', width: 1, height: 1 }],
         title: 'Desk',
         price: '45',
-        condition: 'Like New',
-        category: 'Furniture',
-        zipCode: '94102',
-        description: 'Solid wood',
-        hashtags: 'wood, desk',
         ...overrides,
       };
     }
@@ -273,7 +268,7 @@ describe('postsInsert', () => {
       });
     });
 
-    it('inserts a row with parsed price and hashtags, default mock user when userId omitted', async () => {
+    it('inserts a row with parsed price and uploaded images, default mock user when userId omitted', async () => {
       const draft = baseDraft();
 
       const id = await insertPost(draft);
@@ -283,12 +278,8 @@ describe('postsInsert', () => {
         user_id: '11111111-1111-1111-1111-111111111111',
         type: 'sale',
         title: 'Desk',
-        description: 'Solid wood',
         price: 45,
-        condition: 'Like New',
-        category: 'Furniture',
         images: ['https://example.test/object/1700000000000-zzzj7c.jpg'],
-        hashtags: ['#wood', '#desk'],
       });
     });
 

@@ -4,13 +4,9 @@ jest.mock('@/supabase/queries', () => ({
 
 import * as Queries from '@/supabase/queries';
 import {
-  CATEGORIES,
-  CONDITIONS,
   EMPTY_DRAFT,
   MAX_PHOTOS,
   isDraftValid,
-  isValidZip5,
-  parseHashtags,
   parsePriceToNumber,
   submitListing,
   type ListingDraft,
@@ -23,11 +19,6 @@ function minimalValidDraft(overrides: Partial<ListingDraft> = {}): ListingDraft 
     images: [{ uri: 'file:///photo.jpg', width: 800, height: 600 }],
     title: 'Desk lamp',
     price: '19.99',
-    condition: 'Good',
-    category: 'Decor',
-    zipCode: '15213',
-    description: 'Works great',
-    hashtags: '',
     ...overrides,
   };
 }
@@ -38,27 +29,7 @@ describe('constants', () => {
       images: [],
       title: '',
       price: '',
-      condition: null,
-      category: null,
-      zipCode: '',
-      description: '',
-      hashtags: '',
     });
-  });
-
-  it('CONDITIONS lists all sale conditions', () => {
-    expect(CONDITIONS).toEqual(['New', 'Like New', 'Good', 'Fair']);
-  });
-
-  it('CATEGORIES lists all sale categories', () => {
-    expect(CATEGORIES).toEqual([
-      'Furniture',
-      'Clothing',
-      'Electronics',
-      'Books',
-      'Decor',
-      'Other',
-    ]);
   });
 
   it('MAX_PHOTOS is 5', () => {
@@ -90,22 +61,8 @@ describe('parsePriceToNumber', () => {
   });
 });
 
-describe('isValidZip5', () => {
-  it('accepts exactly five digits', () => {
-    expect(isValidZip5('90210')).toBe(true);
-    expect(isValidZip5('00000')).toBe(true);
-  });
-
-  it('rejects wrong length or non-digits', () => {
-    expect(isValidZip5('9021')).toBe(false);
-    expect(isValidZip5('902101')).toBe(false);
-    expect(isValidZip5('9021a')).toBe(false);
-    expect(isValidZip5('')).toBe(false);
-  });
-});
-
 describe('isDraftValid', () => {
-  it('returns true when all required fields are present', () => {
+  it('returns true when photos and title are present', () => {
     expect(isDraftValid(minimalValidDraft())).toBe(true);
   });
 
@@ -118,43 +75,17 @@ describe('isDraftValid', () => {
     expect(isDraftValid(minimalValidDraft({ title: '   ' }))).toBe(false);
   });
 
-  it('requires non-empty price string', () => {
-    expect(isDraftValid(minimalValidDraft({ price: '' }))).toBe(false);
-    expect(isDraftValid(minimalValidDraft({ price: '   ' }))).toBe(false);
+  it('treats price as optional', () => {
+    expect(isDraftValid(minimalValidDraft({ price: '' }))).toBe(true);
+    expect(isDraftValid(minimalValidDraft({ price: '   ' }))).toBe(true);
   });
 
-  it('rejects negative numeric price', () => {
+  it('rejects negative numeric price when supplied', () => {
     expect(isDraftValid(minimalValidDraft({ price: '-5' }))).toBe(false);
   });
 
-  it('requires condition and category', () => {
-    expect(isDraftValid(minimalValidDraft({ condition: null }))).toBe(false);
-    expect(isDraftValid(minimalValidDraft({ category: null }))).toBe(false);
-  });
-
-  it('requires valid 5-digit zip', () => {
-    expect(isDraftValid(minimalValidDraft({ zipCode: '1521' }))).toBe(false);
-  });
-
-  it('allows zero price when string is valid and non-negative', () => {
+  it('allows zero price', () => {
     expect(isDraftValid(minimalValidDraft({ price: '0' }))).toBe(true);
-  });
-});
-
-describe('parseHashtags', () => {
-  it('returns empty array for empty or whitespace input', () => {
-    expect(parseHashtags('')).toEqual([]);
-    expect(parseHashtags('  \n  ')).toEqual([]);
-  });
-
-  it('splits on commas and whitespace', () => {
-    expect(parseHashtags('one two')).toEqual(['#one', '#two']);
-    expect(parseHashtags('a, b,c')).toEqual(['#a', '#b', '#c']);
-  });
-
-  it('adds hash when missing and preserves existing hash', () => {
-    expect(parseHashtags('sale')).toEqual(['#sale']);
-    expect(parseHashtags('#already')).toEqual(['#already']);
   });
 });
 

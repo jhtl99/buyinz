@@ -11,11 +11,8 @@ import { ProfileBody } from '@/components/profile/ProfileBody';
 import {
   fetchUserPublicProfileById,
   fetchUserSaleListings,
-  getFollowers,
-  getFollowing,
 } from '@/supabase/queries';
 import type { SalePost } from '@/data/mockData';
-import { openUserProfile } from '@/lib/openUserProfile';
 
 export default function PublicUserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,8 +24,6 @@ export default function PublicUserProfileScreen() {
 
   const [profile, setProfile] = useState<Awaited<ReturnType<typeof fetchUserPublicProfileById>>>(null);
   const [listings, setListings] = useState<SalePost[]>([]);
-  const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [listingsLoading, setListingsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,14 +40,8 @@ export default function PublicUserProfileScreen() {
     setError(null);
     setListingsLoading(true);
     try {
-      const [p, fl, fg] = await Promise.all([
-        fetchUserPublicProfileById(id),
-        getFollowers(id),
-        getFollowing(id),
-      ]);
+      const p = await fetchUserPublicProfileById(id);
       setProfile(p);
-      setFollowersCount(fl.length);
-      setFollowingCount(fg.length);
       if (!p) {
         setError('User not found');
         setListings([]);
@@ -127,15 +116,10 @@ export default function PublicUserProfileScreen() {
         bio={profile.bio}
         location={profile.location}
         avatarUrl={avatarUrl}
-        showProBadge={profile.buyinz_pro}
-        followersCount={followersCount}
-        followingCount={followingCount}
         postsCount={listings.length}
         userIdForRatings={profile.id}
         listings={listings}
         listingsLoading={listingsLoading}
-        onPressFollowers={() => router.push(`/user/${id}/followers`)}
-        onPressFollowing={() => router.push(`/user/${id}/following`)}
         onPressListing={(listingId) =>
           router.push(`/listing/${listingId}`, { withAnchor: true })
         }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import { useState, useCallback, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -17,16 +17,10 @@ import { HeaderBackButton } from '@react-navigation/elements';
 import { Colors, Brand, ConditionColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSubscription } from '@/contexts/SubscriptionContext';
-import { OfferModal } from '@/components/offers/OfferModal';
 import {
-  getOrCreateConversation,
-  sendMessage,
   fetchSaleListingById,
   deleteOwnSaleListing,
 } from '@/supabase/queries';
-import { ListingBoostModal } from '@/components/pro/ListingBoostModal';
-import { isBoostActive, formatBoostCountdownHHMM } from '@/lib/boost';
 import { MOCK_FEED_POSTS, SalePost } from '@/data/mockData';
 import { openUserProfile } from '@/lib/openUserProfile';
 
@@ -39,15 +33,11 @@ export default function ListingDetailScreen() {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const { user } = useAuth();
-  const { decrementListingCount } = useSubscription();
 
   const [post, setPost] = useState<SalePost | null>(null);
   const [listingSource, setListingSource] = useState<'db' | 'mock' | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
-  const [offerModalVisible, setOfferModalVisible] = useState(false);
-  const [boostModalVisible, setBoostModalVisible] = useState(false);
-  const [countdownLabel, setCountdownLabel] = useState('00:00');
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadPost = useCallback(async () => {
@@ -87,23 +77,11 @@ export default function ListingDetailScreen() {
     }, [loadPost]),
   );
 
-  useEffect(() => {
-    if (!post?.boostedUntil || !isBoostActive(post.boostedUntil)) {
-      setCountdownLabel('00:00');
-      return;
-    }
-    const update = () => setCountdownLabel(formatBoostCountdownHHMM(post.boostedUntil));
-    update();
-    const timer = setInterval(update, 30000);
-    return () => clearInterval(timer);
-  }, [post?.boostedUntil]);
-
   const handleConfirmDelete = useCallback(async () => {
     if (!post || listingSource !== 'db') return;
     setDeleting(true);
     try {
       await deleteOwnSaleListing(post.id);
-      await decrementListingCount();
       router.back();
     } catch (e) {
       const message =
@@ -112,13 +90,13 @@ export default function ListingDetailScreen() {
     } finally {
       setDeleting(false);
     }
-  }, [post, listingSource, decrementListingCount, router]);
+  }, [post, listingSource, router]);
 
   const requestDelete = useCallback(() => {
     if (!post || listingSource !== 'db') return;
     Alert.alert(
       'Delete this listing?',
-      'This permanently removes the listing from Buyinz and deletes related message threads. This cannot be undone.',
+      'This permanently removes the listing from Buyinz. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -196,30 +174,6 @@ export default function ListingDetailScreen() {
     colors.text,
     handleHeaderBack,
   ]);
-
-  const handleMakeOffer = async (amount: number) => {
-    if (!user || !user.id) {
-      Alert.alert('Not Signed In', 'Please sign in to make an offer.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => router.push('/create-profile') },
-      ]);
-      throw new Error('Not Signed In');
-    }
-
-    if (!post) return;
-
-    const convoId = await getOrCreateConversation(post.id, user.id, post.seller.id);
-    const listedLabel = post.price > 0 ? `$${post.price}` : 'Offer';
-    const offerMessage = `Offer: $${amount} for "${post.title}" (listed at ${listedLabel})`;
-
-    await sendMessage(convoId, user.id, offerMessage);
-
-    Alert.alert('Offer Sent!', `You offered $${amount}. The seller will be notified.`);
-  };
-
-  const isOwner = user?.id === post?.seller.id;
-  const showBoostCta = isOwner && post && !post.sold && !isBoostActive(post.boostedUntil);
-  const showBoostedRow = post && !post.sold && isBoostActive(post.boostedUntil);
 
   if (loading) {
     return (
@@ -310,30 +264,6 @@ export default function ListingDetailScreen() {
             <Text style={[styles.conditionText, { color: condColors.text }]}>{post.condition}</Text>
           </View>
 
-          {showBoostedRow && (
-            <View style={styles.boostRow}>
-              <View style={[styles.boostedBadge, { backgroundColor: `${Brand.primary}22` }]}>
-                <Ionicons name="rocket-outline" size={14} color={Brand.primary} />
-                <Text style={[styles.boostedBadgeText, { color: Brand.primary }]}>Boosted</Text>
-              </View>
-              {isOwner && (
-                <Text style={[styles.countdown, { color: colors.textSecondary }]}>
-                  {countdownLabel}
-                </Text>
-              )}
-            </View>
-          )}
-
-          {showBoostCta && (
-            <Pressable
-              style={[styles.boostCta, { backgroundColor: Brand.primary }]}
-              onPress={() => setBoostModalVisible(true)}
-            >
-              <Ionicons name="rocket-outline" size={18} color="#fff" />
-              <Text style={styles.boostCtaText}>Boost for $1.99 · 24 hours</Text>
-            </Pressable>
-          )}
-
           <Pressable
             style={[styles.sellerRow, { borderBottomColor: colors.border, borderTopColor: colors.border }]}
             onPress={() => openUserProfile(router, post.seller.id, user?.id)}
@@ -348,55 +278,6 @@ export default function ListingDetailScreen() {
           <Text style={[styles.description, { color: colors.text }]}>{post.description}</Text>
         </View>
       </ScrollView>
-
-      {!isOwner && (
-        <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-          <Pressable
-            style={[styles.bottomButton, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
-            onPress={() =>
-              router.push({
-                pathname: '/chat/[id]',
-                params: {
-                  id: post.id,
-                  sellerId: post.seller.id,
-                  sellerUsername: post.seller.username,
-                  peerUsername: post.seller.username,
-                  listingTitle: post.title,
-                  listingPrice: String(post.price),
-                  listingImage: post.images[0] ?? '',
-                },
-              })
-            }
-          >
-            <Ionicons name="chatbubble-outline" size={20} color={colors.text} />
-            <Text style={[styles.buttonText, { color: colors.text }]}>Message</Text>
-          </Pressable>
-
-          <Pressable
-            style={[styles.bottomButton, { backgroundColor: Brand.primary }]}
-            onPress={() => setOfferModalVisible(true)}
-          >
-            <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Make Offer</Text>
-          </Pressable>
-        </View>
-      )}
-
-      <OfferModal
-        visible={offerModalVisible}
-        onClose={() => setOfferModalVisible(false)}
-        onSubmit={handleMakeOffer}
-        originalPrice={post.price}
-      />
-
-      <ListingBoostModal
-        visible={boostModalVisible}
-        onClose={() => setBoostModalVisible(false)}
-        listingId={post.id}
-        listingTitle={post.title}
-        onBoostSuccess={() => {
-          void loadPost();
-        }}
-      />
     </View>
   );
 }
@@ -439,43 +320,6 @@ const styles = StyleSheet.create({
   },
   conditionText: {
     fontSize: 12,
-    fontWeight: '700',
-  },
-  boostRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  boostedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  boostedBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  countdown: {
-    fontSize: 16,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '600',
-  },
-  boostCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  boostCtaText: {
-    color: '#fff',
-    fontSize: 16,
     fontWeight: '700',
   },
   sellerRow: {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,47 +14,29 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Brand, ConditionColors } from '@/constants/theme';
+import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
 import {
   EMPTY_DRAFT,
-  CONDITIONS,
-  CATEGORIES,
   isDraftValid,
   submitListing,
   type ListingDraft,
   type ImageAsset,
 } from '@/lib/listings';
-import { useSubscription } from '@/contexts/SubscriptionContext';
 
 export default function CreateListingScreen() {
   const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
-  const { isReady, canCreateListing, incrementListingCount } = useSubscription();
   const { user } = useAuth();
 
   const [draft, setDraft] = useState<ListingDraft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = useState(false);
 
-  const blocked = isReady && !canCreateListing;
-
-  useEffect(() => {
-    if (!blocked) return;
-    Alert.alert(
-      'Listing limit reached',
-      'Free accounts can post up to 6 listings. Subscribe to Buyinz Pro from your profile for unlimited listings.',
-      [{ text: 'OK', onPress: () => router.back() }],
-    );
-  }, [blocked, router]);
-
   const priceRef = useRef<TextInput>(null);
-  const zipRef = useRef<TextInput>(null);
-  const descRef = useRef<TextInput>(null);
-  const tagsRef = useRef<TextInput>(null);
 
   const canSubmit = isDraftValid(draft);
 
@@ -62,53 +44,22 @@ export default function CreateListingScreen() {
     setDraft((d) => ({ ...d, [key]: value }));
 
   const handleSubmit = async () => {
-    if (!canSubmit || submitting || !canCreateListing) return;
+    if (!canSubmit || submitting) return;
     setSubmitting(true);
     try {
       const result = await submitListing(draft, user?.id);
       if (result.success) {
-        await incrementListingCount();
         Alert.alert('Listed!', 'Your item is now live.', [
           { text: 'Done', onPress: () => router.back() },
         ]);
       }
-    } catch(error) {
+    } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
-
-  if (!isReady) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: colors.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={Brand.primary} />
-      </View>
-    );
-  }
-
-  if (blocked) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: colors.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={Brand.primary} />
-      </View>
-    );
-  }
 
   return (
     <KeyboardAvoidingView
@@ -121,7 +72,6 @@ export default function CreateListingScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Photos ── */}
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Photos</Text>
           <PhotoPicker
@@ -130,7 +80,6 @@ export default function CreateListingScreen() {
           />
         </View>
 
-        {/* ── Title ── */}
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Title</Text>
           <TextInput
@@ -145,9 +94,11 @@ export default function CreateListingScreen() {
           />
         </View>
 
-        {/* ── Price ── */}
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Price</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Price{' '}
+            <Text style={{ fontWeight: '400', textTransform: 'none' }}>(optional)</Text>
+          </Text>
           <View style={[styles.priceRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.pricePrefix, { color: colors.textSecondary }]}>$</Text>
             <TextInput
@@ -163,139 +114,8 @@ export default function CreateListingScreen() {
             />
           </View>
         </View>
-
-        {/* ── Condition ── */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Condition</Text>
-          <View style={styles.chipRow}>
-            {CONDITIONS.map((cond) => {
-              const selected = draft.condition === cond;
-              const cc = ConditionColors[cond];
-              return (
-                <Pressable
-                  key={cond}
-                  style={[
-                    styles.chip,
-                    selected
-                      ? { backgroundColor: cc.bg, borderColor: cc.border }
-                      : { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                  onPress={() => update('condition', selected ? null : cond)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: selected ? cc.text : colors.textSecondary },
-                      selected && { fontWeight: '700' },
-                    ]}
-                  >
-                    {cond}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* ── Category ── */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Category</Text>
-          <View style={styles.chipRow}>
-            {CATEGORIES.map((cat) => {
-              const selected = draft.category === cat;
-              return (
-                <Pressable
-                  key={cat}
-                  style={[
-                    styles.chip,
-                    selected
-                      ? { backgroundColor: `${Brand.primary}20`, borderColor: Brand.primary }
-                      : { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                  onPress={() => update('category', selected ? null : cat)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: selected ? Brand.primary : colors.textSecondary },
-                      selected && { fontWeight: '700' },
-                    ]}
-                  >
-                    {cat}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* ── Location ── */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Location</Text>
-          <View style={[styles.zipRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="location-outline" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
-            <TextInput
-              ref={zipRef}
-              style={[styles.zipInput, { color: colors.text }]}
-              placeholder="Zip code (e.g. 15213)"
-              placeholderTextColor={colors.textSecondary}
-              value={draft.zipCode}
-              onChangeText={(v) => update('zipCode', v.replace(/[^0-9]/g, ''))}
-              keyboardType="number-pad"
-              returnKeyType="next"
-              onSubmitEditing={() => descRef.current?.focus()}
-              maxLength={5}
-            />
-          </View>
-        </View>
-
-        {/* ── Description (optional) ── */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            Description{' '}
-            <Text style={{ fontWeight: '400', textTransform: 'none' }}>(optional)</Text>
-          </Text>
-          <TextInput
-            ref={descRef}
-            style={[
-              styles.input,
-              styles.textArea,
-              { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-            ]}
-            placeholder="Tell buyers about your item — condition details, sizing, brand, why you love it..."
-            placeholderTextColor={colors.textSecondary}
-            value={draft.description}
-            onChangeText={(v) => update('description', v)}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            maxLength={500}
-            returnKeyType="next"
-            blurOnSubmit
-            onSubmitEditing={() => tagsRef.current?.focus()}
-          />
-        </View>
-
-        {/* ── Hashtags (optional) ── */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            Tags{' '}
-            <Text style={{ fontWeight: '400', textTransform: 'none' }}>(optional)</Text>
-          </Text>
-          <TextInput
-            ref={tagsRef}
-            style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-            placeholder="#vintage #pittsburgh #thrift"
-            placeholderTextColor={colors.textSecondary}
-            value={draft.hashtags}
-            onChangeText={(v) => update('hashtags', v)}
-            autoCapitalize="none"
-            maxLength={120}
-          />
-        </View>
       </ScrollView>
 
-      {/* ── Sticky Submit Button ── */}
       <View
         style={[
           styles.bottomBar,
@@ -359,10 +179,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  textArea: {
-    minHeight: 100,
-    paddingTop: 12,
-  },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -379,33 +195,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 22,
     fontWeight: '700',
-    paddingVertical: 12,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  zipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-  },
-  zipInput: {
-    flex: 1,
-    fontSize: 16,
     paddingVertical: 12,
   },
   bottomBar: {
