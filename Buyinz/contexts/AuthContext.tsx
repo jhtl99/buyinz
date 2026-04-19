@@ -1,7 +1,10 @@
 import React, { createContext, useState, useContext } from 'react';
+import type { AccountType } from '@/lib/supabase';
 
 export type User = {
   id?: string;
+  /** Defaults to shopper when omitted (e.g. older in-memory sessions). */
+  account_type?: AccountType;
   display_name: string;
   username: string;
   location: string;

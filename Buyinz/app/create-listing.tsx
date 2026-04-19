@@ -21,10 +21,21 @@ import { PhotoPicker } from '@/components/create/PhotoPicker';
 import {
   EMPTY_DRAFT,
   isDraftValid,
+  LISTING_CATEGORIES,
   submitListing,
-  type ListingDraft,
   type ImageAsset,
+  type ListingCategory,
+  type ListingDraft,
 } from '@/lib/listings';
+
+const CATEGORY_EMOJI: Record<ListingCategory, string> = {
+  Furniture: '🛋️',
+  Clothing: '👗',
+  Electronics: '📱',
+  Books: '📚',
+  Decor: '🪴',
+  Other: '📦',
+};
 
 export default function CreateListingScreen() {
   const router = useRouter();
@@ -78,6 +89,43 @@ export default function CreateListingScreen() {
             images={draft.images}
             onChange={(imgs: ImageAsset[]) => update('images', imgs)}
           />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Category</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryRow}
+          >
+            {LISTING_CATEGORIES.map((id) => {
+              const selected = draft.category === id;
+              return (
+                <Pressable
+                  key={id}
+                  onPress={() => update('category', id)}
+                  style={[
+                    styles.categoryChip,
+                    {
+                      backgroundColor: selected ? Brand.primary : colors.card,
+                      borderColor: selected ? Brand.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={styles.categoryEmoji}>{CATEGORY_EMOJI[id]}</Text>
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      { color: selected ? '#fff' : colors.text },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {id}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
 
         <View style={styles.section}>
@@ -171,6 +219,28 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  categoryEmoji: {
+    fontSize: 16,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   input: {
     fontSize: 16,
