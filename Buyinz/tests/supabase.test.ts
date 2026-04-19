@@ -10,6 +10,9 @@ jest.mock('@/supabase/client', () => ({
       signUp: jest.fn(),
       signInWithOAuth: jest.fn(),
     },
+    functions: {
+      invoke: jest.fn(),
+    },
   },
 }));
 
@@ -26,6 +29,7 @@ import {
   isProfileOnboardingComplete,
   profileCoreComplete,
   saveProfile,
+  storeAddressPartsComplete,
   validateProfileForSave,
 } from '../lib/supabase';
 
@@ -68,6 +72,7 @@ describe('validateProfileForSave', () => {
   it('throws when username is missing', () => {
     expect(() =>
       validateProfileForSave({
+        account_type: 'user',
         display_name: 'Test User',
         username: '',
         location: '90210',
@@ -78,6 +83,7 @@ describe('validateProfileForSave', () => {
   it('allows missing bio', () => {
     expect(() =>
       validateProfileForSave({
+        account_type: 'user',
         display_name: 'Test User',
         username: 'u1',
         location: '90210',
@@ -100,6 +106,7 @@ describe('profileCoreComplete and onboarding', () => {
   it('isProfileOnboardingComplete is true without bio', () => {
     expect(
       isProfileOnboardingComplete({
+        account_type: 'user',
         display_name: 'A',
         username: 'b',
         location: '90210',
@@ -111,12 +118,71 @@ describe('profileCoreComplete and onboarding', () => {
   it('isBuyinzProfileComplete matches isProfileOnboardingComplete', () => {
     expect(
       isBuyinzProfileComplete({
+        account_type: 'user',
         display_name: 'Jane',
         username: 'jane',
         location: '10001',
         bio: null,
       }),
     ).toBe(true);
+  });
+
+  it('isProfileOnboardingComplete is true for store when address and coords set', () => {
+    expect(
+      isProfileOnboardingComplete({
+        account_type: 'store',
+        display_name: 'Thrift Co',
+        username: 'thriftco',
+        location: '15213',
+        address_line1: '123 Main St',
+        city: 'Pittsburgh',
+        region: 'PA',
+        postal_code: '15213',
+        latitude: 40.44,
+        longitude: -79.99,
+      }),
+    ).toBe(true);
+  });
+
+  it('isProfileOnboardingComplete is false for store without coordinates', () => {
+    expect(
+      isProfileOnboardingComplete({
+        account_type: 'store',
+        display_name: 'Thrift Co',
+        username: 'thriftco',
+        location: '15213',
+        address_line1: '123 Main St',
+        city: 'Pittsburgh',
+        region: 'PA',
+        postal_code: '15213',
+        latitude: null,
+        longitude: null,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('storeAddressPartsComplete', () => {
+  it('is true when all parts non-empty', () => {
+    expect(
+      storeAddressPartsComplete({
+        address_line1: '1 A St',
+        city: 'Pittsburgh',
+        region: 'PA',
+        postal_code: '15213',
+      }),
+    ).toBe(true);
+  });
+
+  it('is false when a part is empty', () => {
+    expect(
+      storeAddressPartsComplete({
+        address_line1: '1 A St',
+        city: '',
+        region: 'PA',
+        postal_code: '15213',
+      }),
+    ).toBe(false);
   });
 });
 
@@ -152,6 +218,7 @@ describe('buildUsersUpsertPayload', () => {
   it('maps UserProfile fields to the users table upsert columns', () => {
     const profile = {
       id: '550e8400-e29b-41d4-a716-446655440000',
+      account_type: 'user' as const,
       display_name: 'Jane Buyer',
       username: 'jane_buyer',
       location: '10001',
@@ -162,11 +229,20 @@ describe('buildUsersUpsertPayload', () => {
 
     expect(buildUsersUpsertPayload(profile)).toEqual({
       id: '550e8400-e29b-41d4-a716-446655440000',
+      account_type: 'user',
       display_name: 'Jane Buyer',
       username: 'jane_buyer',
       location: '10001',
       bio: 'Looking for deals',
       avatar_url: 'https://cdn.example/avatar.jpg',
+      address_line1: null,
+      city: null,
+      region: null,
+      postal_code: null,
+      address_string: null,
+      latitude: null,
+      longitude: null,
+      formatted_address: null,
     });
   });
 });
@@ -209,6 +285,7 @@ describe('saveProfile', () => {
 
     await expect(
       saveProfile({
+        account_type: 'user',
         display_name: 'Test',
         username: 'taken_name',
         location: '90210',

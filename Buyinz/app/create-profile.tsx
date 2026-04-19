@@ -2,12 +2,19 @@ import { Brand, Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
+  normalizeUsStateRegion,
+  validateUsStoreAddressFormat,
+} from '@/lib/addressValidation';
+import {
   authenticateWithGoogle,
   checkUsernameAvailable,
+  composeStoreAddressString,
   fetchBuyinzUserRowByAuthId,
+  geocodeAddressString,
   isProfileOnboardingComplete,
   normalizeUsername,
   saveProfile,
+  storeAddressPartsComplete,
   supabase,
   validateOnboardingSave,
 } from '@/lib/supabase';
@@ -42,7 +49,11 @@ WebBrowser.maybeCompleteAuthSession();
 
 type Phase = 'signIn' | 'onboarding';
 
+type OnboardingSubphase = 'chooseType' | 'form';
+
 type UsernameCheck = 'idle' | 'checking' | 'ok' | 'taken' | 'error';
+
+type AccountKind = 'user' | 'store';
 
 export default function CreateProfileScreen() {
   const router = useRouter();
@@ -57,14 +68,23 @@ export default function CreateProfileScreen() {
   const [phase, setPhase] = useState<Phase>('signIn');
   const [oauthEmail, setOauthEmail] = useState('');
 
+  const [onboardingSubphase, setOnboardingSubphase] =
+    useState<OnboardingSubphase>('chooseType');
+  const [accountKind, setAccountKind] = useState<AccountKind | null>(null);
+
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [location, setLocation] = useState('');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [city, setCity] = useState('');
+  const [region, setRegion] = useState('');
+  const [postalCode, setPostalCode] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);
 
   const [isLoading, setIsLoading] = useState(false);
   const [usernameCheck, setUsernameCheck] = useState<UsernameCheck>('idle');
+  const [showValidation, setShowValidation] = useState(false);
 
   useEffect(() => {
     if (phase !== 'onboarding') return;
@@ -85,10 +105,17 @@ export default function CreateProfileScreen() {
     const email = authUser.email ?? '';
     setOauthEmail(email);
     const meta = authUser.user_metadata;
+    setOnboardingSubphase('chooseType');
+    setAccountKind(null);
     setDisplayName('');
     setUsername('');
     setLocation('');
+    setAddressLine1('');
+    setCity('');
+    setRegion('');
+    setPostalCode('');
     setBio('');
+    setShowValidation(false);
     setAvatarUrl(
       (meta?.avatar_url as string) || DEFAULT_AVATAR,
     );
@@ -104,6 +131,7 @@ export default function CreateProfileScreen() {
         setUser({
           id: authUser.id,
           email,
+          account_type: row.account_type ?? 'user',
           display_name: row.display_name,
           username: row.username,
           location: row.location ?? '',
@@ -121,7 +149,7 @@ export default function CreateProfileScreen() {
   );
 
   useEffect(() => {
-    if (phase !== 'onboarding') {
+    if (phase !== 'onboarding' || onboardingSubphase !== 'form') {
       setUsernameCheck('idle');
       return;
     }
@@ -140,7 +168,27 @@ export default function CreateProfileScreen() {
       }
     }, 450);
     return () => clearTimeout(t);
-  }, [username, phase]);
+  }, [username, phase, onboardingSubphase]);
+
+  const switchAccountKind = (next: AccountKind) => {
+    if (accountKind === next) return;
+    if (next === 'user') {
+      setAddressLine1('');
+      setCity('');
+      setRegion('');
+      setPostalCode('');
+    } else {
+      setLocation('');
+    }
+    setAccountKind(next);
+    setShowValidation(false);
+  };
+
+  const pickAccountKind = (kind: AccountKind) => {
+    setAccountKind(kind);
+    setOnboardingSubphase('form');
+    setShowValidation(false);
+  };
 
   const handleImagePick = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -224,6 +272,7 @@ export default function CreateProfileScreen() {
   };
 
   const handleSave = async () => {
+    setShowValidation(true);
     setIsLoading(true);
     try {
       const {
@@ -239,16 +288,9 @@ export default function CreateProfileScreen() {
         throw new Error('Your account has no email; try signing in again.');
       }
 
-      const profilePayload = {
-        id: authUser.id,
-        display_name: displayName,
-        username,
-        location,
-        bio,
-        avatar_url: avatarUrl,
-      };
-
-      validateOnboardingSave(profilePayload);
+      if (!accountKind) {
+        throw new Error('Choose Shopper or Store.');
+      }
 
       const u = normalizeUsername(username);
       if (!u) {
@@ -259,15 +301,114 @@ export default function CreateProfileScreen() {
         throw new Error('This username is already taken.');
       }
 
+      if (accountKind === 'user') {
+        const profilePayload = {
+          id: authUser.id,
+          account_type: 'user' as const,
+          display_name: displayName,
+          username,
+          location,
+          bio,
+          avatar_url: avatarUrl,
+        };
+
+        validateOnboardingSave(profilePayload);
+
+        await saveProfile(profilePayload);
+        allowLeaveRef.current = true;
+        setUser({ ...profilePayload, email });
+
+        const preview = `${displayName}\n@${normalizeUsername(username)}\nZip: ${location.trim()}\n\nYou're set up to browse and list on Buyinz.`;
+
+        Alert.alert('Profile created', preview, [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(tabs)/profile'),
+          },
+        ]);
+        return;
+      }
+
+      const regionNorm = normalizeUsStateRegion(region);
+      const address_string = composeStoreAddressString({
+        address_line1: addressLine1.trim(),
+        city: city.trim(),
+        region: regionNorm,
+        postal_code: postalCode.trim(),
+      });
+
+      const profilePayloadBase = {
+        id: authUser.id,
+        account_type: 'store' as const,
+        display_name: displayName,
+        username,
+        location: postalCode.trim(),
+        bio,
+        avatar_url: avatarUrl,
+        address_line1: addressLine1.trim(),
+        city: city.trim(),
+        region: regionNorm,
+        postal_code: postalCode.trim(),
+        address_string,
+      };
+
+      if (!storeAddressPartsComplete(profilePayloadBase)) {
+        throw new Error(
+          'Enter street, city, state, and ZIP so we can find your store.',
+        );
+      }
+
+      const formatCheck = validateUsStoreAddressFormat({
+        address_line1: addressLine1,
+        city,
+        region,
+        postal_code: postalCode,
+      });
+      if (!formatCheck.ok) {
+        throw new Error(formatCheck.message);
+      }
+
+      const geo = await geocodeAddressString(address_string, {
+        expectedPostalCode: postalCode.trim(),
+        expectedRegion: regionNorm,
+      });
+
+      const profilePayload = {
+        ...profilePayloadBase,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        formatted_address: geo.formatted_address ?? null,
+      };
+
+      validateOnboardingSave(profilePayload);
+
       await saveProfile(profilePayload);
       allowLeaveRef.current = true;
-      setUser({ ...profilePayload, email });
+      setUser({
+        ...profilePayload,
+        email,
+      });
 
-      Alert.alert(
-        'Success',
-        'Verification complete and Profile created successfully!',
-      );
-      router.replace('/(tabs)/profile');
+      const addrLine =
+        geo.formatted_address ??
+        composeStoreAddressString({
+          address_line1: addressLine1.trim(),
+          city: city.trim(),
+          region: regionNorm,
+          postal_code: postalCode.trim(),
+        });
+
+      let preview = `${displayName}\n@${normalizeUsername(username)}\n${addrLine}\n\nYour store location is saved for distance-based browsing.`;
+      if (geo.warnings?.length) {
+        preview += `\n\n${geo.warnings.join('\n\n')}`;
+      }
+
+      Alert.alert('Profile created', preview, [
+        {
+          text: 'OK',
+          onPress: () => router.replace('/(tabs)/profile'),
+        },
+      ]);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Could not save profile';
@@ -277,13 +418,34 @@ export default function CreateProfileScreen() {
     }
   };
 
-  const coreFilled =
+  const userCoreFilled =
     !!displayName.trim() &&
     !!normalizeUsername(username) &&
     !!location.trim();
 
+  const storeCoreFilled =
+    !!displayName.trim() &&
+    !!normalizeUsername(username) &&
+    validateUsStoreAddressFormat({
+      address_line1: addressLine1,
+      city,
+      region,
+      postal_code: postalCode,
+    }).ok;
+
+  const coreFilled =
+    accountKind === 'user'
+      ? userCoreFilled
+      : accountKind === 'store'
+        ? storeCoreFilled
+        : false;
+
   const saveDisabled =
-    isLoading || !coreFilled || usernameCheck !== 'ok';
+    isLoading ||
+    !coreFilled ||
+    usernameCheck !== 'ok' ||
+    onboardingSubphase !== 'form' ||
+    !accountKind;
 
   const headerTitle =
     phase === 'signIn' ? 'Sign in' : 'Complete your profile';
@@ -318,6 +480,9 @@ export default function CreateProfileScreen() {
     }
     return null;
   };
+
+  const fieldErr = (empty: boolean) =>
+    showValidation && empty ? styles.inputError : undefined;
 
   return (
     <KeyboardAvoidingView
@@ -386,6 +551,70 @@ export default function CreateProfileScreen() {
               )}
             </Pressable>
           </View>
+        ) : onboardingSubphase === 'chooseType' ? (
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: scheme === 'light' ? '#f5f5f5' : '#1c1c1e' },
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Join Buyinz as
+            </Text>
+            <Text
+              style={{
+                color: colors.text,
+                marginBottom: 16,
+                fontSize: 13,
+                opacity: 0.85,
+              }}
+            >
+              Choose how you will use the app. You can change this on the next
+              screen before saving.
+            </Text>
+            {oauthEmail ? (
+              <Text
+                style={{
+                  color: colors.text,
+                  marginBottom: 16,
+                  fontSize: 13,
+                  opacity: 0.85,
+                }}
+              >
+                Signed in as {oauthEmail}
+              </Text>
+            ) : null}
+
+            <Pressable
+              style={[styles.choiceBtn, { borderColor: colors.border }]}
+              onPress={() => pickAccountKind('user')}
+            >
+              <Ionicons name="person-outline" size={22} color={colors.text} />
+              <Text style={[styles.choiceBtnTitle, { color: colors.text }]}>
+                Shopper
+              </Text>
+              <Text
+                style={[styles.choiceBtnSub, { color: colors.tabIconDefault }]}
+              >
+                Browse and buy from local thrift listings
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.choiceBtn, { borderColor: colors.border }]}
+              onPress={() => pickAccountKind('store')}
+            >
+              <Ionicons name="storefront-outline" size={22} color={colors.text} />
+              <Text style={[styles.choiceBtnTitle, { color: colors.text }]}>
+                Thrift store
+              </Text>
+              <Text
+                style={[styles.choiceBtnSub, { color: colors.tabIconDefault }]}
+              >
+                List inventory and connect with local shoppers
+              </Text>
+            </Pressable>
+          </View>
         ) : (
           <View
             style={[
@@ -409,6 +638,52 @@ export default function CreateProfileScreen() {
               </Text>
             ) : null}
 
+            <View style={styles.segmentRow}>
+              <Pressable
+                style={[
+                  styles.segmentBtn,
+                  accountKind === 'user' && styles.segmentBtnActive,
+                  { borderColor: colors.border },
+                ]}
+                onPress={() => switchAccountKind('user')}
+              >
+                <Text
+                  style={[
+                    styles.segmentBtnText,
+                    { color: accountKind === 'user' ? '#fff' : colors.text },
+                  ]}
+                >
+                  Shopper
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.segmentBtn,
+                  accountKind === 'store' && styles.segmentBtnActive,
+                  { borderColor: colors.border },
+                ]}
+                onPress={() => switchAccountKind('store')}
+              >
+                <Text
+                  style={[
+                    styles.segmentBtnText,
+                    { color: accountKind === 'store' ? '#fff' : colors.text },
+                  ]}
+                >
+                  Store
+                </Text>
+              </Pressable>
+            </View>
+            <Text
+              style={[
+                styles.switchHint,
+                { color: colors.tabIconDefault },
+              ]}
+            >
+              Switching clears address fields that do not apply to the other
+              profile type.
+            </Text>
+
             <View style={styles.avatarContainer}>
               <Image
                 source={{ uri: avatarUrl }}
@@ -423,8 +698,13 @@ export default function CreateProfileScreen() {
               style={[
                 styles.input,
                 { color: colors.text, borderColor: colors.border },
+                fieldErr(!displayName.trim()),
               ]}
-              placeholder="Name (Required)"
+              placeholder={
+                accountKind === 'store'
+                  ? 'Business name (Required)'
+                  : 'Name (Required)'
+              }
               placeholderTextColor={colors.tabIconDefault}
               value={displayName}
               onChangeText={setDisplayName}
@@ -433,8 +713,9 @@ export default function CreateProfileScreen() {
               style={[
                 styles.input,
                 { color: colors.text, borderColor: colors.border },
+                fieldErr(!normalizeUsername(username)),
               ]}
-              placeholder="Username (Required)"
+              placeholder="Username / handle (Required)"
               placeholderTextColor={colors.tabIconDefault}
               value={username}
               onChangeText={setUsername}
@@ -442,17 +723,71 @@ export default function CreateProfileScreen() {
               autoCorrect={false}
             />
             {usernameHint()}
-            <TextInput
-              style={[
-                styles.input,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-              placeholder="Zip Code (Required)"
-              placeholderTextColor={colors.tabIconDefault}
-              value={location}
-              onChangeText={setLocation}
-              keyboardType="numeric"
-            />
+
+            {accountKind === 'user' ? (
+              <TextInput
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                  fieldErr(!location.trim()),
+                ]}
+                placeholder="Zip Code (Required)"
+                placeholderTextColor={colors.tabIconDefault}
+                value={location}
+                onChangeText={setLocation}
+                keyboardType="numeric"
+              />
+            ) : (
+              <>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                    fieldErr(!addressLine1.trim()),
+                  ]}
+                  placeholder="Street address (Required)"
+                  placeholderTextColor={colors.tabIconDefault}
+                  value={addressLine1}
+                  onChangeText={setAddressLine1}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                    fieldErr(!city.trim()),
+                  ]}
+                  placeholder="City (Required)"
+                  placeholderTextColor={colors.tabIconDefault}
+                  value={city}
+                  onChangeText={setCity}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                    fieldErr(!region.trim()),
+                  ]}
+                  placeholder="State (2 letters, e.g. PA)"
+                  placeholderTextColor={colors.tabIconDefault}
+                  value={region}
+                  onChangeText={setRegion}
+                  autoCapitalize="characters"
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                    fieldErr(!postalCode.trim()),
+                  ]}
+                  placeholder="ZIP (5 digits or ZIP+4)"
+                  placeholderTextColor={colors.tabIconDefault}
+                  value={postalCode}
+                  onChangeText={setPostalCode}
+                  keyboardType="numeric"
+                />
+              </>
+            )}
+
             <TextInput
               style={[
                 styles.input,
@@ -539,6 +874,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  choiceBtn: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  choiceBtnTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  choiceBtnSub: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 8,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  segmentBtnActive: {
+    backgroundColor: Brand.primary,
+    borderColor: Brand.primary,
+  },
+  segmentBtnText: {
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  switchHint: {
+    fontSize: 12,
+    marginBottom: 16,
+    opacity: 0.9,
+  },
   avatarContainer: {
     alignItems: 'center',
     marginBottom: 20,
@@ -564,6 +939,9 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     fontSize: 15,
+  },
+  inputError: {
+    borderColor: '#ef4444',
   },
   textArea: {
     height: 80,

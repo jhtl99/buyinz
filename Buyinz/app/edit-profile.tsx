@@ -2,11 +2,19 @@ import { Brand, Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
+  normalizeUsStateRegion,
+  validateUsStoreAddressFormat,
+} from '@/lib/addressValidation';
+import {
+  type AccountType,
   checkUsernameAvailable,
+  composeStoreAddressString,
   deleteProfileForCurrentUser,
   fetchBuyinzUserRowByAuthId,
+  geocodeAddressString,
   normalizeUsername,
   saveProfile,
+  storeAddressPartsComplete,
   supabase,
   validateProfileUpdate,
 } from '@/lib/supabase';
@@ -41,9 +49,14 @@ export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, setUser } = useAuth();
 
+  const [accountType, setAccountType] = useState<AccountType>('user');
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [location, setLocation] = useState('');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [city, setCity] = useState('');
+  const [region, setRegion] = useState('');
+  const [postalCode, setPostalCode] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);
 
@@ -63,9 +76,14 @@ export default function EditProfileScreen() {
       try {
         const row = await fetchBuyinzUserRowByAuthId(uid);
         if (cancelled) return;
+        setAccountType(row?.account_type ?? user.account_type ?? 'user');
         setDisplayName(row?.display_name ?? user.display_name);
         setUsername(row?.username ?? user.username);
         setLocation(row?.location ?? user.location);
+        setAddressLine1(row?.address_line1 ?? '');
+        setCity(row?.city ?? '');
+        setRegion(row?.region ?? '');
+        setPostalCode(row?.postal_code ?? '');
         setBio(row?.bio ?? user.bio ?? '');
         setAvatarUrl(row?.avatar_url ?? user.avatar_url ?? DEFAULT_AVATAR);
       } finally {
@@ -113,17 +131,6 @@ export default function EditProfileScreen() {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      const profilePayload = {
-        id: user.id,
-        display_name: displayName,
-        username,
-        location,
-        bio,
-        avatar_url: avatarUrl,
-      };
-
-      validateProfileUpdate(profilePayload);
-
       const u = normalizeUsername(username);
       if (!u) {
         throw new Error('Please choose a username.');
@@ -135,13 +142,94 @@ export default function EditProfileScreen() {
         throw new Error('This username is already taken.');
       }
 
+      if (accountType === 'user') {
+        const profilePayload = {
+          id: user.id,
+          account_type: 'user' as const,
+          display_name: displayName,
+          username,
+          location,
+          bio,
+          avatar_url: avatarUrl,
+        };
+
+        validateProfileUpdate(profilePayload);
+
+        await saveProfile(profilePayload);
+        setUser({
+          ...profilePayload,
+          email: user.email,
+        });
+
+        Alert.alert('Success', 'Profile updated.');
+        router.back();
+        return;
+      }
+
+      const regionNorm = normalizeUsStateRegion(region);
+      const address_string = composeStoreAddressString({
+        address_line1: addressLine1.trim(),
+        city: city.trim(),
+        region: regionNorm,
+        postal_code: postalCode.trim(),
+      });
+
+      const baseStore = {
+        id: user.id,
+        account_type: 'store' as const,
+        display_name: displayName,
+        username,
+        location: postalCode.trim(),
+        bio,
+        avatar_url: avatarUrl,
+        address_line1: addressLine1.trim(),
+        city: city.trim(),
+        region: regionNorm,
+        postal_code: postalCode.trim(),
+        address_string,
+      };
+
+      if (!storeAddressPartsComplete(baseStore)) {
+        throw new Error(
+          'Enter street, city, state, and ZIP so we can find your store.',
+        );
+      }
+
+      const formatCheck = validateUsStoreAddressFormat({
+        address_line1: addressLine1,
+        city,
+        region,
+        postal_code: postalCode,
+      });
+      if (!formatCheck.ok) {
+        throw new Error(formatCheck.message);
+      }
+
+      const geo = await geocodeAddressString(address_string, {
+        expectedPostalCode: postalCode.trim(),
+        expectedRegion: regionNorm,
+      });
+
+      const profilePayload = {
+        ...baseStore,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        formatted_address: geo.formatted_address ?? null,
+      };
+
+      validateProfileUpdate(profilePayload);
+
       await saveProfile(profilePayload);
       setUser({
         ...profilePayload,
         email: user.email,
       });
 
-      Alert.alert('Success', 'Profile updated.');
+      let successMsg = 'Profile updated.';
+      if (geo.warnings?.length) {
+        successMsg += `\n\n${geo.warnings.join('\n\n')}`;
+      }
+      Alert.alert('Success', successMsg);
       router.back();
     } catch (error: unknown) {
       const message =
@@ -198,10 +286,23 @@ export default function EditProfileScreen() {
     );
   };
 
-  const coreFilled =
+  const userCoreFilled =
     !!displayName.trim() &&
     !!normalizeUsername(username) &&
     !!location.trim();
+
+  const storeCoreFilled =
+    !!displayName.trim() &&
+    !!normalizeUsername(username) &&
+    validateUsStoreAddressFormat({
+      address_line1: addressLine1,
+      city,
+      region,
+      postal_code: postalCode,
+    }).ok;
+
+  const coreFilled =
+    accountType === 'user' ? userCoreFilled : storeCoreFilled;
 
   const saveDisabled =
     isLoading || deleting || !coreFilled || usernameCheck !== 'ok';
@@ -297,7 +398,11 @@ export default function EditProfileScreen() {
               styles.input,
               { color: colors.text, borderColor: colors.border },
             ]}
-            placeholder="Name (Required)"
+            placeholder={
+              accountType === 'store'
+                ? 'Business name (Required)'
+                : 'Name (Required)'
+            }
             placeholderTextColor={colors.tabIconDefault}
             value={displayName}
             onChangeText={setDisplayName}
@@ -315,17 +420,64 @@ export default function EditProfileScreen() {
             autoCorrect={false}
           />
           {usernameHint()}
-          <TextInput
-            style={[
-              styles.input,
-              { color: colors.text, borderColor: colors.border },
-            ]}
-            placeholder="Zip Code (Required)"
-            placeholderTextColor={colors.tabIconDefault}
-            value={location}
-            onChangeText={setLocation}
-            keyboardType="numeric"
-          />
+          {accountType === 'user' ? (
+            <TextInput
+              style={[
+                styles.input,
+                { color: colors.text, borderColor: colors.border },
+              ]}
+              placeholder="Zip Code (Required)"
+              placeholderTextColor={colors.tabIconDefault}
+              value={location}
+              onChangeText={setLocation}
+              keyboardType="numeric"
+            />
+          ) : (
+            <>
+              <TextInput
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
+                placeholder="Street address (Required)"
+                placeholderTextColor={colors.tabIconDefault}
+                value={addressLine1}
+                onChangeText={setAddressLine1}
+              />
+              <TextInput
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
+                placeholder="City (Required)"
+                placeholderTextColor={colors.tabIconDefault}
+                value={city}
+                onChangeText={setCity}
+              />
+              <TextInput
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
+                placeholder="State (2 letters, e.g. PA)"
+                placeholderTextColor={colors.tabIconDefault}
+                value={region}
+                onChangeText={setRegion}
+                autoCapitalize="characters"
+              />
+              <TextInput
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
+                placeholder="ZIP (5 digits or ZIP+4)"
+                placeholderTextColor={colors.tabIconDefault}
+                value={postalCode}
+                onChangeText={setPostalCode}
+                keyboardType="numeric"
+              />
+            </>
+          )}
           <TextInput
             style={[
               styles.input,
