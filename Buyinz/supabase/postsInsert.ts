@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import type { ListingDraft, ImageAsset } from '@/lib/listings';
-import { parseHashtags, parsePriceToNumber } from '@/lib/listings';
+import { parsePriceToNumber } from '@/lib/listings';
 
 const DEFAULT_MOCK_USER_ID = '11111111-1111-1111-1111-111111111111';
 const IMAGE_BUCKET = 'listing-images';
@@ -53,20 +53,14 @@ export async function uploadListingImages(images: ImageAsset[]): Promise<string[
 export async function insertPost(draft: ListingDraft, userId?: string): Promise<string> {
   const imageUrls = await uploadListingImages(draft.images);
 
-  const hashtags = parseHashtags(draft.hashtags);
-
   const { data, error } = await supabase
     .from('posts')
     .insert({
       user_id: userId || DEFAULT_MOCK_USER_ID,
       type: 'sale',
       title: draft.title,
-      description: draft.description || null,
       price: parsePriceToNumber(draft.price),
-      condition: draft.condition,
-      category: draft.category!,
       images: imageUrls,
-      hashtags,
     })
     .select('id')
     .single();

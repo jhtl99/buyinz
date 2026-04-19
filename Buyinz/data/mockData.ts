@@ -26,8 +26,6 @@ export interface SalePost {
   createdAt: string;
   hashtags: string[];
   sold: boolean;
-  /** ISO timestamp from DB; active boost when in the future. */
-  boostedUntil: string | null;
 }
 
 export interface ISOPost {
@@ -125,7 +123,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     createdAt: "2h ago",
     hashtags: ["#VintageSteelers", "#ThriftFinds", "#Pittsburgh"],
     sold: false,
-    boostedUntil: null,
   },
   {
     id: "p2",
@@ -162,7 +159,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     createdAt: "5h ago",
     hashtags: ["#MCM", "#MidCenturyModern", "#Pittsburgh"],
     sold: false,
-    boostedUntil: null,
   },
   {
     id: "p4",
@@ -183,7 +179,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     createdAt: "7h ago",
     hashtags: ["#ThriftFinds", "#VintageClothing", "#NorthSidePgh"],
     sold: false,
-    boostedUntil: null,
   },
   {
     id: "p5",
@@ -220,7 +215,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     createdAt: "1d ago",
     hashtags: ["#PittMovingSale", "#SquirrelHill", "#MovingSale"],
     sold: false,
-    boostedUntil: null,
   },
   {
     id: "p7",
@@ -241,7 +235,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     createdAt: "1d ago",
     hashtags: ["#MCM", "#Saarinen", "#ThriftFinds"],
     sold: false,
-    boostedUntil: null,
   },
   {
     id: "p8",
@@ -263,7 +256,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     createdAt: "2d ago",
     hashtags: ["#Books", "#ThriftFinds", "#StripDistrict"],
     sold: false,
-    boostedUntil: null,
   },
   {
     id: "p9",

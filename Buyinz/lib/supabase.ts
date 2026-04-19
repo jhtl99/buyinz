@@ -167,14 +167,13 @@ export type BuyinzUsersRow = {
   location: string | null;
   bio: string | null;
   avatar_url: string | null;
-  buyinz_pro: boolean;
 };
 
 /** Load `public.users` for the authenticated user id (e.g. after OAuth). */
 export async function fetchBuyinzUserRowByAuthId(userId: string): Promise<BuyinzUsersRow | null> {
   const { data, error } = await supabase
     .from('users')
-    .select('id, display_name, username, location, bio, avatar_url, buyinz_pro')
+    .select('id, display_name, username, location, bio, avatar_url')
     .eq('id', userId)
     .maybeSingle();
 

@@ -55,7 +55,6 @@ function makeSalePost(id: string, sellerLocation: string) {
     createdAt: 'now',
     hashtags: [],
     sold: false,
-    boostedUntil: null,
   } as const;
 }
 

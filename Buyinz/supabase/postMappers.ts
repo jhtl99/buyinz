@@ -63,27 +63,5 @@ export function mapRowToPost(row: any): Post {
     price: row.price ?? 0,
     condition: row.condition ?? 'Good',
     sold: row.sold ?? false,
-    boostedUntil: row.boosted_until ?? null,
   } as SalePost;
-}
-
-/** Raw DB row ordering for Friends+ feed: boosted sale posts first, then recency. */
-export function sortRowsForHomeFeed(rows: any[]): any[] {
-  const now = Date.now();
-
-  const rowBoostActive = (row: any): boolean => {
-    if (row.type !== 'sale') return false;
-    if (!row.boosted_until) return false;
-    return new Date(row.boosted_until).getTime() > now;
-  };
-
-  return [...rows].sort((a, b) => {
-    const aBoost = rowBoostActive(a);
-    const bBoost = rowBoostActive(b);
-    if (aBoost !== bBoost) return aBoost ? -1 : 1;
-    if (aBoost && bBoost) {
-      return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime();
-    }
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
 }

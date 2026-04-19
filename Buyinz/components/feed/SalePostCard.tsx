@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,20 +7,14 @@ import {
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
-  Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors, ConditionColors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SalePost } from '@/data/mockData';
-import { isBoostActive, formatBoostCountdownHHMM } from '@/lib/boost';
 import { openUserProfile } from '@/lib/openUserProfile';
-
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const CARD_H_PADDING = 12;
 
 interface Props {
   post: SalePost;
@@ -34,23 +28,9 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
   const colors = Colors[scheme];
   const condColors = ConditionColors[post.condition];
   const { user } = useAuth();
-  const isOwnListing = user?.id === post.seller.id;
 
   const [imgIndex, setImgIndex] = useState(0);
-  const [saved, setSaved] = useState(false);
   const [imgAreaHeight, setImgAreaHeight] = useState(300);
-  const [boostCountdown, setBoostCountdown] = useState('');
-
-  useEffect(() => {
-    if (!isBoostActive(post.boostedUntil)) {
-      setBoostCountdown('');
-      return;
-    }
-    const tick = () => setBoostCountdown(formatBoostCountdownHHMM(post.boostedUntil));
-    tick();
-    const id = setInterval(tick, 30000);
-    return () => clearInterval(id);
-  }, [post.boostedUntil, post.id]);
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -132,16 +112,6 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
             ))}
           </ScrollView>
 
-          {isBoostActive(post.boostedUntil) && (
-            <View style={styles.boostOverlay} pointerEvents="none">
-              <View style={styles.boostedPill}>
-                <Ionicons name="rocket-outline" size={12} color="#fff" />
-                <Text style={styles.boostedPillText}>Boosted</Text>
-              </View>
-              {isOwnListing && <Text style={styles.boostTimer}>{boostCountdown}</Text>}
-            </View>
-          )}
-
           {post.images.length > 1 && (
             <View style={styles.dotsRow}>
               {post.images.map((_, i) => (
@@ -157,47 +127,7 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
           )}
         </View>
 
-        {/* Tap title or price to open listing (bookmark/chat are outside this Pressable) */}
         <View style={styles.footer}>
-          <View style={styles.footerIcons}>
-            <Pressable
-              onPress={() => setSaved((s) => !s)}
-              hitSlop={8}
-              style={styles.bookmarkBtn}
-            >
-              <Ionicons
-                name={saved ? 'bookmark' : 'bookmark-outline'}
-                size={22}
-                color={saved ? Brand.primary : colors.textSecondary}
-              />
-            </Pressable>
-            {!isOwnListing && (
-              <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: '/chat/[id]',
-                    params: {
-                      id: post.id,
-                      sellerId: post.seller.id,
-                      sellerUsername: post.seller.username,
-                      peerUsername: post.seller.username,
-                      listingTitle: post.title,
-                      listingPrice: String(post.price),
-                      listingImage: post.images[0] ?? '',
-                    },
-                  })
-                }
-                hitSlop={8}
-                style={styles.bookmarkBtn}
-              >
-                <Ionicons
-                  name="chatbubble-outline"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
-            )}
-          </View>
           <Pressable
             style={styles.footerListingPressable}
             onPress={() => router.push(`/listing/${post.id}`, { withAnchor: true })}
@@ -276,37 +206,6 @@ const styles = StyleSheet.create({
     minHeight: 200,
     overflow: 'hidden',
   },
-  boostOverlay: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  boostedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  boostedPillText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  boostTimer: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-    textShadowColor: 'rgba(0,0,0,0.75)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
   dotsRow: {
     position: 'absolute',
     bottom: 12,
@@ -331,12 +230,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    gap: 8,
-  },
-  footerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   footerListingPressable: {
     flex: 1,
@@ -345,9 +238,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
     minWidth: 0,
-  },
-  bookmarkBtn: {
-    padding: 2,
   },
   title: {
     fontSize: 14,

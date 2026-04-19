@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Brand } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
 import { ProfileReceivedRatingsRow } from '@/components/profile/ProfileReceivedRatingsRow';
@@ -17,18 +17,10 @@ import { ProfileReceivedRatingsRow } from '@/components/profile/ProfileReceivedR
 const SCREEN_WIDTH = Dimensions.get('window').width;
 export const PROFILE_GRID_ITEM_SIZE = SCREEN_WIDTH / 3;
 
-function Stat({
-  label,
-  value,
-  onPress,
-}: {
-  label: string;
-  value: number;
-  onPress?: () => void;
-}) {
+function Stat({ label, value }: { label: string; value: number }) {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
-  const content = (
+  return (
     <View style={styles.statContainer}>
       <Text style={[styles.statValue, { color: colors.text }]}>
         {value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
@@ -36,16 +28,6 @@ function Stat({
       <Text style={[styles.statLabel, { color: colors.tabIconDefault }]}>{label}</Text>
     </View>
   );
-
-  if (onPress) {
-    return (
-      <Pressable onPress={onPress} hitSlop={8}>
-        {content}
-      </Pressable>
-    );
-  }
-
-  return content;
 }
 
 export type ProfileBodyProps = {
@@ -54,17 +36,12 @@ export type ProfileBodyProps = {
   bio?: string | null;
   location?: string | null;
   avatarUrl?: string | null;
-  showProBadge: boolean;
-  followersCount: number;
-  followingCount: number;
   postsCount: number;
   userIdForRatings: string;
   listings: SalePost[];
   listingsLoading: boolean;
-  onPressFollowers: () => void;
-  onPressFollowing: () => void;
   onPressListing: (listingId: string) => void;
-  /** Shown between ratings row and grid (e.g. Edit / Connections / Account card). */
+  /** Shown between ratings row and grid (e.g. Edit profile button). */
   footerBeforeGrid?: ReactNode;
   /** Copy for empty listings state */
   listingsEmptyVariant: 'self' | 'other';
@@ -76,15 +53,10 @@ export function ProfileBody({
   bio,
   location,
   avatarUrl,
-  showProBadge,
-  followersCount,
-  followingCount,
   postsCount,
   userIdForRatings,
   listings,
   listingsLoading,
-  onPressFollowers,
-  onPressFollowing,
   onPressListing,
   footerBeforeGrid,
   listingsEmptyVariant,
@@ -112,20 +84,12 @@ export function ProfileBody({
           <Image source={{ uri }} style={[styles.avatar, { borderColor: colors.border }]} />
           <View style={styles.statsRow}>
             <Stat label="Posts" value={postsCount} />
-            <Stat label="Followers" value={followersCount} onPress={onPressFollowers} />
-            <Stat label="Following" value={followingCount} onPress={onPressFollowing} />
           </View>
         </View>
 
         <View style={styles.bioSection}>
           <View style={styles.nameRow}>
             <Text style={[styles.displayName, { color: colors.text }]}>{displayName}</Text>
-            {showProBadge && (
-              <View style={[styles.proBadge, { backgroundColor: `${Brand.primary}22` }]}>
-                <Ionicons name="sparkles" size={14} color={Brand.primary} />
-                <Text style={[styles.proBadgeText, { color: Brand.primary }]}>Pro</Text>
-              </View>
-            )}
             <View style={styles.verifiedBadge}>
               <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
               <Text style={styles.verifiedText}>Verified</Text>
@@ -236,19 +200,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 6,
-  },
-  proBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    marginRight: 6,
-    gap: 4,
-  },
-  proBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   verifiedBadge: {
     flexDirection: 'row',

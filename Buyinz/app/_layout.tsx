@@ -8,7 +8,6 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Brand } from '@/constants/theme';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -29,40 +28,38 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <SubscriptionProvider>
-        <ThemeProvider value={customTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="user" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="create-profile"
-              options={{
-                headerShown: false,
-                presentation: 'modal',
-                gestureEnabled: false,
-              }}
-            />
-            <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="listing/[id]"
-              options={{
-                headerShown: true,
-                title: 'Listing',
-              }}
-            />
-            <Stack.Screen
-              name="create-listing"
-              options={{
-                presentation: 'modal',
-                title: 'New Listing',
-                headerTitleStyle: { fontWeight: '700' },
-              }}
-            />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </SubscriptionProvider>
+      <ThemeProvider value={customTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="user" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="create-profile"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="listing/[id]"
+            options={{
+              headerShown: true,
+              title: 'Listing',
+            }}
+          />
+          <Stack.Screen
+            name="create-listing"
+            options={{
+              presentation: 'modal',
+              title: 'New Listing',
+              headerTitleStyle: { fontWeight: '700' },
+            }}
+          />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
     </AuthProvider>
   );
 }

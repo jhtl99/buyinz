@@ -172,7 +172,7 @@ export default function EditProfileScreen() {
   const requestDelete = () => {
     Alert.alert(
       'Delete profile?',
-      'This will remove your Buyinz profile from our database, including your display name, username, and profile details. Your Google account is not deleted—you can sign in again to create a new profile. Related data (such as listings or messages) may be affected by how your account is linked.',
+      'This will remove your Buyinz profile from our database, including your display name, username, and profile details. Your Google account is not deleted—you can sign in again to create a new profile. Related data (such as listings) may be affected by how your account is linked.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
