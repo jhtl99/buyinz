@@ -19,6 +19,7 @@ function minimalValidDraft(overrides: Partial<ListingDraft> = {}): ListingDraft 
     images: [{ uri: 'file:///photo.jpg', width: 800, height: 600 }],
     title: 'Desk lamp',
     price: '19.99',
+    category: 'Other',
     ...overrides,
   };
 }
@@ -29,6 +30,7 @@ describe('constants', () => {
       images: [],
       title: '',
       price: '',
+      category: 'Other',
     });
   });
 

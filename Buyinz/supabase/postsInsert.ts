@@ -59,6 +59,7 @@ export async function insertPost(draft: ListingDraft, userId?: string): Promise<
       user_id: userId || DEFAULT_MOCK_USER_ID,
       type: 'sale',
       title: draft.title,
+      category: draft.category,
       price: parsePriceToNumber(draft.price),
       images: imageUrls,
     })

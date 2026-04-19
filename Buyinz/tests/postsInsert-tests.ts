@@ -233,6 +233,7 @@ describe('postsInsert', () => {
         images: [{ uri: 'https://cdn/item.JPG', width: 1, height: 1 }],
         title: 'Desk',
         price: '45',
+        category: 'Furniture',
         ...overrides,
       };
     }
@@ -278,6 +279,7 @@ describe('postsInsert', () => {
         user_id: '11111111-1111-1111-1111-111111111111',
         type: 'sale',
         title: 'Desk',
+        category: 'Furniture',
         price: 45,
         images: ['https://example.test/object/1700000000000-zzzj7c.jpg'],
       });

@@ -2,19 +2,12 @@ import { Brand, Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
-  normalizeUsStateRegion,
-  validateUsStoreAddressFormat,
-} from '@/lib/addressValidation';
-import {
   type AccountType,
   checkUsernameAvailable,
-  composeStoreAddressString,
   deleteProfileForCurrentUser,
   fetchBuyinzUserRowByAuthId,
-  geocodeAddressString,
   normalizeUsername,
   saveProfile,
-  storeAddressPartsComplete,
   supabase,
   validateProfileUpdate,
 } from '@/lib/supabase';
@@ -64,6 +57,9 @@ export default function EditProfileScreen() {
   const [deleting, setDeleting] = useState(false);
   const [usernameCheck, setUsernameCheck] = useState<UsernameCheck>('idle');
   const [hydrated, setHydrated] = useState(false);
+  /** Geocoder line from DB; shown read-only for stores. */
+  const [storeFormattedAddressLine, setStoreFormattedAddressLine] =
+    useState('');
 
   useEffect(() => {
     const uid = user?.id;
@@ -86,6 +82,7 @@ export default function EditProfileScreen() {
         setPostalCode(row?.postal_code ?? '');
         setBio(row?.bio ?? user.bio ?? '');
         setAvatarUrl(row?.avatar_url ?? user.avatar_url ?? DEFAULT_AVATAR);
+        setStoreFormattedAddressLine(row?.formatted_address ?? '');
       } finally {
         if (!cancelled) setHydrated(true);
       }
@@ -166,55 +163,27 @@ export default function EditProfileScreen() {
         return;
       }
 
-      const regionNorm = normalizeUsStateRegion(region);
-      const address_string = composeStoreAddressString({
-        address_line1: addressLine1.trim(),
-        city: city.trim(),
-        region: regionNorm,
-        postal_code: postalCode.trim(),
-      });
-
-      const baseStore = {
-        id: user.id,
-        account_type: 'store' as const,
-        display_name: displayName,
-        username,
-        location: postalCode.trim(),
-        bio,
-        avatar_url: avatarUrl,
-        address_line1: addressLine1.trim(),
-        city: city.trim(),
-        region: regionNorm,
-        postal_code: postalCode.trim(),
-        address_string,
-      };
-
-      if (!storeAddressPartsComplete(baseStore)) {
-        throw new Error(
-          'Enter street, city, state, and ZIP so we can find your store.',
-        );
+      const row = await fetchBuyinzUserRowByAuthId(user.id);
+      if (!row || row.account_type !== 'store') {
+        throw new Error('Could not load your store profile.');
       }
-
-      const formatCheck = validateUsStoreAddressFormat({
-        address_line1: addressLine1,
-        city,
-        region,
-        postal_code: postalCode,
-      });
-      if (!formatCheck.ok) {
-        throw new Error(formatCheck.message);
-      }
-
-      const geo = await geocodeAddressString(address_string, {
-        expectedPostalCode: postalCode.trim(),
-        expectedRegion: regionNorm,
-      });
 
       const profilePayload = {
-        ...baseStore,
-        latitude: geo.latitude,
-        longitude: geo.longitude,
-        formatted_address: geo.formatted_address ?? null,
+        id: user.id,
+        account_type: 'store' as const,
+        display_name: displayName.trim(),
+        username,
+        bio,
+        avatar_url: row.avatar_url ?? undefined,
+        location: row.location ?? '',
+        address_line1: row.address_line1,
+        city: row.city,
+        region: row.region,
+        postal_code: row.postal_code,
+        address_string: row.address_string,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        formatted_address: row.formatted_address,
       };
 
       validateProfileUpdate(profilePayload);
@@ -225,11 +194,7 @@ export default function EditProfileScreen() {
         email: user.email,
       });
 
-      let successMsg = 'Profile updated.';
-      if (geo.warnings?.length) {
-        successMsg += `\n\n${geo.warnings.join('\n\n')}`;
-      }
-      Alert.alert('Success', successMsg);
+      Alert.alert('Success', 'Profile updated.');
       router.back();
     } catch (error: unknown) {
       const message =
@@ -292,17 +257,15 @@ export default function EditProfileScreen() {
     !!location.trim();
 
   const storeCoreFilled =
-    !!displayName.trim() &&
-    !!normalizeUsername(username) &&
-    validateUsStoreAddressFormat({
-      address_line1: addressLine1,
-      city,
-      region,
-      postal_code: postalCode,
-    }).ok;
+    !!displayName.trim() && !!normalizeUsername(username);
 
   const coreFilled =
     accountType === 'user' ? userCoreFilled : storeCoreFilled;
+
+  const storeAddressReadOnly = [addressLine1, city, region, postalCode]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(', ');
 
   const saveDisabled =
     isLoading || deleting || !coreFilled || usernameCheck !== 'ok';
@@ -388,9 +351,17 @@ export default function EditProfileScreen() {
               source={{ uri: avatarUrl }}
               style={[styles.avatar, { borderColor: colors.border }]}
             />
-            <Pressable style={styles.changePhotoBtn} onPress={handleImagePick}>
-              <Text style={styles.changePhotoText}>Change Profile Photo</Text>
-            </Pressable>
+            {accountType === 'user' ? (
+              <Pressable style={styles.changePhotoBtn} onPress={handleImagePick}>
+                <Text style={styles.changePhotoText}>Change Profile Photo</Text>
+              </Pressable>
+            ) : (
+              <Text
+                style={[styles.readOnlyHint, { color: colors.tabIconDefault }]}
+              >
+                Profile photo
+              </Text>
+            )}
           </View>
 
           <TextInput
@@ -433,50 +404,29 @@ export default function EditProfileScreen() {
               keyboardType="numeric"
             />
           ) : (
-            <>
-              <TextInput
+            <View style={{ marginBottom: 12 }}>
+              <Text
                 style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.border },
+                  styles.readOnlySectionLabel,
+                  { color: colors.textSecondary },
                 ]}
-                placeholder="Street address (Required)"
-                placeholderTextColor={colors.tabIconDefault}
-                value={addressLine1}
-                onChangeText={setAddressLine1}
-              />
-              <TextInput
-                style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.border },
-                ]}
-                placeholder="City (Required)"
-                placeholderTextColor={colors.tabIconDefault}
-                value={city}
-                onChangeText={setCity}
-              />
-              <TextInput
-                style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.border },
-                ]}
-                placeholder="State (2 letters, e.g. PA)"
-                placeholderTextColor={colors.tabIconDefault}
-                value={region}
-                onChangeText={setRegion}
-                autoCapitalize="characters"
-              />
-              <TextInput
-                style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.border },
-                ]}
-                placeholder="ZIP (5 digits or ZIP+4)"
-                placeholderTextColor={colors.tabIconDefault}
-                value={postalCode}
-                onChangeText={setPostalCode}
-                keyboardType="numeric"
-              />
-            </>
+              >
+                Store location
+              </Text>
+              <Text
+                style={[styles.readOnlyAddress, { color: colors.text }]}
+              >
+                {storeFormattedAddressLine.trim() ||
+                  storeAddressReadOnly ||
+                  '—'}
+              </Text>
+              <Text
+                style={[styles.readOnlyHint, { color: colors.tabIconDefault }]}
+              >
+                Address was saved when you created your store and can’t be
+                edited here.
+              </Text>
+            </View>
           )}
           <TextInput
             style={[
@@ -601,6 +551,22 @@ const styles = StyleSheet.create({
     color: Brand.primary,
     fontWeight: '600',
     fontSize: 14,
+  },
+  readOnlySectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  readOnlyAddress: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  readOnlyHint: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   input: {
     borderWidth: 1,

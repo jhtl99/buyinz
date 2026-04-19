@@ -1,5 +1,17 @@
 import { insertPost } from '@/supabase/queries';
 
+/** Must match `posts.category` and Explore shelf filters (excluding All). */
+export const LISTING_CATEGORIES = [
+  'Furniture',
+  'Clothing',
+  'Electronics',
+  'Books',
+  'Decor',
+  'Other',
+] as const;
+
+export type ListingCategory = (typeof LISTING_CATEGORIES)[number];
+
 export interface ImageAsset {
   uri: string;
   width: number;
@@ -10,12 +22,14 @@ export interface ListingDraft {
   images: ImageAsset[];
   title: string;
   price: string;
+  category: ListingCategory;
 }
 
 export const EMPTY_DRAFT: ListingDraft = {
   images: [],
   title: '',
   price: '',
+  category: 'Other',
 };
 
 export const MAX_PHOTOS = 5;
