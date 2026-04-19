@@ -36,18 +36,59 @@ Do not skip steps or reorder them for convenience.
 
 ---
 
-## Standardized prompt template (copy for every user story)
+## Standardized instructions for new user stories
 
-Use this in Composer or Chat so each story follows the same sequence:
+Follow this **general process** before anyone pastes a prompt into a coding agent:
 
-```
-Cursor, I am implementing a new user story: [INSERT STORY HERE + ACCEPTANCE CRITERIA].
+1. **You (the human) provide** the user story and acceptance criteria, plus a detailed description—as far as you can—of how you want it implemented (screens, data, edge cases, behavior).
+2. **The LLM asks** clarifying questions focused on **major design choices** (e.g. data model, RLS/auth, navigation, UX diverging from existing patterns) so the downstream implementation prompt can be precise.
+3. **You answer** those questions and/or add more detail; repeat until blocking ambiguities are resolved.
+4. **The LLM produces** a single **coding-agent prompt** (see reference template below) tailored to the story, ready to paste into a coding agent or implementation chat.
 
-Read the .cursorrules file at the repo root for our stack and rules.
+---
+
+### Chat prompt: story → clarifications → agentic prompt
+
+Paste the block below into **Chat** (replace the bracketed placeholder with your story, criteria, and implementation notes). It walks the model through steps 1–4 and requires a **final deliverable**: a copy-paste-ready prompt for the coding agent.
+
+~~~text
+You are helping me prepare implementation work on Buyinz. Read `.cursorrules` at the repo root for stack, styling, tests, and mandatory DB → backend → UI order.
+
+Process (follow in order):
+1) I have described my user story, acceptance criteria, and implementation intent below.
+2) Ask clarifying questions about major design choices only—whatever is still ambiguous for a foolproof coding-agent handoff (schema/RLS, auth, routes, UX vs existing patterns). Skip nitpicks I already nailed.
+3) Wait for my replies; ask brief follow-ups only if something still blocks a crisp prompt.
+4) When ready, output a final section exactly titled: ## Coding agent prompt (copy below)
+   Under that heading, put ONE fenced markdown code block containing the full prompt to give a coding agent. That inner prompt must tell the agent to:
+   - Read `.cursorrules`
+   - Implement in order: (1) Supabase migrations/schema as needed, (2) backend/RPC/RLS + app data layer, (3) Expo Router / React Native UI wired to the data layer
+   - Apply decision rules: handle small details autonomously; surface major design choices for human confirmation before locking in; ask clarifying questions if requirements are ambiguous
+   - Pause for my review after each of the three implementation steps unless I say otherwise
+   - Replace generic references with our concrete story, acceptance criteria, and agreed decisions from this thread
+
+---
+
+My user story, acceptance criteria, and how I want it implemented:
+
+[INSERT STORY, ACCEPTANCE CRITERIA, AND IMPLEMENTATION DESCRIPTION HERE]
+~~~
+
+---
+
+### Coding agent prompt template (what step 4 should produce)
+
+After the chat above, you (or the LLM in step 4) should end up with something shaped like this—customized with the specific story and decisions:
+
+~~~text
+You are implementing the following on Buyinz. Read `.cursorrules` at the repo root for stack and rules.
+
+Story: [SUMMARY]
+Acceptance criteria: [LIST]
+Agreed design decisions from planning: [BULLETS]
 
 Decision-making:
 - Handle small implementation details yourself: naming that matches existing code, file placement, error strings, loading/empty states, minor refactors strictly needed for the story, and routine test updates — aligned with this repo’s patterns.
-- Before locking in major design decisions, ask me to confirm. Examples: new tables or columns that change the data model, new public API shapes, auth/RLS policy behavior, navigation structure or new routes, breaking changes, or UX flows that diverge from current screens.
+- Before locking in major design decisions not already settled above, ask me to confirm.
 - If requirements are ambiguous, conflicting, or underspecified, ask clarifying questions before you implement.
 
 Execute in three steps (in order):
@@ -56,7 +97,7 @@ Execute in three steps (in order):
 3) Build the frontend UI (Expo Router + React Native) and wire it to the data layer.
 
 Pause for my review after each step before continuing.
-```
+~~~
 
 ---
 
