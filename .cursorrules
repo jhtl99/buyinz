@@ -1,0 +1,72 @@
+# Buyinz — Agent instructions (repeatable workflow)
+
+## Stack
+
+- **Mobile app**: Expo SDK 54, **React Native** 0.81, **React** 19, **TypeScript**
+- **Navigation**: **Expo Router** (file-based routes under `Buyinz/app/`)
+- **Backend / data**: **Supabase** (`@supabase/supabase-js`) — Postgres, Row Level Security, auth; schema and SQL live under `Buyinz/supabase/migrations/`
+- **Lint**: ESLint with **eslint-config-expo** (`npm run lint`)
+- **Tests**: **Jest** with **jest-expo** preset; colocate tests under `Buyinz/tests/` (see `Buyinz/jest.config.js` for `testMatch`)
+
+There is no separate Node API server in this repo; “backend” work means Supabase schema, policies, SQL/RPC, and typed client usage in the app.
+
+## Styling guidelines
+
+- Use **React Native** styling (`StyleSheet.create` or inline objects where the codebase already does).
+- Reuse **theme tokens** from `Buyinz/constants/theme.ts` — `Brand`, `Colors` (light/dark), `ConditionColors`, and related exports — instead of hard-coding one-off hex values unless adding a deliberate new token.
+- Follow existing layout patterns: **Safe area**, **Expo** components, and **lucide-react-native** / **@expo/vector-icons** as used nearby.
+- Keep UI consistent with existing screens: spacing, typography scale, and card/list patterns in sibling components.
+
+## Testing
+
+- Run **`npm test`** from `Buyinz/` (Jest + jest-expo).
+- Add or update tests under **`Buyinz/tests/`** using the project’s `testMatch` patterns.
+
+## Mandatory implementation order (user stories)
+
+**When implementing a user story, always write the database queries first, then the backend logic, then the frontend UI.**
+
+Concrete mapping for this repo:
+
+1. **Database first** — Supabase migrations in `Buyinz/supabase/migrations/`: tables, columns, constraints, indexes, RLS policies, and database functions as needed. Define or adjust SQL so queries are clear and enforceable before app code relies on them.
+2. **Backend logic second** — Server-side behavior tied to data: RPC/security definer functions, triggers, or Supabase Edge Functions if the project uses them; then **TypeScript data layer** in the app (e.g. helpers/hooks/services) that perform the actual Supabase calls using the schema you just defined.
+3. **Frontend UI last** — Expo Router screens and React Native components that call the data layer and reflect loading/error/empty states.
+
+Do not skip steps or reorder them for convenience.
+
+---
+
+## Standardized prompt template (copy for every user story)
+
+Use this in Composer or Chat so each story follows the same sequence:
+
+```
+Cursor, I am implementing a new user story: [INSERT STORY HERE + ACCEPTANCE CRITERIA].
+
+Read the .cursorrules file at the repo root for our stack and rules.
+
+Decision-making:
+- Handle small implementation details yourself: naming that matches existing code, file placement, error strings, loading/empty states, minor refactors strictly needed for the story, and routine test updates — aligned with this repo’s patterns.
+- Before locking in major design decisions, ask me to confirm. Examples: new tables or columns that change the data model, new public API shapes, auth/RLS policy behavior, navigation structure or new routes, breaking changes, or UX flows that diverge from current screens.
+- If requirements are ambiguous, conflicting, or underspecified, ask clarifying questions before you implement.
+
+Execute in three steps (in order):
+1) Update the database schema / Supabase migrations (and seed/mock data only if the repo already uses it) if needed.
+2) Add or update backend-related logic: Supabase RPC/policies as needed, then app-side functions/hooks that call Supabase.
+3) Build the frontend UI (Expo Router + React Native) and wire it to the data layer.
+
+Pause for my review after each step before continuing.
+```
+
+---
+
+## Human-in-the-loop (Director responsibilities)
+
+Automation proposes changes; humans keep quality and integration correct:
+
+- **Review** diffs before accepting: scope, security (RLS), and correctness.
+- **Reject or fix** incorrect assumptions (wrong table names, missing migrations, nonexistent APIs).
+- **Verify UI** on device/simulator: layout, theme, accessibility basics.
+- **Own Git**: branch naming, commits, PRs, merges, and conflict resolution.
+
+Agents should prefer small, reviewable steps when the user asks for pauses between phases.
