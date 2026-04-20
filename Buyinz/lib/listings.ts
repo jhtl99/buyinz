@@ -1,14 +1,7 @@
 import { insertPost } from '@/supabase/queries';
 
-/** Must match `posts.category` and Explore shelf filters (excluding All). */
-export const LISTING_CATEGORIES = [
-  'Furniture',
-  'Clothing',
-  'Electronics',
-  'Books',
-  'Decor',
-  'Other',
-] as const;
+/** Must match `posts.category` for new listings. */
+export const LISTING_CATEGORIES = ['Tops', 'Bottoms', 'Accessories', 'Other'] as const;
 
 export type ListingCategory = (typeof LISTING_CATEGORIES)[number];
 
@@ -34,17 +27,26 @@ export const EMPTY_DRAFT: ListingDraft = {
 
 export const MAX_PHOTOS = 5;
 
-/** Parses listing price string; non-numeric or empty yields 0 (matches insert behavior). */
-export function parsePriceToNumber(price: string): number {
-  const n = parseFloat(price);
-  return Number.isFinite(n) ? n : 0;
+/**
+ * Maps draft price field to DB: empty → null (no price), valid number including 0 → stored as-is.
+ * Non-numeric input when non-empty is invalid for submit (see isDraftValid).
+ */
+export function priceStringToDbValue(price: string): number | null {
+  const t = price.trim();
+  if (t.length === 0) return null;
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : null;
 }
 
 /** A listing is valid as long as it has at least one photo and a title. Price is optional. */
 export function isDraftValid(draft: ListingDraft): boolean {
   if (draft.images.length === 0) return false;
   if (draft.title.trim().length === 0) return false;
-  if (draft.price.trim().length > 0 && parsePriceToNumber(draft.price) < 0) return false;
+  const pt = draft.price.trim();
+  if (pt.length > 0) {
+    const n = parseFloat(pt);
+    if (!Number.isFinite(n) || n < 0) return false;
+  }
   return true;
 }
 

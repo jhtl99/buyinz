@@ -19,9 +19,9 @@ export interface SalePost {
   seller: Seller;
   images: string[];
   title: string;
-  price: number;
-  condition: "New" | "Like New" | "Good" | "Fair";
-  category: "Furniture" | "Clothing" | "Electronics" | "Books" | "Decor" | "Other";
+  /** null = no price set */
+  price: number | null;
+  category: string;
   description: string;
   likes: number;
   comments: number;
@@ -38,7 +38,7 @@ export interface ISOPost {
   title: string;
   description: string;
   budget?: number;
-  category: "Furniture" | "Clothing" | "Electronics" | "Books" | "Decor" | "Other";
+  category: string;
   likes: number;
   comments: number;
   liked: boolean;
@@ -132,7 +132,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Vintage Pittsburgh Steelers Jersey — #58 Lambert",
     price: 85,
-    condition: "Good",
     category: "Clothing",
     description: "Classic Steelers jersey from the late 80s. Some fading adds to the charm. Size XL.",
     likes: 47,
@@ -167,7 +166,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Eames-Era Lounge Chair — Walnut Shell",
     price: 340,
-    condition: "Like New",
     category: "Furniture",
     description:
       "Beautiful mid-century lounge chair. Walnut veneer shell, original cushions recently re-upholstered in cream boucle. Absolutely stunning piece.",
@@ -187,7 +185,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Bundle of 6 Vintage Band Tees — Mostly M",
     price: 55,
-    condition: "Good",
     category: "Clothing",
     description:
       "Cleaning out the closet! Mix of Zeppelin, Talking Heads, and a couple local Pittsburgh bands. All authentic, worn once or twice.",
@@ -223,7 +220,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Full Moving Sale — Furniture, Kitchen, Decor",
     price: 0,
-    condition: "Good",
     category: "Other",
     description:
       "MOVING SALE! Entire apartment worth of stuff. Couch, coffee table, kitchenware, art, lamps, and more. DM for full list. Squirrel Hill pickup only. Everything negotiable.",
@@ -243,7 +239,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Tulip Side Table — Saarinen Reproduction",
     price: 120,
-    condition: "Like New",
     category: "Furniture",
     description:
       "Beautiful Saarinen-style tulip side table in white. Perfect condition, used only as a display piece. Pairs incredibly with any MCM room.",
@@ -264,7 +259,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Box of 40+ Vintage Paperbacks",
     price: 30,
-    condition: "Fair",
     category: "Books",
     description:
       "Eclectic mix — sci-fi, detective novels, some Penguin classics, a few Steelers biographies. All readable condition. Great for a bookshelf display.",

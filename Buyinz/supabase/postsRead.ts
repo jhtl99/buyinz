@@ -29,6 +29,27 @@ export async function fetchUserSaleListings(userId: string): Promise<SalePost[]>
   return (data ?? []).map((row) => mapRowToPost(row) as SalePost);
 }
 
+/**
+ * Store's sale listings from the last rolling 24 hours (not sold), newest first.
+ */
+export async function fetchStoreSaleListingsLast24h(userId: string): Promise<SalePost[]> {
+  if (!userId) return [];
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, users(*)')
+    .eq('user_id', userId)
+    .eq('type', 'sale')
+    .eq('sold', false)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => mapRowToPost(row) as SalePost);
+}
+
 /** Single sale listing for detail screen (DB). */
 export async function fetchSaleListingById(id: string): Promise<SalePost | null> {
   const { data, error } = await supabase

@@ -44,7 +44,6 @@ function makeSalePost(id: string, sellerOverrides: Partial<SalePost['seller']> =
     images: ['https://example.com/i.png'],
     title: `Item ${id}`,
     price: 10,
-    condition: 'Good',
     category: 'Other',
     description: '',
     likes: 5,

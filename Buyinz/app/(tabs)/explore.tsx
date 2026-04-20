@@ -1,36 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Redirect, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Redirect } from 'expo-router';
 
+import { StoreListRow, type StoreListRowModel } from '@/components/stores/StoreListRow';
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchDiscoveryFeed, type DiscoverySalePost, type GeoPoint } from '@/supabase/queries';
 import { DEFAULT_CMU_COORDS, milesBetween } from '@/lib/discoveryLocation';
-
-const SHELVES = [
-  { id: 'All', label: 'All Shelves', emoji: '🏪' },
-  { id: 'Furniture', label: 'Furniture', emoji: '🛋️' },
-  { id: 'Clothing', label: 'Clothing', emoji: '👗' },
-  { id: 'Electronics', label: 'Electronics', emoji: '📱' },
-  { id: 'Books', label: 'Books', emoji: '📚' },
-  { id: 'Decor', label: 'Decor', emoji: '🪴' },
-  { id: 'Other', label: 'Other', emoji: '📦' },
-] as const;
-
-type ShelfId = (typeof SHELVES)[number]['id'];
+import { sortNearbyStoresForExplore, type ExploreSortMode } from '@/lib/exploreSort';
+import {
+  fetchNearbyStoresForExplore,
+  type GeoPoint,
+  type NearbyStoreForExplore,
+} from '@/supabase/queries';
 
 const RADIUS_OPTIONS: { label: string; miles: number }[] = [
   { label: '5 mi', miles: 5 },
@@ -38,42 +30,24 @@ const RADIUS_OPTIONS: { label: string; miles: number }[] = [
   { label: '20 mi', miles: 20 },
 ];
 
-const DEFAULT_RADIUS_MILES = 10;
+const SORT_OPTIONS: { label: string; mode: ExploreSortMode }[] = [
+  { label: 'Distance', mode: 'distance' },
+  { label: 'New items', mode: 'newItems' },
+];
 
-function ExploreCard({ post }: { post: DiscoverySalePost }) {
-  const router = useRouter();
-  const scheme = useColorScheme() ?? 'light';
-  const colors = Colors[scheme];
+const DEFAULT_RADIUS_MILES = 5;
 
-  return (
-    <Pressable
-      onPress={() => router.push(`/listing/${post.id}`, { withAnchor: true })}
-      style={[
-        styles.card,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-        },
-      ]}
-    >
-      <Image source={{ uri: post.images[0] }} style={styles.cardImage} contentFit="cover" />
-
-      <View style={styles.cardOverlayTop}>
-        <View style={styles.pricePill}>
-          <Text style={styles.priceText}>{post.price === 0 ? 'Offer' : `$${post.price}`}</Text>
-        </View>
-      </View>
-
-      <View style={styles.cardOverlayBottom}>
-        <Text style={styles.cardTitle} numberOfLines={2}>
-          {post.title}
-        </Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.distanceText}>{post.distanceMiles.toFixed(1)} mi</Text>
-        </View>
-      </View>
-    </Pressable>
-  );
+function nearbyToRowModel(store: NearbyStoreForExplore): StoreListRowModel {
+  return {
+    id: store.id,
+    username: store.username,
+    display_name: store.display_name,
+    avatar_url: store.avatar_url,
+    newItemsLast24h: store.newItemsLast24h,
+    previewUrls: store.previewUrls,
+    totalSaleListings: store.totalSaleListings,
+    distanceMiles: store.distanceMiles,
+  };
 }
 
 export default function ExploreTabScreen() {
@@ -82,18 +56,21 @@ export default function ExploreTabScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
-  const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState<ShelfId>('All');
   const [activeRadius, setActiveRadius] = useState(DEFAULT_RADIUS_MILES);
-
+  const [sortMode, setSortMode] = useState<ExploreSortMode>('distance');
   const [userCoords, setUserCoords] = useState<GeoPoint>(DEFAULT_CMU_COORDS);
-  const [listings, setListings] = useState<DiscoverySalePost[]>([]);
+  const [rawStores, setRawStores] = useState<NearbyStoreForExplore[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const stores = useMemo(
+    () => sortNearbyStoresForExplore(rawStores, sortMode),
+    [rawStores, sortMode],
+  );
 
   const lastCoordsRef = useRef<GeoPoint>(DEFAULT_CMU_COORDS);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.account_type === 'store') return;
     let mounted = true;
     let subscription: Location.LocationSubscription | null = null;
 
@@ -154,14 +131,13 @@ export default function ExploreTabScreen() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.account_type === 'store') return;
     let mounted = true;
     setLoading(true);
 
-    fetchDiscoveryFeed({ userCoords, radiusMiles: activeRadius })
-      .then((result) => {
-        if (!mounted) return;
-        setListings(result.listings);
+    fetchNearbyStoresForExplore({ userCoords, radiusMiles: activeRadius })
+      .then((list) => {
+        if (mounted) setRawStores(list);
       })
       .catch(console.error)
       .finally(() => {
@@ -173,34 +149,11 @@ export default function ExploreTabScreen() {
     };
   }, [user, activeRadius, userCoords]);
 
-  const filtered = useMemo(() => {
-    return listings.filter((post) => {
-      const matchesCategory = activeCategory === 'All' || post.category === activeCategory;
-      const q = search.trim().toLowerCase();
-      const matchesSearch =
-        q.length === 0 ||
-        post.title.toLowerCase().includes(q) ||
-        post.seller.username.toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
-    });
-  }, [activeCategory, listings, search]);
-
-  const [leftCol, rightCol] = useMemo(() => {
-    const left: DiscoverySalePost[] = [];
-    const right: DiscoverySalePost[] = [];
-
-    filtered.forEach((post, idx) => {
-      if (idx % 2 === 0) {
-        left.push(post);
-      } else {
-        right.push(post);
-      }
-    });
-
-    return [left, right];
-  }, [filtered]);
-
   if (!user) {
+    return <Redirect href="/(tabs)/profile" />;
+  }
+
+  if (user.account_type === 'store') {
     return <Redirect href="/(tabs)/profile" />;
   }
 
@@ -216,27 +169,12 @@ export default function ExploreTabScreen() {
           },
         ]}
       >
-        <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.rounded }]}>Discover</Text>
+        <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.rounded }]}>Explore</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Store listings sorted by distance
+          Thrift stores near you
         </Text>
 
-        <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-          <Ionicons name="search" size={16} color={colors.textSecondary} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search Buyinz listings..."
-            placeholderTextColor={colors.textSecondary}
-            style={[styles.searchInput, { color: colors.text }]}
-          />
-          {search.length > 0 && (
-            <Pressable onPress={() => setSearch('')}>
-              <Ionicons name="close" size={16} color={colors.textSecondary} />
-            </Pressable>
-          )}
-        </View>
-
+        <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Distance</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
           {RADIUS_OPTIONS.map((option) => {
             const selected = option.miles === activeRadius;
@@ -259,22 +197,23 @@ export default function ExploreTabScreen() {
           })}
         </ScrollView>
 
+        <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Sort by</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-          {SHELVES.map((shelf) => {
-            const selected = shelf.id === activeCategory;
+          {SORT_OPTIONS.map((option) => {
+            const selected = option.mode === sortMode;
             return (
               <Pressable
-                key={shelf.id}
-                onPress={() => setActiveCategory(shelf.id)}
+                key={option.mode}
+                onPress={() => setSortMode(option.mode)}
                 style={[
-                  styles.chip,
+                  styles.radiusChip,
                   selected
                     ? { backgroundColor: Brand.primary, borderColor: Brand.primary }
                     : { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
               >
-                <Text style={[styles.chipText, { color: selected ? '#FFFFFF' : colors.text }]}>
-                  {shelf.emoji} {shelf.label}
+                <Text style={[styles.radiusChipText, { color: selected ? '#FFFFFF' : colors.text }]}>
+                  {option.label}
                 </Text>
               </Pressable>
             );
@@ -286,26 +225,22 @@ export default function ExploreTabScreen() {
         <View style={styles.loader}>
           <ActivityIndicator size="large" color={Brand.primary} />
         </View>
-      ) : filtered.length === 0 ? (
+      ) : stores.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No listings found</Text>
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Try another shelf or radius.</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No stores to discover</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            There are no nearby stores you are not already following. Try a wider distance, or check
+            back when new stores join. Stores you follow appear on the Home tab.
+          </Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.feedContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.gridRow}>
-            <View style={styles.column}>
-              {leftCol.map((post) => (
-                <ExploreCard key={post.id} post={post} />
-              ))}
-            </View>
-            <View style={[styles.column, styles.offsetColumn]}>
-              {rightCol.map((post) => (
-                <ExploreCard key={post.id} post={post} />
-              ))}
-            </View>
-          </View>
-        </ScrollView>
+        <FlatList
+          data={stores}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => <StoreListRow store={nearbyToRowModel(item)} colors={colors} />}
+          showsVerticalScrollIndicator={false}
+        />
       )}
     </View>
   );
@@ -319,7 +254,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingHorizontal: 14,
     paddingBottom: 12,
-    gap: 10,
+    gap: 8,
   },
   title: {
     fontSize: 28,
@@ -330,18 +265,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    height: 42,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: 4,
   },
   chipsRow: {
     gap: 8,
@@ -354,16 +283,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   radiusChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  chip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  chipText: {
     fontSize: 12,
     fontWeight: '700',
   },
@@ -387,74 +306,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
   },
-  feedContent: {
-    paddingHorizontal: 10,
+  listContent: {
+    paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 120,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-start',
-  },
-  column: {
-    flex: 1,
-    gap: 8,
-  },
-  offsetColumn: {
-    marginTop: 18,
-  },
-  card: {
-    borderWidth: 1,
-    borderRadius: 14,
-    overflow: 'hidden',
-    minHeight: 230,
-  },
-  cardImage: {
-    width: '100%',
-    aspectRatio: 3 / 4,
-  },
-  cardOverlayTop: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  pricePill: {
-    backgroundColor: Brand.primary,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  priceText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  cardOverlayBottom: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    backgroundColor: 'rgba(0,0,0,0.58)',
-    gap: 6,
-  },
-  cardTitle: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  distanceText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
+    gap: 14,
   },
 });

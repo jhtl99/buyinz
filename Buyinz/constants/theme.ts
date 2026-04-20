@@ -7,13 +7,6 @@ export const Brand = {
   gradientEnd: '#098CB3',
 };
 
-export const ConditionColors = {
-  New: { bg: 'rgba(16, 185, 129, 0.15)', text: '#10B981', border: 'rgba(16, 185, 129, 0.3)' },
-  'Like New': { bg: 'rgba(59, 130, 246, 0.15)', text: '#3B82F6', border: 'rgba(59, 130, 246, 0.3)' },
-  Good: { bg: 'rgba(245, 158, 11, 0.15)', text: '#F59E0B', border: 'rgba(245, 158, 11, 0.3)' },
-  Fair: { bg: 'rgba(244, 63, 94, 0.15)', text: '#F43F5E', border: 'rgba(244, 63, 94, 0.3)' },
-} as const;
-
 export const Colors = {
   light: {
     text: '#1A1D2E',

@@ -77,39 +77,45 @@ describe('validateProfileForSave', () => {
         username: '',
         location: '90210',
       }),
-    ).toThrow('Missing mandatory fields: Name, Username, or Zip Code');
+    ).toThrow('Missing mandatory fields: Name and Username');
   });
 
-  it('allows missing bio', () => {
+  it('allows missing bio and location for shoppers', () => {
     expect(() =>
       validateProfileForSave({
         account_type: 'user',
         display_name: 'Test User',
         username: 'u1',
-        location: '90210',
       }),
     ).not.toThrow();
   });
 });
 
 describe('profileCoreComplete and onboarding', () => {
-  it('profileCoreComplete ignores bio', () => {
+  it('profileCoreComplete is true with only name and username (no zip)', () => {
     expect(
       profileCoreComplete({
         display_name: 'A',
         username: 'b',
-        location: '90210',
       }),
     ).toBe(true);
   });
 
-  it('isProfileOnboardingComplete is true without bio', () => {
+  it('profileCoreComplete is false without username', () => {
+    expect(
+      profileCoreComplete({
+        display_name: 'A',
+        username: '',
+      }),
+    ).toBe(false);
+  });
+
+  it('isProfileOnboardingComplete is true for shopper without bio or location', () => {
     expect(
       isProfileOnboardingComplete({
         account_type: 'user',
         display_name: 'A',
         username: 'b',
-        location: '90210',
         bio: '',
       }),
     ).toBe(true);
@@ -121,7 +127,6 @@ describe('profileCoreComplete and onboarding', () => {
         account_type: 'user',
         display_name: 'Jane',
         username: 'jane',
-        location: '10001',
         bio: null,
       }),
     ).toBe(true);
@@ -245,6 +250,22 @@ describe('buildUsersUpsertPayload', () => {
       formatted_address: null,
     });
   });
+
+  it('maps shopper with empty location to null', () => {
+    expect(
+      buildUsersUpsertPayload({
+        id: 'u1',
+        account_type: 'user',
+        display_name: 'A',
+        username: 'a',
+        location: '',
+        avatar_url: undefined,
+      }),
+    ).toMatchObject({
+      location: null,
+      bio: null,
+    });
+  });
 });
 
 describe('isPostgresUniqueViolation', () => {
@@ -288,7 +309,6 @@ describe('saveProfile', () => {
         account_type: 'user',
         display_name: 'Test',
         username: 'taken_name',
-        location: '90210',
       }),
     ).rejects.toThrow('Username must be unique');
 

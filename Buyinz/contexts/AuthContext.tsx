@@ -7,7 +7,8 @@ export type User = {
   account_type?: AccountType;
   display_name: string;
   username: string;
-  location: string;
+  /** Optional for shoppers (no zip required). */
+  location?: string;
   bio?: string;
   avatar_url?: string;
   email?: string;

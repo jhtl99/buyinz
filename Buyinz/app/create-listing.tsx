@@ -11,7 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Brand } from '@/constants/theme';
@@ -29,11 +29,9 @@ import {
 } from '@/lib/listings';
 
 const CATEGORY_EMOJI: Record<ListingCategory, string> = {
-  Furniture: '🛋️',
-  Clothing: '👗',
-  Electronics: '📱',
-  Books: '📚',
-  Decor: '🪴',
+  Tops: '👕',
+  Bottoms: '👖',
+  Accessories: '🧢',
   Other: '📦',
 };
 
@@ -48,6 +46,13 @@ export default function CreateListingScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const priceRef = useRef<TextInput>(null);
+
+  if (!user?.id) {
+    return <Redirect href="/(tabs)/profile" />;
+  }
+  if (user.account_type !== 'store') {
+    return <Redirect href="/(tabs)/profile" />;
+  }
 
   const canSubmit = isDraftValid(draft);
 

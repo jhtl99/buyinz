@@ -7,7 +7,7 @@ import {
   EMPTY_DRAFT,
   MAX_PHOTOS,
   isDraftValid,
-  parsePriceToNumber,
+  priceStringToDbValue,
   submitListing,
   type ListingDraft,
 } from '../lib/listings';
@@ -39,27 +39,28 @@ describe('constants', () => {
   });
 });
 
-describe('parsePriceToNumber', () => {
-  it('returns 0 for empty string', () => {
-    expect(parsePriceToNumber('')).toBe(0);
+describe('priceStringToDbValue', () => {
+  it('returns null for empty or whitespace-only string', () => {
+    expect(priceStringToDbValue('')).toBeNull();
+    expect(priceStringToDbValue('   ')).toBeNull();
   });
 
-  it('returns 0 for non-numeric text', () => {
-    expect(parsePriceToNumber('free')).toBe(0);
+  it('returns null for non-numeric text', () => {
+    expect(priceStringToDbValue('free')).toBeNull();
   });
 
   it('parses integers and decimals', () => {
-    expect(parsePriceToNumber('10')).toBe(10);
-    expect(parsePriceToNumber('12.50')).toBe(12.5);
-    expect(parsePriceToNumber('0')).toBe(0);
+    expect(priceStringToDbValue('10')).toBe(10);
+    expect(priceStringToDbValue('12.50')).toBe(12.5);
+    expect(priceStringToDbValue('0')).toBe(0);
   });
 
-  it('returns 0 when parseFloat yields non-finite value', () => {
-    expect(parsePriceToNumber('1e400')).toBe(0);
+  it('returns null when parseFloat yields non-finite value', () => {
+    expect(priceStringToDbValue('1e400')).toBeNull();
   });
 
-  it('parses leading-number prefix like insert behavior', () => {
-    expect(parsePriceToNumber('99usd')).toBe(99);
+  it('parses leading-number prefix', () => {
+    expect(priceStringToDbValue('99usd')).toBe(99);
   });
 });
 

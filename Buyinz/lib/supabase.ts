@@ -11,8 +11,8 @@ export interface UserProfile {
   account_type?: AccountType;
   display_name: string;
   username: string;
-  /** Zip code for user accounts; for stores mirrors `postal_code` for existing UI. */
-  location: string;
+  /** Optional for shoppers; for stores mirrors `postal_code` for existing UI. */
+  location?: string | null;
   bio?: string;
   avatar_url?: string;
   isVerified?: boolean;
@@ -26,7 +26,7 @@ export interface UserProfile {
   formatted_address?: string | null;
 }
 
-/** Name, username, zip — bio optional (onboarding + main app entry). */
+/** Shopper: display name + username only (no zip/bio required). */
 export function profileCoreComplete(profile: {
   display_name?: string | null;
   username?: string | null;
@@ -34,8 +34,7 @@ export function profileCoreComplete(profile: {
 }): boolean {
   const dn = profile.display_name?.trim();
   const un = profile.username?.trim();
-  const loc = profile.location?.trim();
-  return !!(dn && un && loc);
+  return !!(dn && un);
 }
 
 export function storeAddressPartsComplete(profile: {
@@ -83,7 +82,7 @@ function storeProfileCoreComplete(profile: {
   );
 }
 
-/** Row qualifies as a returning user: can skip onboarding (bio optional). */
+/** Row qualifies as a returning user: shoppers need name + username; stores need verified address. */
 export function isProfileOnboardingComplete(profile: {
   account_type?: AccountType | null;
   display_name?: string | null;
@@ -122,11 +121,11 @@ export function validateOnboardingSave(profile: UserProfile): void {
     return;
   }
   if (!profileCoreComplete(profile)) {
-    throw new Error('Missing mandatory fields: Name, Username, or Zip Code');
+    throw new Error('Missing mandatory fields: Name and Username');
   }
 }
 
-/** Edit profile: same required core fields per account type; bio optional. */
+/** Edit profile: shoppers — name + username; stores — full address rules; store bio optional. */
 export function validateProfileUpdate(profile: UserProfile): void {
   validateOnboardingSave(profile);
 }
@@ -147,9 +146,10 @@ export function buildUsersUpsertPayload(profile: UserProfile) {
   };
 
   if (type === 'user') {
+    const loc = profile.location?.trim();
     return {
       ...base,
-      location: profile.location.trim(),
+      location: loc || null,
       address_line1: null,
       city: null,
       region: null,

@@ -45,7 +45,6 @@ export default function EditProfileScreen() {
   const [accountType, setAccountType] = useState<AccountType>('user');
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
-  const [location, setLocation] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
   const [city, setCity] = useState('');
   const [region, setRegion] = useState('');
@@ -75,7 +74,6 @@ export default function EditProfileScreen() {
         setAccountType(row?.account_type ?? user.account_type ?? 'user');
         setDisplayName(row?.display_name ?? user.display_name);
         setUsername(row?.username ?? user.username);
-        setLocation(row?.location ?? user.location);
         setAddressLine1(row?.address_line1 ?? '');
         setCity(row?.city ?? '');
         setRegion(row?.region ?? '');
@@ -145,8 +143,8 @@ export default function EditProfileScreen() {
           account_type: 'user' as const,
           display_name: displayName,
           username,
-          location,
-          bio,
+          location: '',
+          bio: '',
           avatar_url: avatarUrl,
         };
 
@@ -251,10 +249,7 @@ export default function EditProfileScreen() {
     );
   };
 
-  const userCoreFilled =
-    !!displayName.trim() &&
-    !!normalizeUsername(username) &&
-    !!location.trim();
+  const userCoreFilled = !!displayName.trim() && !!normalizeUsername(username);
 
   const storeCoreFilled =
     !!displayName.trim() && !!normalizeUsername(username);
@@ -391,19 +386,7 @@ export default function EditProfileScreen() {
             autoCorrect={false}
           />
           {usernameHint()}
-          {accountType === 'user' ? (
-            <TextInput
-              style={[
-                styles.input,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-              placeholder="Zip Code (Required)"
-              placeholderTextColor={colors.tabIconDefault}
-              value={location}
-              onChangeText={setLocation}
-              keyboardType="numeric"
-            />
-          ) : (
+          {accountType === 'user' ? null : (
             <View style={{ marginBottom: 12 }}>
               <Text
                 style={[
@@ -428,19 +411,21 @@ export default function EditProfileScreen() {
               </Text>
             </View>
           )}
-          <TextInput
-            style={[
-              styles.input,
-              styles.textArea,
-              { color: colors.text, borderColor: colors.border },
-            ]}
-            placeholder="Bio (optional)"
-            placeholderTextColor={colors.tabIconDefault}
-            value={bio}
-            onChangeText={setBio}
-            multiline
-            numberOfLines={3}
-          />
+          {accountType === 'store' ? (
+            <TextInput
+              style={[
+                styles.input,
+                styles.textArea,
+                { color: colors.text, borderColor: colors.border },
+              ]}
+              placeholder="Bio (optional)"
+              placeholderTextColor={colors.tabIconDefault}
+              value={bio}
+              onChangeText={setBio}
+              multiline
+              numberOfLines={3}
+            />
+          ) : null}
 
           <Pressable
             style={[
