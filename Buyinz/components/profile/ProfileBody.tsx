@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
-import { ProfileReceivedRatingsRow } from '@/components/profile/ProfileReceivedRatingsRow';
+import { NewItemsTodayBadge } from '@/components/NewItemsTodayBadge';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 export const PROFILE_GRID_ITEM_SIZE = SCREEN_WIDTH / 3;
@@ -37,14 +37,17 @@ export type ProfileBodyProps = {
   location?: string | null;
   avatarUrl?: string | null;
   postsCount: number;
-  userIdForRatings: string;
+  /** When set (e.g. store profiles), show Followers stat alongside Posts. */
+  followerCount?: number;
   listings: SalePost[];
   listingsLoading: boolean;
   onPressListing: (listingId: string) => void;
-  /** Shown between ratings row and grid (e.g. Edit profile button). */
+  /** Shown between bio/location and grid (e.g. Edit profile button). */
   footerBeforeGrid?: ReactNode;
   /** Copy for empty listings state */
   listingsEmptyVariant: 'self' | 'other';
+  /** Store profiles: new sale listings in the last 24h (badge omitted if 0 or undefined). */
+  newItemsLast24h?: number;
 };
 
 export function ProfileBody({
@@ -54,12 +57,13 @@ export function ProfileBody({
   location,
   avatarUrl,
   postsCount,
-  userIdForRatings,
+  followerCount,
   listings,
   listingsLoading,
   onPressListing,
   footerBeforeGrid,
   listingsEmptyVariant,
+  newItemsLast24h,
 }: ProfileBodyProps) {
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
@@ -84,6 +88,7 @@ export function ProfileBody({
           <Image source={{ uri }} style={[styles.avatar, { borderColor: colors.border }]} />
           <View style={styles.statsRow}>
             <Stat label="Posts" value={postsCount} />
+            {followerCount !== undefined ? <Stat label="Followers" value={followerCount} /> : null}
           </View>
         </View>
 
@@ -94,6 +99,9 @@ export function ProfileBody({
               <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
               <Text style={styles.verifiedText}>Verified</Text>
             </View>
+            {newItemsLast24h != null && newItemsLast24h > 0 ? (
+              <NewItemsTodayBadge count={newItemsLast24h} variant="countToday" />
+            ) : null}
           </View>
           {!!bio && <Text style={[styles.bio, { color: colors.text }]}>{bio}</Text>}
           {!!location && (
@@ -102,8 +110,6 @@ export function ProfileBody({
               <Text style={[styles.location, { color: colors.tabIconDefault }]}>{location}</Text>
             </View>
           )}
-
-          <ProfileReceivedRatingsRow userId={userIdForRatings} />
         </View>
 
         {footerBeforeGrid}

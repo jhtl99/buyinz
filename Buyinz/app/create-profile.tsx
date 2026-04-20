@@ -74,7 +74,6 @@ export default function CreateProfileScreen() {
 
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
-  const [location, setLocation] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
   const [city, setCity] = useState('');
   const [region, setRegion] = useState('');
@@ -109,7 +108,6 @@ export default function CreateProfileScreen() {
     setAccountKind(null);
     setDisplayName('');
     setUsername('');
-    setLocation('');
     setAddressLine1('');
     setCity('');
     setRegion('');
@@ -177,8 +175,7 @@ export default function CreateProfileScreen() {
       setCity('');
       setRegion('');
       setPostalCode('');
-    } else {
-      setLocation('');
+      setBio('');
     }
     setAccountKind(next);
     setShowValidation(false);
@@ -307,8 +304,8 @@ export default function CreateProfileScreen() {
           account_type: 'user' as const,
           display_name: displayName,
           username,
-          location,
-          bio,
+          location: '',
+          bio: undefined,
           avatar_url: avatarUrl,
         };
 
@@ -318,7 +315,7 @@ export default function CreateProfileScreen() {
         allowLeaveRef.current = true;
         setUser({ ...profilePayload, email });
 
-        const preview = `${displayName}\n@${normalizeUsername(username)}\nZip: ${location.trim()}\n\nYou're set up to browse and list on Buyinz.`;
+        const preview = `${displayName}\n@${normalizeUsername(username)}\n\nYou're set up to browse and list on Buyinz.`;
 
         Alert.alert('Profile created', preview, [
           {
@@ -418,10 +415,7 @@ export default function CreateProfileScreen() {
     }
   };
 
-  const userCoreFilled =
-    !!displayName.trim() &&
-    !!normalizeUsername(username) &&
-    !!location.trim();
+  const userCoreFilled = !!displayName.trim() && !!normalizeUsername(username);
 
   const storeCoreFilled =
     !!displayName.trim() &&
@@ -724,20 +718,7 @@ export default function CreateProfileScreen() {
             />
             {usernameHint()}
 
-            {accountKind === 'user' ? (
-              <TextInput
-                style={[
-                  styles.input,
-                  { color: colors.text, borderColor: colors.border },
-                  fieldErr(!location.trim()),
-                ]}
-                placeholder="Zip Code (Required)"
-                placeholderTextColor={colors.tabIconDefault}
-                value={location}
-                onChangeText={setLocation}
-                keyboardType="numeric"
-              />
-            ) : (
+            {accountKind === 'user' ? null : (
               <>
                 <TextInput
                   style={[
@@ -788,19 +769,21 @@ export default function CreateProfileScreen() {
               </>
             )}
 
-            <TextInput
-              style={[
-                styles.input,
-                styles.textArea,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-              placeholder="Bio (optional)"
-              placeholderTextColor={colors.tabIconDefault}
-              value={bio}
-              onChangeText={setBio}
-              multiline
-              numberOfLines={3}
-            />
+            {accountKind === 'store' ? (
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
+                placeholder="Bio (optional)"
+                placeholderTextColor={colors.tabIconDefault}
+                value={bio}
+                onChangeText={setBio}
+                multiline
+                numberOfLines={3}
+              />
+            ) : null}
 
             <Pressable
               style={[
@@ -815,7 +798,9 @@ export default function CreateProfileScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.primaryBtnText}>
-                  Save and Verify Profile
+                  {accountKind === 'store'
+                    ? 'Save and Verify Profile'
+                    : 'Save profile'}
                 </Text>
               )}
             </Pressable>

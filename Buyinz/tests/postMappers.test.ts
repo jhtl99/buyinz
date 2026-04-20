@@ -326,7 +326,7 @@ describe('mapRowToPost type branches', () => {
     expect(post).not.toHaveProperty('sold');
   });
 
-  it('sale branch: maps images, price, condition, sold from row', () => {
+  it('sale branch: maps images, price, sold from row', () => {
     const row = {
       id: 'sale-1',
       type: 'sale' as const,
@@ -337,7 +337,6 @@ describe('mapRowToPost type branches', () => {
       users,
       images: ['https://img/1.jpg'],
       price: 42,
-      condition: 'Like New' as const,
       sold: true,
     };
 
@@ -347,11 +346,10 @@ describe('mapRowToPost type branches', () => {
     const sale = post as SalePost;
     expect(sale.images).toEqual(['https://img/1.jpg']);
     expect(sale.price).toBe(42);
-    expect(sale.condition).toBe('Like New');
     expect(sale.sold).toBe(true);
   });
 
-  it('sale branch: defaults images [], price 0, condition Good; sold false when missing', () => {
+  it('sale branch: defaults images [], price null, sold false when missing', () => {
     const row = {
       id: 'sale-2',
       type: 'sale' as const,
@@ -365,9 +363,23 @@ describe('mapRowToPost type branches', () => {
     expect(post.type).toBe('sale');
     const sale = post as SalePost;
     expect(sale.images).toEqual([]);
-    expect(sale.price).toBe(0);
-    expect(sale.condition).toBe('Good');
+    expect(sale.price).toBeNull();
     expect(sale.sold).toBe(false);
+  });
+
+  it('sale branch: maps explicit zero price', () => {
+    const row = {
+      id: 'sale-3',
+      type: 'sale' as const,
+      title: 'Free table',
+      category: 'Other' as const,
+      created_at,
+      users,
+      price: 0,
+    };
+
+    const sale = mapRowToPost(row) as SalePost;
+    expect(sale.price).toBe(0);
   });
 });
 

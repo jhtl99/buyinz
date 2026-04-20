@@ -10,23 +10,25 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Colors, ConditionColors, Brand } from '@/constants/theme';
+import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SalePost } from '@/data/mockData';
 import { openUserProfile } from '@/lib/openUserProfile';
+import { NewItemsTodayBadge } from '@/components/NewItemsTodayBadge';
 
 interface Props {
   post: SalePost;
   cardWidth: number;
   fill?: boolean;
+  /** Store-only: new sale listings in the last 24h (badge hidden if 0 or omitted). */
+  newItemsLast24h?: number;
 }
 
-export function SalePostCard({ post, cardWidth, fill }: Props) {
+export function SalePostCard({ post, cardWidth, fill, newItemsLast24h }: Props) {
   const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
-  const condColors = ConditionColors[post.condition];
   const { user } = useAuth();
 
   const [imgIndex, setImgIndex] = useState(0);
@@ -52,7 +54,6 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
         fill && { flex: 1 },
       ]}
     >
-      {/* Seller Header */}
       <View style={styles.header}>
         <Pressable
           onPress={() => openUserProfile(router, post.seller.id, user?.id)}
@@ -72,20 +73,16 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
             </Text>
           </View>
         </Pressable>
-        <View
-          style={[
-            styles.conditionBadge,
-            { backgroundColor: condColors.bg, borderColor: condColors.border },
-          ]}
-        >
-          <Text style={[styles.conditionText, { color: condColors.text }]}>
-            {post.condition}
-          </Text>
+        <View style={styles.headerRight}>
+          {post.seller.accountType === 'store' &&
+            newItemsLast24h != null &&
+            newItemsLast24h > 0 && (
+              <NewItemsTodayBadge count={newItemsLast24h} variant="feedNew" compact />
+            )}
         </View>
       </View>
 
       <View style={styles.listingBody}>
-        {/* Per-image Pressable opens listing on tap; horizontal ScrollView still handles swipes */}
         <View
           style={[styles.imageArea, { backgroundColor: colors.muted }]}
           onLayout={(e) => setImgAreaHeight(e.nativeEvent.layout.height)}
@@ -135,11 +132,11 @@ export function SalePostCard({ post, cardWidth, fill }: Props) {
             <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
               {post.title}
             </Text>
-            <View style={styles.priceBadge}>
-              <Text style={styles.priceText}>
-                {post.price === 0 ? 'Offer' : `$${post.price}`}
-              </Text>
-            </View>
+            {post.price != null ? (
+              <View style={styles.priceBadge}>
+                <Text style={styles.priceText}>${post.price}</Text>
+              </View>
+            ) : null}
           </Pressable>
         </View>
       </View>
@@ -167,6 +164,11 @@ const styles = StyleSheet.create({
     gap: 10,
     minWidth: 0,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
   listingBody: {
     flex: 1,
     minHeight: 200,
@@ -190,16 +192,6 @@ const styles = StyleSheet.create({
   sellerMeta: {
     fontSize: 12,
     lineHeight: 16,
-  },
-  conditionBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  conditionText: {
-    fontSize: 11,
-    fontWeight: '700',
   },
   imageArea: {
     flex: 1,

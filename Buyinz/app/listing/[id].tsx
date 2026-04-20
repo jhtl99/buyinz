@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { HeaderBackButton } from '@react-navigation/elements';
-import { Colors, Brand, ConditionColors } from '@/constants/theme';
+import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -215,8 +215,6 @@ export default function ListingDetailScreen() {
     );
   }
 
-  const condColors = ConditionColors[post.condition];
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView>
@@ -248,20 +246,9 @@ export default function ListingDetailScreen() {
         <View style={styles.content}>
           <View style={styles.titleRow}>
             <Text style={[styles.title, { color: colors.text }]}>{post.title}</Text>
-            <Text style={[styles.price, { color: Brand.primary }]}>${post.price}</Text>
-          </View>
-
-          <View
-            style={[
-              styles.conditionBadge,
-              {
-                backgroundColor: condColors.bg,
-                borderColor: condColors.border,
-                alignSelf: 'flex-start',
-              },
-            ]}
-          >
-            <Text style={[styles.conditionText, { color: condColors.text }]}>{post.condition}</Text>
+            {post.price != null ? (
+              <Text style={[styles.price, { color: Brand.primary }]}>${post.price}</Text>
+            ) : null}
           </View>
 
           <Pressable
@@ -310,17 +297,6 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 24,
     fontWeight: '800',
-  },
-  conditionBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  conditionText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   sellerRow: {
     flexDirection: 'row',

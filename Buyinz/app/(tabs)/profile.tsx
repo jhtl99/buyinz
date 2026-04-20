@@ -15,7 +15,13 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { fetchUserSaleListings } from '@/supabase/queries';
+import {
+  fetchNewSaleListingsCountLast24hBatch,
+  fetchStoreFollowerCountsBatch,
+  fetchUserPublicProfileById,
+  fetchUserSaleListings,
+  storeProfileAddressLine,
+} from '@/supabase/queries';
 import { ProfileBody } from '@/components/profile/ProfileBody';
 
 export default function ProfileScreen() {
@@ -27,6 +33,9 @@ export default function ProfileScreen() {
 
   const [userListings, setUserListings] = useState<SalePost[]>([]);
   const [listingsLoading, setListingsLoading] = useState(true);
+  const [newItemsLast24h, setNewItemsLast24h] = useState<number | undefined>(undefined);
+  const [followerCount, setFollowerCount] = useState<number | undefined>(undefined);
+  const [storeAddressLine, setStoreAddressLine] = useState<string | null>(null);
 
   const loadListings = useCallback(() => {
     if (!user?.id) {
@@ -47,7 +56,32 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       loadListings();
-    }, [loadListings]),
+      if (!user?.id || user.account_type !== 'store') {
+        setNewItemsLast24h(undefined);
+        setFollowerCount(undefined);
+        setStoreAddressLine(null);
+        return;
+      }
+      let cancelled = false;
+      fetchUserPublicProfileById(user.id)
+        .then((p) => {
+          if (!cancelled && p) setStoreAddressLine(storeProfileAddressLine(p));
+        })
+        .catch(console.error);
+      fetchNewSaleListingsCountLast24hBatch([user.id])
+        .then((m) => {
+          if (!cancelled) setNewItemsLast24h(m[user.id!]);
+        })
+        .catch(console.error);
+      fetchStoreFollowerCountsBatch([user.id])
+        .then((c) => {
+          if (!cancelled) setFollowerCount(c[user.id!] ?? 0);
+        })
+        .catch(console.error);
+      return () => {
+        cancelled = true;
+      };
+    }, [loadListings, user?.id, user?.account_type]),
   );
 
   const handleSignOut = () => {
@@ -95,16 +129,17 @@ export default function ProfileScreen() {
         username={user.username}
         displayName={user.display_name}
         bio={user.bio}
-        location={user.location}
+        location={user.account_type === 'store' ? storeAddressLine ?? user.location : user.location}
         avatarUrl={user.avatar_url}
         postsCount={userListings.length}
-        userIdForRatings={user.id!}
+        followerCount={user.account_type === 'store' ? followerCount : undefined}
         listings={userListings}
         listingsLoading={listingsLoading}
         onPressListing={(listingId) =>
           router.push(`/listing/${listingId}`, { withAnchor: true })
         }
         listingsEmptyVariant="self"
+        newItemsLast24h={user.account_type === 'store' ? newItemsLast24h : undefined}
         footerBeforeGrid={
           <View style={styles.actionButtons}>
             <Pressable

@@ -15,29 +15,32 @@ export default function TabLayout() {
   const router = useRouter();
   const { user } = useAuth();
   const signedIn = !!user;
+  const isStore = signedIn && user?.account_type === 'store';
 
-  const hiddenWhenLoggedOut = signedIn ? {} : { href: null };
+  const mainFeedHidden = !signedIn || isStore ? { href: null } : {};
 
-  // Sell tab: cannot combine `href` (e.g. href: null) with custom `tabBarButton` — Expo Router throws.
-  const sellTabOptions = signedIn
-    ? {
-        title: '',
-        tabBarButton: () => (
-          <Pressable
-            style={styles.sellButtonOuter}
-            onPress={() => router.push('/create-listing')}
-          >
-            <View style={styles.sellButtonCircle}>
-              <Ionicons name="add" size={28} color="#FFF" />
-            </View>
-          </Pressable>
-        ),
-      }
-    : { href: null };
+  const sellTabOptions =
+    signedIn && isStore
+      ? {
+          title: '',
+          tabBarButton: () => (
+            <Pressable
+              style={styles.sellButtonOuter}
+              onPress={() => router.push('/create-listing')}
+            >
+              <View style={styles.sellButtonCircle}>
+                <Ionicons name="add" size={28} color="#FFF" />
+              </View>
+            </Pressable>
+          ),
+        }
+      : { href: null };
 
   return (
     <Tabs
-      initialRouteName={signedIn ? 'index' : 'profile'}
+      initialRouteName={
+        !signedIn ? 'profile' : user?.account_type === 'store' ? 'profile' : 'index'
+      }
       screenOptions={{
         tabBarActiveTintColor: Brand.primary,
         tabBarInactiveTintColor: colors.tabIconDefault,
@@ -53,7 +56,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-          ...hiddenWhenLoggedOut,
+          ...mainFeedHidden,
         }}
       />
       <Tabs.Screen
@@ -61,7 +64,7 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-          ...hiddenWhenLoggedOut,
+          ...mainFeedHidden,
         }}
       />
       <Tabs.Screen name="sell" options={sellTabOptions} />

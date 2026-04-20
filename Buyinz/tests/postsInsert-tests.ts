@@ -233,7 +233,7 @@ describe('postsInsert', () => {
         images: [{ uri: 'https://cdn/item.JPG', width: 1, height: 1 }],
         title: 'Desk',
         price: '45',
-        category: 'Furniture',
+        category: 'Tops',
         ...overrides,
       };
     }
@@ -279,10 +279,22 @@ describe('postsInsert', () => {
         user_id: '11111111-1111-1111-1111-111111111111',
         type: 'sale',
         title: 'Desk',
-        category: 'Furniture',
+        category: 'Tops',
         price: 45,
         images: ['https://example.test/object/1700000000000-zzzj7c.jpg'],
       });
+    });
+
+    it('inserts null price when draft price is empty', async () => {
+      const draft = baseDraft({ price: '' });
+
+      await insertPost(draft);
+
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          price: null,
+        }),
+      );
     });
 
     it('uses the provided user id', async () => {

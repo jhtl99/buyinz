@@ -4,6 +4,7 @@ import { mapRowToPost } from '@/supabase/postMappers';
 import {
   fetchFeedPosts,
   fetchSaleListingById,
+  fetchStoreSaleListingsLast24h,
   fetchUserSaleListings,
 } from '@/supabase/postsRead';
 
@@ -179,6 +180,42 @@ describe('postsRead', () => {
       expect(listings).toHaveLength(1);
       expect(listings).toEqual(expected);
       expect(listings[0].type).toBe('sale');
+    });
+  });
+
+  describe('fetchStoreSaleListingsLast24h', () => {
+    it('chains user, type, sold, created_at filter and maps rows', async () => {
+      const created = new Date(Date.now() - 60 * 60_000).toISOString();
+      const row = {
+        id: 'new-1',
+        type: 'sale' as const,
+        title: 'Jacket',
+        description: '',
+        category: 'Tops' as const,
+        created_at: created,
+        images: ['https://cdn.example/j.jpg'],
+        price: 20,
+        sold: false,
+        hashtags: [],
+        users: minimalUser('store-1'),
+      };
+      const order = jest.fn().mockResolvedValue({ data: [row], error: null });
+      const gte = jest.fn().mockReturnValue({ order });
+      const eqSold = jest.fn().mockReturnValue({ gte });
+      const eqType = jest.fn().mockReturnValue({ eq: eqSold });
+      const eqUser = jest.fn().mockReturnValue({ eq: eqType });
+      const select = jest.fn().mockReturnValue({ eq: eqUser });
+      (supabase.from as jest.Mock).mockReturnValue({ select });
+
+      const listings = await fetchStoreSaleListingsLast24h('store-1');
+
+      expect(supabase.from).toHaveBeenCalledWith('posts');
+      expect(eqUser).toHaveBeenCalledWith('user_id', 'store-1');
+      expect(eqType).toHaveBeenCalledWith('type', 'sale');
+      expect(eqSold).toHaveBeenCalledWith('sold', false);
+      expect(gte).toHaveBeenCalledWith('created_at', expect.any(String));
+      expect(listings).toHaveLength(1);
+      expect(listings[0].id).toBe('new-1');
     });
   });
 

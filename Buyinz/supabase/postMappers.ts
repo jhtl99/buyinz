@@ -61,12 +61,18 @@ export function mapRowToPost(row: any): Post {
     } as ISOPost;
   }
 
+  const rawPrice = row.price;
+  let price: number | null = null;
+  if (rawPrice !== null && rawPrice !== undefined) {
+    const n = typeof rawPrice === 'number' ? rawPrice : Number(rawPrice);
+    if (Number.isFinite(n)) price = n;
+  }
+
   return {
     ...base,
     type: 'sale',
     images: row.images ?? [],
-    price: row.price ?? 0,
-    condition: row.condition ?? 'Good',
+    price,
     sold: row.sold ?? false,
   } as SalePost;
 }
