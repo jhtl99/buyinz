@@ -172,7 +172,7 @@ export default function EditProfileScreen() {
         display_name: displayName.trim(),
         username,
         bio,
-        avatar_url: row.avatar_url ?? undefined,
+        avatar_url: avatarUrl,
         location: row.location ?? '',
         address_line1: row.address_line1,
         city: row.city,
@@ -346,17 +346,9 @@ export default function EditProfileScreen() {
               source={{ uri: avatarUrl }}
               style={[styles.avatar, { borderColor: colors.border }]}
             />
-            {accountType === 'user' ? (
-              <Pressable style={styles.changePhotoBtn} onPress={handleImagePick}>
-                <Text style={styles.changePhotoText}>Change Profile Photo</Text>
-              </Pressable>
-            ) : (
-              <Text
-                style={[styles.readOnlyHint, { color: colors.tabIconDefault }]}
-              >
-                Profile photo
-              </Text>
-            )}
+            <Pressable style={styles.changePhotoBtn} onPress={handleImagePick}>
+              <Text style={styles.changePhotoText}>Change Profile Photo</Text>
+            </Pressable>
           </View>
 
           <TextInput

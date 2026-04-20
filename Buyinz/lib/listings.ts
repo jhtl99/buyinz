@@ -1,10 +1,5 @@
 import { insertPost } from '@/supabase/queries';
 
-/** Must match `posts.category` for new listings. */
-export const LISTING_CATEGORIES = ['Tops', 'Bottoms', 'Accessories', 'Other'] as const;
-
-export type ListingCategory = (typeof LISTING_CATEGORIES)[number];
-
 export interface ImageAsset {
   uri: string;
   width: number;
@@ -15,14 +10,12 @@ export interface ListingDraft {
   images: ImageAsset[];
   title: string;
   price: string;
-  category: ListingCategory;
 }
 
 export const EMPTY_DRAFT: ListingDraft = {
   images: [],
   title: '',
   price: '',
-  category: 'Other',
 };
 
 export const MAX_PHOTOS = 5;

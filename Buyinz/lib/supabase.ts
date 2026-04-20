@@ -213,7 +213,7 @@ export async function saveProfile(profile: UserProfile) {
 
   const { data, error } = await supabase
     .from('users')
-    .upsert(dbPayload, { onConflict: 'username' })
+    .upsert(dbPayload, { onConflict: 'id' })
     .select()
     .single();
 

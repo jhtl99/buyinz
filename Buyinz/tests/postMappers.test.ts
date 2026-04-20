@@ -17,7 +17,6 @@ function saleRow(created_at: string) {
     id: 'sale-post',
     type: 'sale' as const,
     title: 'Item',
-    category: 'Other' as const,
     created_at,
     users: minimalUser(),
   };
@@ -28,7 +27,6 @@ function isoRow(created_at: string) {
     id: 'iso-post',
     type: 'iso' as const,
     title: 'Want',
-    category: 'Other' as const,
     created_at,
     users: minimalUser(),
   };
@@ -97,7 +95,6 @@ describe('mapRowToPost seller (sellerFromUserRow)', () => {
       id: 'sale-1',
       type: 'sale' as const,
       title: 'Listing',
-      category: 'Other' as const,
       created_at,
       users,
     };
@@ -189,7 +186,6 @@ describe('mapRowToPost base (buildPostBase)', () => {
       id: 'base-iso-id',
       type: 'iso' as const,
       title: 'ISO title',
-      category: 'Books' as const,
       created_at: new Date(FIXED_NOW_MS - 2 * 60_000).toISOString(),
       users: { id: 'u1', username: 'buyer', display_name: 'Buyer' },
       ...overrides,
@@ -211,12 +207,11 @@ describe('mapRowToPost base (buildPostBase)', () => {
     expect(post.description).toBe('');
   });
 
-  it('maps id, title, category, likes, comments, liked, and createdAt from base', () => {
+  it('maps id, title, likes, comments, liked, and createdAt from base', () => {
     const post = mapRowToPost(
       isoRowForBase({
         id: 'row-id',
         title: 'My title',
-        category: 'Decor',
         description: null,
         hashtags: null,
       }),
@@ -224,7 +219,6 @@ describe('mapRowToPost base (buildPostBase)', () => {
 
     expect(post.id).toBe('row-id');
     expect(post.title).toBe('My title');
-    expect(post.category).toBe('Decor');
     expect(post.likes).toBe(0);
     expect(post.comments).toBe(0);
     expect(post.liked).toBe(false);
@@ -272,7 +266,6 @@ describe('mapRowToPost type branches', () => {
       type: 'iso' as const,
       title: 'ISO desk',
       description: 'Looking for standing desk',
-      category: 'Furniture' as const,
       created_at,
       hashtags: ['desk'],
       users,
@@ -286,7 +279,6 @@ describe('mapRowToPost type branches', () => {
     expect(iso.id).toBe('iso-1');
     expect(iso.title).toBe('ISO desk');
     expect(iso.description).toBe('Looking for standing desk');
-    expect(iso.category).toBe('Furniture');
     expect(iso.hashtags).toEqual(['desk']);
     expect(iso.budget).toBe(175);
     expect(iso.seller.displayName).toBe('Seller Display');
@@ -297,7 +289,6 @@ describe('mapRowToPost type branches', () => {
       type: 'iso' as const,
       id: 'iso-2',
       title: 'Want',
-      category: 'Other' as const,
       created_at,
       users,
     };
@@ -318,7 +309,6 @@ describe('mapRowToPost type branches', () => {
       id: 'iso-3',
       type: 'iso' as const,
       title: 'ISO only',
-      category: 'Books' as const,
       created_at,
       users,
       budget: 10,
@@ -336,7 +326,6 @@ describe('mapRowToPost type branches', () => {
       id: 'sale-1',
       type: 'sale' as const,
       title: 'Lamp',
-      category: 'Decor' as const,
       created_at,
       description: 'Nice lamp',
       users,
@@ -359,7 +348,6 @@ describe('mapRowToPost type branches', () => {
       id: 'sale-2',
       type: 'sale' as const,
       title: 'Minimal sale row',
-      category: 'Other' as const,
       created_at,
       users,
     };
@@ -377,7 +365,6 @@ describe('mapRowToPost type branches', () => {
       id: 'sale-null-title',
       type: 'sale' as const,
       title: null,
-      category: 'Other' as const,
       created_at,
       users,
     };
@@ -392,7 +379,6 @@ describe('mapRowToPost type branches', () => {
       id: 'sale-3',
       type: 'sale' as const,
       title: 'Free table',
-      category: 'Other' as const,
       created_at,
       users,
       price: 0,

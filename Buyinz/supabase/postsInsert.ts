@@ -61,7 +61,6 @@ export async function insertPost(draft: ListingDraft, userId?: string): Promise<
       type: 'sale',
       title: titleTrimmed.length > 0 ? titleTrimmed : null,
       description: null,
-      category: draft.category,
       price: priceStringToDbValue(draft.price),
       images: imageUrls,
     })
