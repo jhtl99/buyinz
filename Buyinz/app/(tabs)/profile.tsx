@@ -16,6 +16,7 @@ import type { SalePost } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import {
+  fetchFollowingStoreCount,
   fetchNewSaleListingsCountLast24hBatch,
   fetchStoreFollowerCountsBatch,
   fetchUserPublicProfileById,
@@ -35,10 +36,11 @@ export default function ProfileScreen() {
   const [listingsLoading, setListingsLoading] = useState(true);
   const [newItemsLast24h, setNewItemsLast24h] = useState<number | undefined>(undefined);
   const [followerCount, setFollowerCount] = useState<number | undefined>(undefined);
+  const [followingCount, setFollowingCount] = useState(0);
   const [storeAddressLine, setStoreAddressLine] = useState<string | null>(null);
 
   const loadListings = useCallback(() => {
-    if (!user?.id) {
+    if (!user?.id || user.account_type === 'user') {
       setUserListings([]);
       setListingsLoading(false);
       return;
@@ -51,17 +53,38 @@ export default function ProfileScreen() {
         setUserListings([]);
       })
       .finally(() => setListingsLoading(false));
-  }, [user?.id]);
+  }, [user?.id, user?.account_type]);
 
   useFocusEffect(
     useCallback(() => {
-      loadListings();
-      if (!user?.id || user.account_type !== 'store') {
+      if (!user?.id) {
+        setUserListings([]);
+        setListingsLoading(false);
         setNewItemsLast24h(undefined);
         setFollowerCount(undefined);
+        setFollowingCount(0);
         setStoreAddressLine(null);
         return;
       }
+
+      if (user.account_type === 'user') {
+        setUserListings([]);
+        setListingsLoading(false);
+        setNewItemsLast24h(undefined);
+        setFollowerCount(undefined);
+        setStoreAddressLine(null);
+        let cancelled = false;
+        fetchFollowingStoreCount()
+          .then((n) => {
+            if (!cancelled) setFollowingCount(n);
+          })
+          .catch(console.error);
+        return () => {
+          cancelled = true;
+        };
+      }
+
+      loadListings();
       let cancelled = false;
       fetchUserPublicProfileById(user.id)
         .then((p) => {
@@ -133,6 +156,9 @@ export default function ProfileScreen() {
         avatarUrl={user.avatar_url}
         postsCount={userListings.length}
         followerCount={user.account_type === 'store' ? followerCount : undefined}
+        showFollowingStatOnly={user.account_type === 'user'}
+        followingCount={user.account_type === 'user' ? followingCount : undefined}
+        hideListingsSection={user.account_type === 'user'}
         listings={userListings}
         listingsLoading={listingsLoading}
         onPressListing={(listingId) =>

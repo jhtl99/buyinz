@@ -206,6 +206,11 @@ describe('mapRowToPost base (buildPostBase)', () => {
     expect(b.hashtags).toEqual([]);
   });
 
+  it('maps legacy placeholder description "Listing" to empty string', () => {
+    const post = mapRowToPost(isoRowForBase({ description: 'Listing' }));
+    expect(post.description).toBe('');
+  });
+
   it('maps id, title, category, likes, comments, liked, and createdAt from base', () => {
     const post = mapRowToPost(
       isoRowForBase({
@@ -365,6 +370,21 @@ describe('mapRowToPost type branches', () => {
     expect(sale.images).toEqual([]);
     expect(sale.price).toBeNull();
     expect(sale.sold).toBe(false);
+  });
+
+  it('sale branch: maps null title to empty string', () => {
+    const row = {
+      id: 'sale-null-title',
+      type: 'sale' as const,
+      title: null,
+      category: 'Other' as const,
+      created_at,
+      users,
+    };
+
+    const post = mapRowToPost(row);
+    const sale = post as SalePost;
+    expect(sale.title).toBe('');
   });
 
   it('sale branch: maps explicit zero price', () => {

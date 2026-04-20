@@ -130,7 +130,7 @@ export function SalePostCard({ post, cardWidth, fill, newItemsLast24h }: Props) 
             onPress={() => router.push(`/listing/${post.id}`, { withAnchor: true })}
           >
             <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-              {post.title}
+              {post.title.trim().length > 0 ? post.title : 'Listing'}
             </Text>
             {post.price != null ? (
               <View style={styles.priceBadge}>

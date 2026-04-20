@@ -134,7 +134,10 @@ export default function CreateListingScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Title</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Title{' '}
+            <Text style={{ fontWeight: '400', textTransform: 'none' }}>(optional)</Text>
+          </Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
             placeholder="What are you selling?"

@@ -39,6 +39,11 @@ export type ProfileBodyProps = {
   postsCount: number;
   /** When set (e.g. store profiles), show Followers stat alongside Posts. */
   followerCount?: number;
+  /** Shopper self-profile: show only this stat (omit Posts / Followers and listings grid). */
+  showFollowingStatOnly?: boolean;
+  followingCount?: number;
+  /** Hide listings grid (e.g. shopper accounts have no sale listings). */
+  hideListingsSection?: boolean;
   listings: SalePost[];
   listingsLoading: boolean;
   onPressListing: (listingId: string) => void;
@@ -58,6 +63,9 @@ export function ProfileBody({
   avatarUrl,
   postsCount,
   followerCount,
+  showFollowingStatOnly,
+  followingCount,
+  hideListingsSection,
   listings,
   listingsLoading,
   onPressListing,
@@ -87,8 +95,14 @@ export function ProfileBody({
         <View style={styles.avatarStatsRow}>
           <Image source={{ uri }} style={[styles.avatar, { borderColor: colors.border }]} />
           <View style={styles.statsRow}>
-            <Stat label="Posts" value={postsCount} />
-            {followerCount !== undefined ? <Stat label="Followers" value={followerCount} /> : null}
+            {showFollowingStatOnly ? (
+              <Stat label="Following" value={followingCount ?? 0} />
+            ) : (
+              <>
+                <Stat label="Posts" value={postsCount} />
+                {followerCount !== undefined ? <Stat label="Followers" value={followerCount} /> : null}
+              </>
+            )}
           </View>
         </View>
 
@@ -115,47 +129,51 @@ export function ProfileBody({
         {footerBeforeGrid}
       </View>
 
-      <View style={[styles.gridHeader, { borderTopColor: colors.border }]}>
-        <Ionicons name="grid-outline" size={20} color={colors.text} />
-      </View>
+      {!hideListingsSection ? (
+        <>
+          <View style={[styles.gridHeader, { borderTopColor: colors.border }]}>
+            <Ionicons name="grid-outline" size={20} color={colors.text} />
+          </View>
 
-      {listingsLoading ? (
-        <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-          <Text style={{ color: colors.tabIconDefault }}>Loading listings…</Text>
-        </View>
-      ) : listings.length === 0 ? (
-        <View style={{ paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' }}>
-          <Ionicons name="images-outline" size={40} color={colors.tabIconDefault} style={{ marginBottom: 12 }} />
-          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 6 }}>No listings yet</Text>
-          <Text style={{ color: colors.tabIconDefault, textAlign: 'center', fontSize: 14 }}>
-            {listingsEmptyVariant === 'self'
-              ? 'When you post items for sale, they will show here in a grid.'
-              : 'This user has not posted any listings yet.'}
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.gridContainer}>
-          {paddedGridItems.map((listing, i) => (
-            <View
-              key={listing ? listing.id : `grid-pad-${i}`}
-              style={[styles.gridItem, { width: PROFILE_GRID_ITEM_SIZE, height: PROFILE_GRID_ITEM_SIZE }]}
-            >
-              {listing ? (
-                <Pressable style={{ flex: 1 }} onPress={() => onPressListing(listing.id)}>
-                  <Image
-                    source={{
-                      uri: listing.images[0] ?? 'https://via.placeholder.com/150',
-                    }}
-                    style={styles.gridImage}
-                  />
-                </Pressable>
-              ) : (
-                <View style={[styles.gridImage, { backgroundColor: colors.muted }]} />
-              )}
+          {listingsLoading ? (
+            <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+              <Text style={{ color: colors.tabIconDefault }}>Loading listings…</Text>
             </View>
-          ))}
-        </View>
-      )}
+          ) : listings.length === 0 ? (
+            <View style={{ paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' }}>
+              <Ionicons name="images-outline" size={40} color={colors.tabIconDefault} style={{ marginBottom: 12 }} />
+              <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 6 }}>No listings yet</Text>
+              <Text style={{ color: colors.tabIconDefault, textAlign: 'center', fontSize: 14 }}>
+                {listingsEmptyVariant === 'self'
+                  ? 'When you post items for sale, they will show here in a grid.'
+                  : 'This user has not posted any listings yet.'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.gridContainer}>
+              {paddedGridItems.map((listing, i) => (
+                <View
+                  key={listing ? listing.id : `grid-pad-${i}`}
+                  style={[styles.gridItem, { width: PROFILE_GRID_ITEM_SIZE, height: PROFILE_GRID_ITEM_SIZE }]}
+                >
+                  {listing ? (
+                    <Pressable style={{ flex: 1 }} onPress={() => onPressListing(listing.id)}>
+                      <Image
+                        source={{
+                          uri: listing.images[0] ?? 'https://via.placeholder.com/150',
+                        }}
+                        style={styles.gridImage}
+                      />
+                    </Pressable>
+                  ) : (
+                    <View style={[styles.gridImage, { backgroundColor: colors.muted }]} />
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+        </>
+      ) : null}
     </ScrollView>
   );
 }

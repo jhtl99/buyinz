@@ -19,6 +19,22 @@ type FollowerCountRow = { store_id: string; follower_count: number | string };
 /**
  * Followed stores for the signed-in shopper, with 24h new listing counts.
  */
+/** Number of stores the signed-in shopper follows. */
+export async function fetchFollowingStoreCount(): Promise<number> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) return 0;
+
+  const { count, error } = await supabase
+    .from('store_follows')
+    .select('*', { count: 'exact', head: true })
+    .eq('follower_id', user.id);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function fetchFollowedStoresForHome(): Promise<FollowedStoreForHome[]> {
   const {
     data: { user },

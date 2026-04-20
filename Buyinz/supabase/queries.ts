@@ -31,6 +31,7 @@ export { fetchNewSaleListingsCountLast24hBatch } from './newItemsCount';
 export type { FollowedStoreForHome } from './storeFollows';
 export {
   fetchFollowedStoresForHome,
+  fetchFollowingStoreCount,
   followStore,
   unfollowStore,
   isFollowingStore,
