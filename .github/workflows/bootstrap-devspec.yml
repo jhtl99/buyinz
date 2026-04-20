@@ -1,0 +1,228 @@
+# One-shot bootstrap: create the three dev-spec tracking Issues and open the
+# four follow-up PRs. Fires automatically when this branch is pushed to origin,
+# and can also be re-run manually from Actions → Run workflow.
+#
+# Usage:
+#   git push -u origin docs/devspec-automation
+#   git push -u origin docs/devspec-store-profile-and-location
+#   git push -u origin docs/devspec-distance-aware-explore
+#   git push -u origin docs/devspec-new-item-count
+#   git push -u origin bootstrap/devspec-issues     # <-- this triggers the workflow
+#
+# After it runs, delete the branch (the workflow is no longer needed):
+#   git push origin --delete bootstrap/devspec-issues
+#   git branch -D bootstrap/devspec-issues
+
+name: Bootstrap dev-spec issues and PRs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [bootstrap/devspec-issues]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure labels exist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [
+              { name: 'devspec', color: '5319E7', description: 'LLM dev spec work' },
+              { name: 'story:store-profile-and-location', color: '0E8A16', description: 'User story: store profile + location' },
+              { name: 'story:distance-aware-explore', color: '0E8A16', description: 'User story: distance-aware explore feed' },
+              { name: 'story:new-item-count', color: '0E8A16', description: 'User story: new items today count' },
+            ];
+            for (const l of labels) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ...l,
+                });
+                core.info(`created label ${l.name}`);
+              } catch (e) {
+                if (e.status === 422) {
+                  core.info(`label ${l.name} already exists`);
+                } else {
+                  throw e;
+                }
+              }
+            }
+
+      - name: Create tracking issues
+        id: issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const stories = [
+              {
+                slug: 'store-profile-and-location',
+                title: 'Dev spec: store profile + location (story:store-profile-and-location)',
+                body: [
+                  'Tracks creation of `Buyinz/dev-specs/store-profile-and-location.md`.',
+                  'Generated with the prompt at `Buyinz/dev-specs/prompts/dev-spec-generate.md`.',
+                  '',
+                  'Kanban: move to **Review** when the follow-up PR opens.',
+                ].join('\n'),
+              },
+              {
+                slug: 'distance-aware-explore',
+                title: 'Dev spec: distance-aware explore (story:distance-aware-explore)',
+                body: [
+                  'Tracks creation of `Buyinz/dev-specs/distance-aware-explore.md`.',
+                  'Generated with the prompt at `Buyinz/dev-specs/prompts/dev-spec-generate.md`.',
+                ].join('\n'),
+              },
+              {
+                slug: 'new-item-count',
+                title: 'Dev spec: new items today count (story:new-item-count)',
+                body: [
+                  'Tracks creation of `Buyinz/dev-specs/new-items-today-count.md`.',
+                  'Generated with the prompt at `Buyinz/dev-specs/prompts/dev-spec-generate.md`.',
+                ].join('\n'),
+              },
+            ];
+
+            // Idempotency: reuse any open devspec Issue with a matching story label.
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              labels: 'devspec',
+              per_page: 100,
+            });
+
+            const numbers = {};
+            for (const s of stories) {
+              const match = existing.find((i) =>
+                !i.pull_request &&
+                i.labels.some((l) => (l.name || l) === `story:${s.slug}`),
+              );
+              if (match) {
+                numbers[s.slug] = match.number;
+                core.info(`reusing issue #${match.number} for ${s.slug}`);
+                continue;
+              }
+              const { data: issue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: s.title,
+                body: s.body,
+                labels: ['devspec', `story:${s.slug}`],
+              });
+              numbers[s.slug] = issue.number;
+              core.info(`created issue #${issue.number} for ${s.slug}`);
+            }
+            core.setOutput('issues_json', JSON.stringify(numbers));
+
+      - name: Open follow-up PRs
+        env:
+          ISSUES_JSON: ${{ steps.issues.outputs.issues_json }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = JSON.parse(process.env.ISSUES_JSON || '{}');
+
+            const prs = [
+              {
+                slug: 'automation',
+                head: 'docs/devspec-automation',
+                title: 'docs(devspec): LLM spec automation + Part 7 architecture',
+                labels: ['devspec'],
+                body: [
+                  'Part 6 automation infrastructure + Part 7 architecture summary.',
+                  '',
+                  '- Adds LLM prompts under `Buyinz/dev-specs/prompts/` (generate and update).',
+                  '- Stages the GitHub Actions workflow at `Buyinz/dev-specs/automation/dev-spec-workflow.yml` (activate by copying to `.github/workflows/dev-spec.yml` after merge).',
+                  '- Adds `Buyinz/dev-specs/automation-architecture.md` with the Mermaid pipeline and developer setup.',
+                  '',
+                  'No tracking Issue — this PR *is* the automation.',
+                ].join('\n'),
+              },
+              {
+                slug: 'store-profile-and-location',
+                head: 'docs/devspec-store-profile-and-location',
+                title: 'docs(devspec): store profile + location',
+                labels: ['devspec', 'story:store-profile-and-location'],
+                body: [
+                  'Adds the P2-structured development specification for the **store profile + location** user story.',
+                  '',
+                  'Generated with the prompt at `Buyinz/dev-specs/prompts/dev-spec-generate.md` against PRs merged into `main` that introduced `users.account_type`, the store address columns, and the `geocode-address` Edge Function.',
+                  '',
+                  `Closes #${issues['store-profile-and-location']}`,
+                ].join('\n'),
+              },
+              {
+                slug: 'distance-aware-explore',
+                head: 'docs/devspec-distance-aware-explore',
+                title: 'docs(devspec): distance-aware explore feed',
+                labels: ['devspec', 'story:distance-aware-explore'],
+                body: [
+                  'Adds the P2-structured development specification for the **distance-aware explore feed** user story.',
+                  '',
+                  'Generated with `Buyinz/dev-specs/prompts/dev-spec-generate.md` against the PRs that introduced `fetchNearbyStoresForExplore`, `lib/discoveryLocation.ts`, `lib/exploreSort.ts`, and the `expo-location` integration on the Explore tab.',
+                  '',
+                  `Closes #${issues['distance-aware-explore']}`,
+                ].join('\n'),
+              },
+              {
+                slug: 'new-item-count',
+                head: 'docs/devspec-new-item-count',
+                title: 'docs(devspec): new items today count',
+                labels: ['devspec', 'story:new-item-count'],
+                body: [
+                  'Adds the P2-structured development specification for the **new items today count** user story.',
+                  '',
+                  'Generated with `Buyinz/dev-specs/prompts/dev-spec-generate.md` against the PRs that introduced the `new_sale_listings_count_last_24h_by_stores` RPC, the `enforce_sale_listing_store_account` trigger, and the `NewItemsTodayBadge` component.',
+                  '',
+                  `Closes #${issues['new-item-count']}`,
+                ].join('\n'),
+              },
+            ];
+
+            for (const p of prs) {
+              try {
+                await github.rest.repos.getBranch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  branch: p.head,
+                });
+              } catch (e) {
+                core.warning(`branch ${p.head} not found on origin — skipping (push it first, then re-run this workflow)`);
+                continue;
+              }
+
+              const { data: open } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                head: `${context.repo.owner}:${p.head}`,
+              });
+              if (open.length > 0) {
+                core.info(`PR already open for ${p.head}: #${open[0].number}`);
+                continue;
+              }
+
+              const { data: pr } = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                base: 'main',
+                head: p.head,
+                title: p.title,
+                body: p.body,
+              });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: p.labels,
+              });
+              core.info(`opened PR #${pr.number} for ${p.head}`);
+            }
