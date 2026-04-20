@@ -65,7 +65,7 @@ describe('priceStringToDbValue', () => {
 });
 
 describe('isDraftValid', () => {
-  it('returns true when photos and title are present', () => {
+  it('returns true when at least one photo is present', () => {
     expect(isDraftValid(minimalValidDraft())).toBe(true);
   });
 
@@ -73,9 +73,9 @@ describe('isDraftValid', () => {
     expect(isDraftValid(minimalValidDraft({ images: [] }))).toBe(false);
   });
 
-  it('requires non-empty trimmed title', () => {
-    expect(isDraftValid(minimalValidDraft({ title: '' }))).toBe(false);
-    expect(isDraftValid(minimalValidDraft({ title: '   ' }))).toBe(false);
+  it('allows empty or whitespace-only title', () => {
+    expect(isDraftValid(minimalValidDraft({ title: '' }))).toBe(true);
+    expect(isDraftValid(minimalValidDraft({ title: '   ' }))).toBe(true);
   });
 
   it('treats price as optional', () => {

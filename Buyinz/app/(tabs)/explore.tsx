@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import {
   ActivityIndicator,
   FlatList,
@@ -55,6 +56,7 @@ export default function ExploreTabScreen() {
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const isFocused = useIsFocused();
 
   const [activeRadius, setActiveRadius] = useState(DEFAULT_RADIUS_MILES);
   const [sortMode, setSortMode] = useState<ExploreSortMode>('distance');
@@ -130,24 +132,19 @@ export default function ExploreTabScreen() {
     };
   }, [user]);
 
-  useEffect(() => {
+  const loadExplore = useCallback(() => {
     if (!user || user.account_type === 'store') return;
-    let mounted = true;
     setLoading(true);
-
     fetchNearbyStoresForExplore({ userCoords, radiusMiles: activeRadius })
-      .then((list) => {
-        if (mounted) setRawStores(list);
-      })
+      .then(setRawStores)
       .catch(console.error)
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
+      .finally(() => setLoading(false));
   }, [user, activeRadius, userCoords]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    loadExplore();
+  }, [isFocused, loadExplore]);
 
   if (!user) {
     return <Redirect href="/(tabs)/profile" />;

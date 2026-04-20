@@ -38,10 +38,9 @@ export function priceStringToDbValue(price: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** A listing is valid as long as it has at least one photo and a title. Price is optional. */
+/** A listing is valid as long as it has at least one photo. Title and price are optional. */
 export function isDraftValid(draft: ListingDraft): boolean {
   if (draft.images.length === 0) return false;
-  if (draft.title.trim().length === 0) return false;
   const pt = draft.price.trim();
   if (pt.length > 0) {
     const n = parseFloat(pt);

@@ -140,8 +140,8 @@ export default function ListingDetailScreen() {
       return;
     }
     const showTrash = user?.id === post.seller.id && listingSource === 'db';
-    const title =
-      post.title.length > 32 ? `${post.title.slice(0, 32)}…` : post.title;
+    const headline = post.title.trim().length > 0 ? post.title : 'Listing';
+    const title = headline.length > 32 ? `${headline.slice(0, 32)}…` : headline;
     navigation.setOptions({
       title,
       headerLeft,
@@ -245,7 +245,9 @@ export default function ListingDetailScreen() {
 
         <View style={styles.content}>
           <View style={styles.titleRow}>
-            <Text style={[styles.title, { color: colors.text }]}>{post.title}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {post.title.trim().length > 0 ? post.title : 'Listing'}
+            </Text>
             {post.price != null ? (
               <Text style={[styles.price, { color: Brand.primary }]}>${post.price}</Text>
             ) : null}
@@ -258,11 +260,15 @@ export default function ListingDetailScreen() {
             <Image source={{ uri: post.seller.avatar }} style={[styles.avatar, { borderColor: colors.border }]} />
             <View style={styles.sellerInfo}>
               <Text style={[styles.sellerName, { color: colors.text }]}>{post.seller.displayName}</Text>
-              <Text style={[styles.sellerMeta, { color: colors.textSecondary }]}>@{post.seller.username}</Text>
+              <Text style={[styles.sellerMeta, { color: colors.textSecondary }]} numberOfLines={1}>
+                @{post.seller.username} · {post.createdAt}
+              </Text>
             </View>
           </Pressable>
 
-          <Text style={[styles.description, { color: colors.text }]}>{post.description}</Text>
+          {post.description.trim().length > 0 ? (
+            <Text style={[styles.description, { color: colors.text }]}>{post.description}</Text>
+          ) : null}
         </View>
       </ScrollView>
     </View>

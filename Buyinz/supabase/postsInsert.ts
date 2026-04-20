@@ -53,12 +53,14 @@ export async function uploadListingImages(images: ImageAsset[]): Promise<string[
 export async function insertPost(draft: ListingDraft, userId?: string): Promise<string> {
   const imageUrls = await uploadListingImages(draft.images);
 
+  const titleTrimmed = draft.title.trim();
   const { data, error } = await supabase
     .from('posts')
     .insert({
       user_id: userId || DEFAULT_MOCK_USER_ID,
       type: 'sale',
-      title: draft.title,
+      title: titleTrimmed.length > 0 ? titleTrimmed : null,
+      description: null,
       category: draft.category,
       price: priceStringToDbValue(draft.price),
       images: imageUrls,

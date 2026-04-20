@@ -34,12 +34,21 @@ function sellerFromUserRow(user: any): Seller {
   };
 }
 
+/** Maps DB description to UI; treats legacy placeholder default as empty. */
+function descriptionForDisplay(raw: unknown): string {
+  if (raw == null) return '';
+  const s = String(raw).trim();
+  if (s.length === 0) return '';
+  if (s.toLowerCase() === 'listing') return '';
+  return s;
+}
+
 function buildPostBase(row: any, seller: Seller) {
   return {
     id: row.id,
     seller,
-    title: row.title,
-    description: row.description ?? '',
+    title: row.title ?? '',
+    description: descriptionForDisplay(row.description),
     category: row.category,
     likes: 0,
     comments: 0,
