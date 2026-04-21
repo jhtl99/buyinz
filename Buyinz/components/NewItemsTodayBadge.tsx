@@ -1,6 +1,6 @@
 import { Text, View, StyleSheet } from 'react-native';
 
-import { Brand, Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type Props = {
@@ -26,8 +26,8 @@ export function NewItemsTodayBadge({ count, variant, compact }: Props) {
         styles.wrap,
         compact && styles.wrapCompact,
         {
-          borderColor: Brand.primary,
-          backgroundColor: scheme === 'dark' ? 'rgba(11, 204, 184, 0.18)' : 'rgba(11, 204, 184, 0.14)',
+          borderColor: colors.tint,
+          backgroundColor: scheme === 'dark' ? 'rgba(232, 171, 62, 0.20)' : 'rgba(157, 54, 41, 0.12)',
         },
       ]}
     >
@@ -54,5 +54,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.2,
+    fontFamily: Fonts.sans,
   },
 });

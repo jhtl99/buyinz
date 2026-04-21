@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Brand } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ISOPost } from '@/data/mockData';
@@ -59,7 +59,7 @@ export function ISOPostCard({ post: initialPost }: Props) {
             </Text>
           </View>
         </Pressable>
-        <View style={styles.isoBadge}>
+        <View style={[styles.isoBadge, { backgroundColor: colors.tint }]}>
           <Text style={styles.isoBadgeText}>ISO</Text>
         </View>
       </View>
@@ -68,7 +68,7 @@ export function ISOPostCard({ post: initialPost }: Props) {
       <View style={styles.content}>
         {/* Search icon + title */}
         <View style={styles.titleRow}>
-          <Ionicons name="search" size={16} color={Brand.primary} style={{ marginTop: 2 }} />
+          <Ionicons name="search" size={16} color={colors.tint} style={{ marginTop: 2 }} />
           <Text style={[styles.title, { color: colors.text }]}>{post.title}</Text>
         </View>
 
@@ -82,16 +82,16 @@ export function ISOPostCard({ post: initialPost }: Props) {
             <View
               style={[
                 styles.budgetBadge,
-                { backgroundColor: `${Brand.primary}1A`, borderColor: `${Brand.primary}4D` },
+                { backgroundColor: `${colors.tint}1A`, borderColor: `${colors.tint}4D` },
               ]}
             >
-              <Text style={[styles.budgetText, { color: Brand.primary }]}>
+              <Text style={[styles.budgetText, { color: colors.tint }]}>
                 Budget: up to ${post.budget}
               </Text>
             </View>
           )}
           {post.hashtags.map((tag) => (
-            <Text key={tag} style={[styles.hashtag, { color: Brand.primary }]}>
+            <Text key={tag} style={[styles.hashtag, { color: colors.tint }]}>
               {tag}
             </Text>
           ))}
@@ -131,7 +131,7 @@ export function ISOPostCard({ post: initialPost }: Props) {
           <View style={{ flex: 1 }} />
 
           <Pressable>
-            <Text style={[styles.haveThisText, { color: Brand.primary }]}>
+            <Text style={[styles.haveThisText, { color: colors.tint }]}>
               I have this →
             </Text>
           </Pressable>
@@ -176,13 +176,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 18,
+    fontFamily: Fonts.serif,
   },
   sellerMeta: {
     fontSize: 12,
     lineHeight: 16,
+    fontFamily: Fonts.sans,
   },
   isoBadge: {
-    backgroundColor: Brand.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -196,6 +197,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '800',
+    fontFamily: Fonts.sans,
   },
   content: {
     paddingHorizontal: 14,
@@ -212,12 +214,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 20,
     flex: 1,
+    fontFamily: Fonts.serif,
   },
   description: {
     fontSize: 14,
     lineHeight: 22,
     marginBottom: 12,
     paddingLeft: 24,
+    fontFamily: Fonts.sans,
   },
   tagsRow: {
     flexDirection: 'row',
@@ -236,10 +240,12 @@ const styles = StyleSheet.create({
   budgetText: {
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
   },
   hashtag: {
     fontSize: 12,
     fontWeight: '500',
+    fontFamily: Fonts.sans,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -259,9 +265,11 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontWeight: '500',
+    fontFamily: Fonts.sans,
   },
   haveThisText: {
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
   },
 });

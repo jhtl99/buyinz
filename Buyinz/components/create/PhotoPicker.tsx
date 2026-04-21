@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-nati
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Brand } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ImageAsset } from '@/lib/listings';
 import { MAX_PHOTOS } from '@/lib/listings';
@@ -67,7 +67,7 @@ export function PhotoPicker({ images, onChange }: Props) {
         </Text>
         <View style={styles.buttonRow}>
           <Pressable
-            style={[styles.pickButton, { backgroundColor: Brand.primary }]}
+            style={[styles.pickButton, { backgroundColor: colors.tint }]}
             onPress={takePhoto}
           >
             <Ionicons name="camera" size={18} color="#FFF" />
@@ -96,7 +96,7 @@ export function PhotoPicker({ images, onChange }: Props) {
           <View key={img.uri} style={styles.thumbWrapper}>
             <Image source={{ uri: img.uri }} style={styles.thumb} contentFit="cover" />
             {i === 0 && (
-              <View style={[styles.mainBadge, { backgroundColor: Brand.primary }]}>
+              <View style={[styles.mainBadge, { backgroundColor: colors.tint }]}>
                 <Text style={styles.mainBadgeText}>Main</Text>
               </View>
             )}
@@ -125,11 +125,11 @@ export function PhotoPicker({ images, onChange }: Props) {
 
       <View style={[styles.buttonRow, { marginTop: 10 }]}>
         <Pressable
-          style={[styles.smallPickBtn, { backgroundColor: `${Brand.primary}15` }]}
+          style={[styles.smallPickBtn, { backgroundColor: `${colors.tint}15` }]}
           onPress={takePhoto}
         >
-          <Ionicons name="camera" size={16} color={Brand.primary} />
-          <Text style={[styles.smallPickBtnText, { color: Brand.primary }]}>Camera</Text>
+          <Ionicons name="camera" size={16} color={colors.tint} />
+          <Text style={[styles.smallPickBtnText, { color: colors.tint }]}>Camera</Text>
         </Pressable>
         <Pressable
           style={[styles.smallPickBtn, { backgroundColor: colors.muted }]}

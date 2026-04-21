@@ -1,4 +1,5 @@
 import { milesBetween, type GeoPoint } from '@/lib/discoveryLocation';
+import { sanitizePublicAvatarUrl } from '@/lib/avatar';
 
 import { supabase } from './client';
 import { fetchNewSaleListingsCountLast24hBatch } from './newItemsCount';
@@ -60,7 +61,7 @@ export async function fetchNearbyStoresForExplore(options: {
         id: row.id,
         username: row.username,
         display_name: row.display_name,
-        avatar_url: row.avatar_url,
+        avatar_url: sanitizePublicAvatarUrl(row.avatar_url),
         latitude: lat,
         longitude: lng,
         distanceMiles,

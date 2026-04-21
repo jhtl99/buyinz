@@ -1,4 +1,5 @@
 import { composeStoreAddressString, type AccountType } from '@/lib/supabase';
+import { sanitizePublicAvatarUrl } from '@/lib/avatar';
 
 import { supabase } from './client';
 
@@ -50,5 +51,9 @@ export async function fetchUserPublicProfileById(
 
   if (error) throw error;
   if (!data) return null;
-  return data as PublicUserProfile;
+  const profile = data as PublicUserProfile;
+  return {
+    ...profile,
+    avatar_url: sanitizePublicAvatarUrl(profile.avatar_url),
+  };
 }

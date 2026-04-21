@@ -5,7 +5,7 @@ import { View, Pressable, StyleSheet } from 'react-native';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Brand } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -28,7 +28,7 @@ export default function TabLayout() {
               style={styles.sellButtonOuter}
               onPress={() => router.push('/create-listing')}
             >
-              <View style={styles.sellButtonCircle}>
+              <View style={[styles.sellButtonCircle, { backgroundColor: colors.tint }]}>
                 <Ionicons name="add" size={28} color="#FFF" />
               </View>
             </Pressable>
@@ -42,12 +42,12 @@ export default function TabLayout() {
         !signedIn ? 'profile' : user?.account_type === 'store' ? 'profile' : 'index'
       }
       screenOptions={{
-        tabBarActiveTintColor: Brand.primary,
+        tabBarActiveTintColor: colors.tint,
         tabBarInactiveTintColor: colors.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: colorScheme === 'dark' ? '#1C1F2A' : '#FFFFFF',
+          backgroundColor: colors.card,
           borderTopColor: colors.border,
         },
       }}>
@@ -89,7 +89,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Brand.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

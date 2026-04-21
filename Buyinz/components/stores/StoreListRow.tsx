@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { NewItemsTodayBadge } from '@/components/NewItemsTodayBadge';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
+import { sanitizePublicAvatarUrl } from '@/lib/avatar';
 
 export type StoreListRowModel = {
   id: string;
@@ -29,7 +30,7 @@ const THUMB_GAP = 6;
 export function StoreListRow({ store, colors }: Props) {
   const router = useRouter();
   const avatarUri =
-    store.avatar_url?.trim() ||
+    sanitizePublicAvatarUrl(store.avatar_url) ||
     `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(store.username)}`;
 
   const showDistance = typeof store.distanceMiles === 'number' && Number.isFinite(store.distanceMiles);
@@ -112,11 +113,13 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     lineHeight: 22,
+    fontFamily: Fonts.serif,
   },
   distance: {
     fontSize: 13,
     fontWeight: '700',
     marginTop: 1,
+    fontFamily: Fonts.sans,
   },
   distancePlaceholder: {
     width: 44,
@@ -124,6 +127,7 @@ const styles = StyleSheet.create({
   storeUsername: {
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: Fonts.sans,
   },
   thumbRow: {
     flexDirection: 'row',
@@ -140,5 +144,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     marginLeft: 2,
+    fontFamily: Fonts.sans,
   },
 });

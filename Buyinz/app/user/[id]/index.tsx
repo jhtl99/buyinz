@@ -11,7 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Brand } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProfileBody } from '@/components/profile/ProfileBody';
@@ -190,7 +190,7 @@ export default function PublicUserProfileScreen() {
   if (loading && !profile && !error) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={Brand.primary} />
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
@@ -205,9 +205,9 @@ export default function PublicUserProfileScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={{ color: colors.text, fontWeight: '600', textAlign: 'center' }}>{error ?? 'User not found'}</Text>
+        <Text style={{ color: colors.text, fontWeight: '600', textAlign: 'center', fontFamily: Fonts.sans }}>{error ?? 'User not found'}</Text>
         <Pressable style={{ marginTop: 16 }} onPress={() => router.back()}>
-          <Text style={{ color: Brand.primary, fontWeight: '600' }}>Go back</Text>
+          <Text style={{ color: colors.tint, fontWeight: '600', fontFamily: Fonts.sans }}>Go back</Text>
         </Pressable>
       </View>
     );
@@ -232,7 +232,7 @@ export default function PublicUserProfileScreen() {
                 style={[
                   styles.segmentChip,
                   view === 'account'
-                    ? { backgroundColor: Brand.primary, borderColor: Brand.primary }
+                    ? { backgroundColor: colors.tint, borderColor: colors.tint }
                     : { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
               >
@@ -245,7 +245,7 @@ export default function PublicUserProfileScreen() {
                 style={[
                   styles.segmentChip,
                   view === 'newItems'
-                    ? { backgroundColor: Brand.primary, borderColor: Brand.primary }
+                    ? { backgroundColor: colors.tint, borderColor: colors.tint }
                     : { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
               >
@@ -259,8 +259,8 @@ export default function PublicUserProfileScreen() {
                 style={[
                   styles.headerFollowBtn,
                   {
-                    backgroundColor: isFollowing ? colors.card : Brand.primary,
-                    borderColor: isFollowing ? colors.border : Brand.primary,
+                    backgroundColor: isFollowing ? colors.card : colors.tint,
+                    borderColor: isFollowing ? colors.border : colors.tint,
                   },
                 ]}
                 onPress={isFollowing ? confirmUnfollow : handleFollow}
@@ -382,12 +382,14 @@ const styles = StyleSheet.create({
   headerFollowBtnText: {
     fontSize: 13,
     fontWeight: '800',
+    fontFamily: Fonts.sans,
   },
   username: {
     flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
+    fontFamily: Fonts.serif,
   },
   backRow: {
     padding: 4,
@@ -401,6 +403,7 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 13,
     fontWeight: '800',
+    fontFamily: Fonts.sans,
   },
   accountPane: {
     flex: 1,
