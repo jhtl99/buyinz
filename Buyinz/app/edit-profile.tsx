@@ -11,6 +11,7 @@ import {
   supabase,
   validateProfileUpdate,
 } from '@/lib/supabase';
+import { resolveAvatarUrlForProfileSave } from '@/supabase/queries';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -111,7 +112,7 @@ export default function EditProfileScreen() {
 
   const handleImagePick = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -137,6 +138,8 @@ export default function EditProfileScreen() {
         throw new Error('This username is already taken.');
       }
 
+      const avatar_url = await resolveAvatarUrlForProfileSave(avatarUrl, user.id);
+
       if (accountType === 'user') {
         const profilePayload = {
           id: user.id,
@@ -145,7 +148,7 @@ export default function EditProfileScreen() {
           username,
           location: '',
           bio: '',
-          avatar_url: avatarUrl,
+          avatar_url,
         };
 
         validateProfileUpdate(profilePayload);
@@ -172,7 +175,7 @@ export default function EditProfileScreen() {
         display_name: displayName.trim(),
         username,
         bio,
-        avatar_url: avatarUrl,
+        avatar_url,
         location: row.location ?? '',
         address_line1: row.address_line1,
         city: row.city,

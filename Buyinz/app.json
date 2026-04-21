@@ -48,8 +48,7 @@
           "cameraPermission": "Allow Buyinz to take photos of items you want to sell.",
           "photosPermission": "Allow Buyinz to choose photos of items you want to sell."
         }
-      ],
-      "expo-secure-store"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

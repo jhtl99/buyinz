@@ -1,6 +1,6 @@
 import { supabase } from './client';
-import type { ListingDraft, ImageAsset } from '@/lib/listings';
-import { priceStringToDbValue } from '@/lib/listings';
+import type { ListingDraft, ImageAsset } from '@/lib/listingDraft';
+import { priceStringToDbValue } from '@/lib/listingDraft';
 
 const DEFAULT_MOCK_USER_ID = '11111111-1111-1111-1111-111111111111';
 const IMAGE_BUCKET = 'listing-images';

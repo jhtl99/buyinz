@@ -18,6 +18,7 @@ import {
   supabase,
   validateOnboardingSave,
 } from '@/lib/supabase';
+import { resolveAvatarUrlForProfileSave } from '@/supabase/queries';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
@@ -189,7 +190,7 @@ export default function CreateProfileScreen() {
 
   const handleImagePick = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -298,6 +299,8 @@ export default function CreateProfileScreen() {
         throw new Error('This username is already taken.');
       }
 
+      const avatar_url = await resolveAvatarUrlForProfileSave(avatarUrl, authUser.id);
+
       if (accountKind === 'user') {
         const profilePayload = {
           id: authUser.id,
@@ -306,7 +309,7 @@ export default function CreateProfileScreen() {
           username,
           location: '',
           bio: undefined,
-          avatar_url: avatarUrl,
+          avatar_url,
         };
 
         validateOnboardingSave(profilePayload);
@@ -341,7 +344,7 @@ export default function CreateProfileScreen() {
         username,
         location: postalCode.trim(),
         bio,
-        avatar_url: avatarUrl,
+        avatar_url,
         address_line1: addressLine1.trim(),
         city: city.trim(),
         region: regionNorm,

@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
 import { supabase } from '@/supabase/client';
 
-/** Re-export the shared client (SecureStore session) — same instance as @/supabase/queries. */
+/** Re-export the shared client (persisted session) — same instance as @/supabase/queries. */
 export { supabase };
 
 export type AccountType = 'user' | 'store';

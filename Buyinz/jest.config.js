@@ -12,4 +12,5 @@ module.exports = {
   ],
   testPathIgnorePatterns: ['/node_modules/', '/.expo/', '/dist/'],
   modulePathIgnorePatterns: ['<rootDir>/.expo/'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 };
