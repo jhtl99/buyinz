@@ -74,7 +74,19 @@ jobs:
             exit 0
           fi
 
+          TRACKING_ISSUE_NUMBER=$(gh api search/issues \
+            -f q="repo:${GITHUB_REPOSITORY} is:issue in:title \"[DevSpec] Story #${ISSUE_NUMBER}\"" \
+            -q '.items[] | select(.pull_request|not) | .number' \
+            | head -n 1 || true)
+
+          if [ -n "$TRACKING_ISSUE_NUMBER" ]; then
+            echo "Found devspec tracking issue #$TRACKING_ISSUE_NUMBER for user story #$ISSUE_NUMBER."
+          else
+            echo "No devspec tracking issue found for user story #$ISSUE_NUMBER. Commit message will reference only the user story issue."
+          fi
+
           echo "$ISSUE_NUMBER" > .tmp/issue_number.txt
+          echo "$TRACKING_ISSUE_NUMBER" > .tmp/tracking_issue_number.txt
           gh issue view "$ISSUE_NUMBER" --json body -q '.body' > .tmp/user_story.md
           gh pr diff "$PR_NUMBER" > .tmp/pr_diff.patch
 
@@ -139,6 +151,7 @@ jobs:
         run: |
           SPEC_PATH=$(cat .tmp/spec_path.txt)
           ISSUE_NUMBER=$(cat .tmp/issue_number.txt)
+          TRACKING_ISSUE_NUMBER=$(cat .tmp/tracking_issue_number.txt)
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -149,5 +162,10 @@ jobs:
             exit 0
           fi
 
-          git commit -m "docs(devspec): update story #$ISSUE_NUMBER for PR #$PR_NUMBER"
+          COMMIT_MSG="docs(devspec): update story #$ISSUE_NUMBER for PR #$PR_NUMBER"
+          if [ -n "$TRACKING_ISSUE_NUMBER" ]; then
+            COMMIT_MSG="$COMMIT_MSG (refs #$TRACKING_ISSUE_NUMBER)"
+          fi
+
+          git commit -m "$COMMIT_MSG"
           git push origin "HEAD:$BRANCH"
