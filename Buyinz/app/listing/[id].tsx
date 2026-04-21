@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { HeaderBackButton } from '@react-navigation/elements';
-import { Colors, Brand } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -149,7 +149,7 @@ export default function ListingDetailScreen() {
         ? () =>
             deleting ? (
               <View style={{ paddingHorizontal: 12 }}>
-                <ActivityIndicator color={Brand.primary} />
+                <ActivityIndicator color={colors.tint} />
               </View>
             ) : (
               <Pressable
@@ -172,13 +172,14 @@ export default function ListingDetailScreen() {
     navigation,
     requestDelete,
     colors.text,
+    colors.tint,
     handleHeaderBack,
   ]);
 
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={Brand.primary} />
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
@@ -194,22 +195,23 @@ export default function ListingDetailScreen() {
                 textAlign: 'center',
                 marginBottom: 12,
                 fontWeight: '600',
+                fontFamily: Fonts.serif,
               }}
             >
               {"Couldn't load listing"}
             </Text>
-            <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 20 }}>
+            <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 20, fontFamily: Fonts.sans }}>
               {loadError}
             </Text>
             <Pressable
-              style={[styles.retryBtn, { backgroundColor: Brand.primary }]}
+              style={[styles.retryBtn, { backgroundColor: colors.tint }]}
               onPress={() => void loadPost()}
             >
               <Text style={styles.retryBtnText}>Retry</Text>
             </Pressable>
           </>
         ) : (
-          <Text style={{ color: colors.text }}>Listing not found</Text>
+          <Text style={{ color: colors.text, fontFamily: Fonts.sans }}>Listing not found</Text>
         )}
       </View>
     );
@@ -249,7 +251,7 @@ export default function ListingDetailScreen() {
               {post.title.trim().length > 0 ? post.title : 'Listing'}
             </Text>
             {post.price != null ? (
-              <Text style={[styles.price, { color: Brand.primary }]}>${post.price}</Text>
+              <Text style={[styles.price, { color: colors.tint }]}>${post.price}</Text>
             ) : null}
           </View>
 
@@ -299,10 +301,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
     marginRight: 16,
+    fontFamily: Fonts.serif,
   },
   price: {
     fontSize: 24,
     fontWeight: '800',
+    fontFamily: Fonts.sans,
   },
   sellerRow: {
     flexDirection: 'row',
@@ -325,13 +329,16 @@ const styles = StyleSheet.create({
   sellerName: {
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: Fonts.serif,
   },
   sellerMeta: {
     fontSize: 14,
+    fontFamily: Fonts.sans,
   },
   description: {
     fontSize: 15,
     lineHeight: 22,
+    fontFamily: Fonts.sans,
   },
   bottomBar: {
     position: 'absolute',
@@ -357,6 +364,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
   },
   retryBtn: {
     paddingHorizontal: 24,
@@ -367,5 +375,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
   },
 });

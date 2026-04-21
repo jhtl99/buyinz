@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Brand } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export const unstable_settings = {
@@ -17,12 +17,13 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   const navTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+  const palette = Colors[colorScheme ?? 'light'];
 
   const customTheme = {
     ...navTheme,
     colors: {
       ...navTheme.colors,
-      primary: Brand.primary,
+      primary: palette.tint,
     },
   };
 

@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
 import { NewItemsTodayBadge } from '@/components/NewItemsTodayBadge';
@@ -137,13 +137,13 @@ export function ProfileBody({
 
           {listingsLoading ? (
             <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-              <Text style={{ color: colors.tabIconDefault }}>Loading listings…</Text>
+              <Text style={{ color: colors.tabIconDefault, fontFamily: Fonts.sans }}>Loading listings…</Text>
             </View>
           ) : listings.length === 0 ? (
             <View style={{ paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' }}>
               <Ionicons name="images-outline" size={40} color={colors.tabIconDefault} style={{ marginBottom: 12 }} />
-              <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 6 }}>No listings yet</Text>
-              <Text style={{ color: colors.tabIconDefault, textAlign: 'center', fontSize: 14 }}>
+              <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 6, fontFamily: Fonts.serif }}>No listings yet</Text>
+              <Text style={{ color: colors.tabIconDefault, textAlign: 'center', fontSize: 14, fontFamily: Fonts.sans }}>
                 {listingsEmptyVariant === 'self'
                   ? 'When you post items for sale, they will show here in a grid.'
                   : 'This user has not posted any listings yet.'}
@@ -205,10 +205,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: Fonts.serif,
   },
   statLabel: {
     fontSize: 13,
     marginTop: 2,
+    fontFamily: Fonts.sans,
   },
   bioSection: {
     marginBottom: 16,
@@ -224,6 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 6,
+    fontFamily: Fonts.serif,
   },
   verifiedBadge: {
     flexDirection: 'row',
@@ -238,11 +241,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 2,
+    fontFamily: Fonts.sans,
   },
   bio: {
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 6,
+    fontFamily: Fonts.sans,
   },
   locationRow: {
     flexDirection: 'row',
@@ -252,6 +257,7 @@ const styles = StyleSheet.create({
   location: {
     fontSize: 13,
     marginLeft: 4,
+    fontFamily: Fonts.sans,
   },
   gridHeader: {
     alignItems: 'center',

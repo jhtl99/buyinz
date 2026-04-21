@@ -1,4 +1,4 @@
-import { Brand, Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -507,7 +507,7 @@ export default function CreateProfileScreen() {
           <View
             style={[
               styles.section,
-              { backgroundColor: scheme === 'light' ? '#f5f5f5' : '#1c1c1e' },
+              { backgroundColor: colors.card },
             ]}
           >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -519,6 +519,7 @@ export default function CreateProfileScreen() {
                 marginBottom: 16,
                 fontSize: 13,
                 opacity: 0.8,
+                fontFamily: Fonts.sans,
               }}
             >
               Continue with your Google account to create or access your
@@ -549,7 +550,7 @@ export default function CreateProfileScreen() {
           <View
             style={[
               styles.section,
-              { backgroundColor: scheme === 'light' ? '#f5f5f5' : '#1c1c1e' },
+              { backgroundColor: colors.card },
             ]}
           >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -561,6 +562,7 @@ export default function CreateProfileScreen() {
                 marginBottom: 16,
                 fontSize: 13,
                 opacity: 0.85,
+                fontFamily: Fonts.sans,
               }}
             >
               Choose how you will use the app. You can change this on the next
@@ -573,6 +575,7 @@ export default function CreateProfileScreen() {
                   marginBottom: 16,
                   fontSize: 13,
                   opacity: 0.85,
+                  fontFamily: Fonts.sans,
                 }}
               >
                 Signed in as {oauthEmail}
@@ -613,7 +616,7 @@ export default function CreateProfileScreen() {
           <View
             style={[
               styles.section,
-              { backgroundColor: scheme === 'light' ? '#f5f5f5' : '#1c1c1e' },
+              { backgroundColor: colors.card },
             ]}
           >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -626,6 +629,7 @@ export default function CreateProfileScreen() {
                   marginBottom: 16,
                   fontSize: 13,
                   opacity: 0.85,
+                  fontFamily: Fonts.sans,
                 }}
               >
                 Signed in as {oauthEmail}
@@ -636,7 +640,7 @@ export default function CreateProfileScreen() {
               <Pressable
                 style={[
                   styles.segmentBtn,
-                  accountKind === 'user' && styles.segmentBtnActive,
+                  accountKind === 'user' && { backgroundColor: colors.tint, borderColor: colors.tint },
                   { borderColor: colors.border },
                 ]}
                 onPress={() => switchAccountKind('user')}
@@ -653,7 +657,7 @@ export default function CreateProfileScreen() {
               <Pressable
                 style={[
                   styles.segmentBtn,
-                  accountKind === 'store' && styles.segmentBtnActive,
+                  accountKind === 'store' && { backgroundColor: colors.tint, borderColor: colors.tint },
                   { borderColor: colors.border },
                 ]}
                 onPress={() => switchAccountKind('store')}
@@ -684,7 +688,7 @@ export default function CreateProfileScreen() {
                 style={[styles.avatar, { borderColor: colors.border }]}
               />
               <Pressable style={styles.changePhotoBtn} onPress={handleImagePick}>
-                <Text style={styles.changePhotoText}>Change Profile Photo</Text>
+                <Text style={[styles.changePhotoText, { color: colors.tint }]}>Change Profile Photo</Text>
               </Pressable>
             </View>
 
@@ -788,6 +792,7 @@ export default function CreateProfileScreen() {
             <Pressable
               style={[
                 styles.primaryBtn,
+                { backgroundColor: colors.tint },
                 { marginTop: 16 },
                 saveDisabled && styles.primaryBtnDisabled,
               ]}
@@ -826,6 +831,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: Fonts.serif,
   },
   content: {
     padding: 16,
@@ -840,11 +846,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 16,
+    fontFamily: Fonts.serif,
   },
   hint: {
     fontSize: 13,
     marginTop: -8,
     marginBottom: 8,
+    fontFamily: Fonts.sans,
   },
   socialBtn: {
     flexDirection: 'row',
@@ -858,6 +866,7 @@ const styles = StyleSheet.create({
   socialBtnText: {
     fontSize: 15,
     fontWeight: '600',
+    fontFamily: Fonts.sans,
   },
   choiceBtn: {
     borderWidth: 1,
@@ -869,10 +878,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     marginTop: 8,
+    fontFamily: Fonts.serif,
   },
   choiceBtnSub: {
     fontSize: 13,
     marginTop: 4,
+    fontFamily: Fonts.sans,
   },
   segmentRow: {
     flexDirection: 'row',
@@ -886,18 +897,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
   },
-  segmentBtnActive: {
-    backgroundColor: Brand.primary,
-    borderColor: Brand.primary,
-  },
   segmentBtnText: {
     fontWeight: '700',
     fontSize: 14,
+    fontFamily: Fonts.sans,
   },
   switchHint: {
     fontSize: 12,
     marginBottom: 16,
     opacity: 0.9,
+    fontFamily: Fonts.sans,
   },
   avatarContainer: {
     alignItems: 'center',
@@ -914,9 +923,9 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   changePhotoText: {
-    color: Brand.primary,
     fontWeight: '600',
     fontSize: 14,
+    fontFamily: Fonts.sans,
   },
   input: {
     borderWidth: 1,
@@ -924,6 +933,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     fontSize: 15,
+    fontFamily: Fonts.sans,
   },
   inputError: {
     borderColor: '#ef4444',
@@ -933,7 +943,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   primaryBtn: {
-    backgroundColor: Brand.primary,
     padding: 14,
     borderRadius: 8,
     alignItems: 'center',
@@ -945,5 +954,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: Fonts.sans,
   },
 });

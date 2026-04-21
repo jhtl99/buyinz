@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect } from 'expo-router';
 
 import { StoreListRow, type StoreListRowModel } from '@/components/stores/StoreListRow';
-import { Brand, Colors, Fonts } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { DEFAULT_CMU_COORDS, milesBetween } from '@/lib/discoveryLocation';
@@ -166,7 +166,7 @@ export default function ExploreTabScreen() {
           },
         ]}
       >
-        <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.rounded }]}>Explore</Text>
+        <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.serif }]}>Explore</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Thrift stores near you
         </Text>
@@ -182,7 +182,7 @@ export default function ExploreTabScreen() {
                 style={[
                   styles.radiusChip,
                   selected
-                    ? { backgroundColor: Brand.primary, borderColor: Brand.primary }
+                    ? { backgroundColor: colors.tint, borderColor: colors.tint }
                     : { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
               >
@@ -205,7 +205,7 @@ export default function ExploreTabScreen() {
                 style={[
                   styles.radiusChip,
                   selected
-                    ? { backgroundColor: Brand.primary, borderColor: Brand.primary }
+                    ? { backgroundColor: colors.tint, borderColor: colors.tint }
                     : { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
               >
@@ -220,7 +220,7 @@ export default function ExploreTabScreen() {
 
       {loading ? (
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color={Brand.primary} />
+          <ActivityIndicator size="large" color={colors.tint} />
         </View>
       ) : stores.length === 0 ? (
         <View style={styles.emptyWrap}>
@@ -261,10 +261,12 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: Fonts.sans,
   },
   filterLabel: {
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginTop: 4,
@@ -282,6 +284,7 @@ const styles = StyleSheet.create({
   radiusChipText: {
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
   },
   loader: {
     flex: 1,
@@ -298,9 +301,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
+    fontFamily: Fonts.serif,
   },
   emptyText: {
     fontSize: 13,
+    fontFamily: Fonts.sans,
     textAlign: 'center',
   },
   listContent: {

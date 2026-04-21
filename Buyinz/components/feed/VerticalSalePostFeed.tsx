@@ -9,7 +9,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 
-import { Brand, Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
 import { SalePostCard } from '@/components/feed/SalePostCard';
@@ -73,7 +73,7 @@ export function VerticalSalePostFeed({
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color={Brand.primary} />
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
@@ -126,11 +126,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
+    fontFamily: Fonts.serif,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 15,
+    fontFamily: Fonts.sans,
     textAlign: 'center',
     lineHeight: 22,
   },

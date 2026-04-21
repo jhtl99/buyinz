@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { StoreListRow, type StoreListRowModel } from '@/components/stores/StoreListRow';
-import { Brand, Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { DEFAULT_CMU_COORDS, milesBetween, type GeoPoint } from '@/lib/discoveryLocation';
@@ -154,7 +154,7 @@ export default function HomeScreen() {
 
       {loading ? (
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color={Brand.primary} />
+          <ActivityIndicator size="large" color={colors.tint} />
         </View>
       ) : stores.length === 0 ? (
         <View style={styles.emptyWrap}>
@@ -164,7 +164,7 @@ export default function HomeScreen() {
             Discover local thrift stores on Explore, open a profile, and tap Follow to see them here.
           </Text>
           <Pressable
-            style={[styles.cta, { backgroundColor: Brand.primary }]}
+            style={[styles.cta, { backgroundColor: colors.tint }]}
             onPress={() => router.push('/(tabs)/explore')}
           >
             <Text style={styles.ctaText}>Go to Explore</Text>
@@ -200,6 +200,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '800',
+    fontFamily: Fonts.serif,
   },
   loader: {
     flex: 1,
@@ -221,14 +222,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 15,
+    fontFamily: Fonts.sans,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 20,
+  },
+  subtitle: {
+    fontFamily: Fonts.sans,
   },
   cta: {
     paddingHorizontal: 24,
@@ -239,5 +245,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 16,
+    fontFamily: Fonts.sans,
   },
 });

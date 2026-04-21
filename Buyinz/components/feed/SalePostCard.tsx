@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Colors, Brand } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SalePost } from '@/data/mockData';
@@ -133,7 +133,7 @@ export function SalePostCard({ post, cardWidth, fill, newItemsLast24h }: Props) 
               {post.title.trim().length > 0 ? post.title : 'Listing'}
             </Text>
             {post.price != null ? (
-              <View style={styles.priceBadge}>
+              <View style={[styles.priceBadge, { backgroundColor: colors.tint }]}>
                 <Text style={styles.priceText}>${post.price}</Text>
               </View>
             ) : null}
@@ -188,10 +188,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 18,
+    fontFamily: Fonts.serif,
   },
   sellerMeta: {
     fontSize: 12,
     lineHeight: 16,
+    fontFamily: Fonts.sans,
   },
   imageArea: {
     flex: 1,
@@ -235,9 +237,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     flex: 1,
+    fontFamily: Fonts.sans,
   },
   priceBadge: {
-    backgroundColor: Brand.primary,
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
@@ -251,5 +253,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '800',
+    fontFamily: Fonts.sans,
   },
 });

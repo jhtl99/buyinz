@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { fetchNewSaleListingsCountLast24hBatch } from './newItemsCount';
 import { fetchStoreSaleListingPreviewsBatch } from './storeListPreviews';
+import { sanitizePublicAvatarUrl } from '@/lib/avatar';
 
 export type FollowedStoreForHome = {
   id: string;
@@ -78,7 +79,7 @@ export async function fetchFollowedStoresForHome(): Promise<FollowedStoreForHome
         id: u.id,
         username: u.username,
         display_name: u.display_name,
-        avatar_url: u.avatar_url,
+        avatar_url: sanitizePublicAvatarUrl(u.avatar_url),
         newItemsLast24h: newCounts[u.id] ?? 0,
         latitude: typeof lat === 'number' && Number.isFinite(lat) ? lat : null,
         longitude: typeof lng === 'number' && Number.isFinite(lng) ? lng : null,

@@ -1,5 +1,6 @@
 import * as Linking from 'expo-linking';
 import { supabase } from '@/supabase/client';
+import { sanitizePublicAvatarUrl } from '@/lib/avatar';
 
 /** Re-export the shared client (SecureStore session) — same instance as @/supabase/queries. */
 export { supabase };
@@ -142,7 +143,7 @@ export function buildUsersUpsertPayload(profile: UserProfile) {
     display_name: profile.display_name.trim(),
     username: normalizeUsername(profile.username),
     bio: profile.bio?.trim() || null,
-    avatar_url: profile.avatar_url,
+    avatar_url: sanitizePublicAvatarUrl(profile.avatar_url),
   };
 
   if (type === 'user') {
@@ -396,7 +397,11 @@ export async function fetchBuyinzUserRowByAuthId(userId: string): Promise<Buyinz
 
   if (error) throw error;
   if (!data) return null;
-  return data as BuyinzUsersRow;
+  const row = data as BuyinzUsersRow;
+  return {
+    ...row,
+    avatar_url: sanitizePublicAvatarUrl(row.avatar_url),
+  };
 }
 
 export async function authenticateWithGoogle() {
