@@ -26,6 +26,22 @@ async function readRequired(path, label) {
   return fs.readFile(path, "utf8");
 }
 
+function replaceAll(source, token, value) {
+  return source.split(token).join(value);
+}
+
+function applyOwnerVariables(source, { primaryOwner, secondaryOwner, mergeDate }) {
+  return replaceAll(
+    replaceAll(
+      replaceAll(source, "{{PRIMARY_OWNER}}", primaryOwner),
+      "{{SECONDARY_OWNER}}",
+      secondaryOwner,
+    ),
+    "{{MERGE_DATE}}",
+    mergeDate,
+  );
+}
+
 async function main() {
   const args = parseArgs(process.argv);
 
@@ -41,6 +57,11 @@ async function main() {
   }
 
   const userStory = await readRequired(args["user-story"], "--user-story");
+  const primaryOwner = (args["primary-owner"] ?? "Unknown").trim() || "Unknown";
+  const secondaryOwner = (args["secondary-owner"] ?? "Unknown").trim() || "Unknown";
+  const mergeDate =
+    (args["merge-date"] ?? new Date().toISOString().slice(0, 10)).trim() ||
+    new Date().toISOString().slice(0, 10);
 
   let prompt = "";
   if (mode === "new") {
@@ -56,6 +77,8 @@ async function main() {
       .replace("{{PR_DIFF}}", prDiff)
       .replace("{{UPDATED_USER_STORY}}", `${userStory}\n\nPR Number: ${prNumber}`);
   }
+
+  prompt = applyOwnerVariables(prompt, { primaryOwner, secondaryOwner, mergeDate });
 
   await fs.writeFile(outputPath, prompt, "utf8");
 }
