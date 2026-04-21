@@ -75,23 +75,54 @@ jobs:
             exit 0
           fi
 
-          # Resolve the devspec tracking sub-issue via the deterministic label
-          # `devspec-for-<parent>` applied by create-devspec-subissue.yml. Falls
-          # back to a title-based search for legacy sub-issues created before the
-          # label was introduced.
-          TRACKING_ISSUE_NUMBER=$(gh issue list \
+          # Resolve the devspec tracking sub-issue. Three strategies, in order:
+          #   1. Deterministic label `devspec-for-<parent>` applied by
+          #      create-devspec-subissue.yml to every new sub-issue.
+          #   2. The "Created DevSpec tracking issue: #N" comment the sub-issue
+          #      creator leaves on the parent user-story issue (works for legacy
+          #      sub-issues that pre-date the label).
+          #   3. A last-resort REST search on the title.
+          # The value is sanitised at the end so anything non-numeric collapses
+          # back to empty (which previously produced commit messages like
+          # `(refs #{)` when a pretty-printed JSON response leaked through).
+          TRACKING_ISSUE_NUMBER=""
+
+          CANDIDATE=$(gh issue list \
             --state all \
             --label "devspec-for-${ISSUE_NUMBER}" \
             --limit 5 \
             --json number \
-            --jq '.[0].number // empty')
+            --jq '.[0].number // empty' || true)
+          if [ -n "$CANDIDATE" ]; then
+            TRACKING_ISSUE_NUMBER="$CANDIDATE"
+          fi
 
           if [ -z "$TRACKING_ISSUE_NUMBER" ]; then
-            TRACKING_ISSUE_NUMBER=$(gh api -X GET search/issues \
-              -f q="repo:${GITHUB_REPOSITORY} is:issue [DevSpec] Story ${ISSUE_NUMBER} in:title" \
-              -q '.items[] | select(.pull_request|not) | .number' \
-              | head -n 1 || true)
+            CANDIDATE=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+              --jq '[.[] | select(.body | test("Created DevSpec tracking issue: #"))][-1].body' \
+              2>/dev/null | grep -oE '#[0-9]+' | head -n 1 | tr -d '#' || true)
+            if [ -n "$CANDIDATE" ]; then
+              TRACKING_ISSUE_NUMBER="$CANDIDATE"
+            fi
           fi
+
+          if [ -z "$TRACKING_ISSUE_NUMBER" ]; then
+            CANDIDATE=$(gh api \
+              --method GET \
+              search/issues \
+              --raw-field q="repo:${GITHUB_REPOSITORY} is:issue [DevSpec] Story ${ISSUE_NUMBER} in:title" \
+              --jq '[.items[] | select((.pull_request // null) == null) | .number][0] // empty' \
+              2>/dev/null || true)
+            if [ -n "$CANDIDATE" ]; then
+              TRACKING_ISSUE_NUMBER="$CANDIDATE"
+            fi
+          fi
+
+          # Final sanitation: keep only digits. Anything else (whitespace, `{`,
+          # error text, jq errors) becomes empty so the commit message never
+          # ships with a broken `(refs #...)` suffix.
+          TRACKING_ISSUE_NUMBER=$(printf '%s' "$TRACKING_ISSUE_NUMBER" | tr -cd '0-9')
 
           if [ -n "$TRACKING_ISSUE_NUMBER" ]; then
             echo "Found devspec tracking issue #$TRACKING_ISSUE_NUMBER for user story #$ISSUE_NUMBER."
@@ -221,7 +252,10 @@ jobs:
           fi
 
           COMMIT_MSG="docs(devspec): update story #$ISSUE_NUMBER for PR #$PR_NUMBER"
-          if [ -n "$TRACKING_ISSUE_NUMBER" ]; then
+          # Defensive: only append the (refs #N) suffix if TRACKING_ISSUE_NUMBER
+          # is strictly numeric. Previously non-numeric leakage produced commit
+          # messages like `(refs #{)`.
+          if [ -n "$TRACKING_ISSUE_NUMBER" ] && printf '%s' "$TRACKING_ISSUE_NUMBER" | grep -qE '^[0-9]+$'; then
             COMMIT_MSG="$COMMIT_MSG (refs #$TRACKING_ISSUE_NUMBER)"
           fi
 
