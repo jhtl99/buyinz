@@ -1,312 +1,304 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useIsFocused } from '@react-navigation/native';
+import { useState, useRef } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
   View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import * as Location from 'expo-location';
+import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Redirect } from 'expo-router';
-
-import { StoreListRow, type StoreListRowModel } from '@/components/stores/StoreListRow';
-import { Brand, Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Brand } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { DEFAULT_CMU_COORDS, milesBetween } from '@/lib/discoveryLocation';
-import { sortNearbyStoresForExplore, type ExploreSortMode } from '@/lib/exploreSort';
+import { PhotoPicker } from '@/components/create/PhotoPicker';
 import {
-  fetchNearbyStoresForExplore,
-  type GeoPoint,
-  type NearbyStoreForExplore,
-} from '@/supabase/queries';
+  EMPTY_DRAFT,
+  isDraftValid,
+  LISTING_CATEGORIES,
+  submitListing,
+  type ImageAsset,
+  type ListingCategory,
+  type ListingDraft,
+} from '@/lib/listings';
 
-const RADIUS_OPTIONS: { label: string; miles: number }[] = [
-  { label: '5 mi', miles: 5 },
-  { label: '10 mi', miles: 10 },
-  { label: '20 mi', miles: 20 },
-];
+const CATEGORY_EMOJI: Record<ListingCategory, string> = {
+  Tops: '👕',
+  Bottoms: '👖',
+  Accessories: '🧢',
+  Other: '📦',
+};
 
-const SORT_OPTIONS: { label: string; mode: ExploreSortMode }[] = [
-  { label: 'Distance', mode: 'distance' },
-  { label: 'New items', mode: 'newItems' },
-];
-
-const DEFAULT_RADIUS_MILES = 5;
-
-function nearbyToRowModel(store: NearbyStoreForExplore): StoreListRowModel {
-  return {
-    id: store.id,
-    username: store.username,
-    display_name: store.display_name,
-    avatar_url: store.avatar_url,
-    newItemsLast24h: store.newItemsLast24h,
-    previewUrls: store.previewUrls,
-    totalSaleListings: store.totalSaleListings,
-    distanceMiles: store.distanceMiles,
-  };
-}
-
-export default function ExploreTabScreen() {
+export default function CreateListingScreen() {
+  const router = useRouter();
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const isFocused = useIsFocused();
 
-  const [activeRadius, setActiveRadius] = useState(DEFAULT_RADIUS_MILES);
-  const [sortMode, setSortMode] = useState<ExploreSortMode>('distance');
-  const [userCoords, setUserCoords] = useState<GeoPoint>(DEFAULT_CMU_COORDS);
-  const [rawStores, setRawStores] = useState<NearbyStoreForExplore[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState<ListingDraft>(EMPTY_DRAFT);
+  const [submitting, setSubmitting] = useState(false);
 
-  const stores = useMemo(
-    () => sortNearbyStoresForExplore(rawStores, sortMode),
-    [rawStores, sortMode],
-  );
+  const priceRef = useRef<TextInput>(null);
 
-  const lastCoordsRef = useRef<GeoPoint>(DEFAULT_CMU_COORDS);
+  if (!user?.id) {
+    return <Redirect href="/(tabs)/profile" />;
+  }
+  if (user.account_type !== 'store') {
+    return <Redirect href="/(tabs)/profile" />;
+  }
 
-  useEffect(() => {
-    if (!user || user.account_type === 'store') return;
-    let mounted = true;
-    let subscription: Location.LocationSubscription | null = null;
+  const canSubmit = isDraftValid(draft);
 
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+  const update = <K extends keyof ListingDraft>(key: K, value: ListingDraft[K]) =>
+    setDraft((d) => ({ ...d, [key]: value }));
 
-        if (status === 'granted') {
-          const current = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-
-          const nextCoords: GeoPoint = {
-            latitude: current.coords.latitude,
-            longitude: current.coords.longitude,
-          };
-
-          if (mounted) {
-            lastCoordsRef.current = nextCoords;
-            setUserCoords(nextCoords);
-          }
-
-          subscription = await Location.watchPositionAsync(
-            {
-              accuracy: Location.Accuracy.Balanced,
-              distanceInterval: 400,
-              timeInterval: 20000,
-            },
-            (position: Location.LocationObject) => {
-              const next: GeoPoint = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-              };
-
-              const movedMiles = milesBetween(lastCoordsRef.current, next);
-              if (movedMiles >= 1) {
-                lastCoordsRef.current = next;
-                setUserCoords(next);
-              }
-            },
-          );
-        } else if (mounted) {
-          lastCoordsRef.current = DEFAULT_CMU_COORDS;
-          setUserCoords(DEFAULT_CMU_COORDS);
-        }
-      } catch {
-        if (mounted) {
-          lastCoordsRef.current = DEFAULT_CMU_COORDS;
-          setUserCoords(DEFAULT_CMU_COORDS);
-        }
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    try {
+      const result = await submitListing(draft, user?.id);
+      if (result.success) {
+        Alert.alert('Listed!', 'Your item is now live.', [
+          { text: 'Done', onPress: () => router.back() },
+        ]);
       }
-    })();
-
-    return () => {
-      mounted = false;
-      subscription?.remove();
-    };
-  }, [user]);
-
-  const loadExplore = useCallback(() => {
-    if (!user || user.account_type === 'store') return;
-    setLoading(true);
-    fetchNearbyStoresForExplore({ userCoords, radiusMiles: activeRadius })
-      .then(setRawStores)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [user, activeRadius, userCoords]);
-
-  useEffect(() => {
-    if (!isFocused) return;
-    loadExplore();
-  }, [isFocused, loadExplore]);
-
-  if (!user) {
-    return <Redirect href="/(tabs)/profile" />;
-  }
-
-  if (user.account_type === 'store') {
-    return <Redirect href="/(tabs)/profile" />;
-  }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: 100 + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Photos</Text>
+          <PhotoPicker
+            images={draft.images}
+            onChange={(imgs: ImageAsset[]) => update('images', imgs)}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Category</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryRow}
+          >
+            {LISTING_CATEGORIES.map((id) => {
+              const selected = draft.category === id;
+              return (
+                <Pressable
+                  key={id}
+                  onPress={() => update('category', id)}
+                  style={[
+                    styles.categoryChip,
+                    {
+                      backgroundColor: selected ? Brand.primary : colors.card,
+                      borderColor: selected ? Brand.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={styles.categoryEmoji}>{CATEGORY_EMOJI[id]}</Text>
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      { color: selected ? '#fff' : colors.text },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {id}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Title{' '}
+            <Text style={{ fontWeight: '400', textTransform: 'none' }}>(optional)</Text>
+          </Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
+            placeholder="What are you selling?"
+            placeholderTextColor={colors.textSecondary}
+            value={draft.title}
+            onChangeText={(v) => update('title', v)}
+            returnKeyType="next"
+            onSubmitEditing={() => priceRef.current?.focus()}
+            maxLength={80}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Price{' '}
+            <Text style={{ fontWeight: '400', textTransform: 'none' }}>(optional)</Text>
+          </Text>
+          <View style={[styles.priceRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.pricePrefix, { color: colors.textSecondary }]}>$</Text>
+            <TextInput
+              ref={priceRef}
+              style={[styles.priceInput, { color: colors.text }]}
+              placeholder="0"
+              placeholderTextColor={colors.textSecondary}
+              value={draft.price}
+              onChangeText={(v) => update('price', v.replace(/[^0-9.]/g, ''))}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              maxLength={8}
+            />
+          </View>
+        </View>
+      </ScrollView>
+
       <View
         style={[
-          styles.header,
+          styles.bottomBar,
           {
-            paddingTop: insets.top + 12,
+            paddingBottom: insets.bottom + 12,
             backgroundColor: colors.background,
-            borderBottomColor: colors.border,
+            borderTopColor: colors.border,
           },
         ]}
       >
-        <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.rounded }]}>Explore</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Thrift stores near you
-        </Text>
-
-        <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Distance</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-          {RADIUS_OPTIONS.map((option) => {
-            const selected = option.miles === activeRadius;
-            return (
-              <Pressable
-                key={option.label}
-                onPress={() => setActiveRadius(option.miles)}
+        <Pressable
+          style={[
+            styles.submitBtn,
+            canSubmit && !submitting
+              ? { backgroundColor: Brand.primary, opacity: 1 }
+              : { backgroundColor: colors.muted, opacity: 0.6 },
+          ]}
+          onPress={handleSubmit}
+          disabled={!canSubmit || submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#FFF" size="small" />
+          ) : (
+            <>
+              <Ionicons name="pricetag" size={18} color={canSubmit ? '#FFF' : colors.textSecondary} />
+              <Text
                 style={[
-                  styles.radiusChip,
-                  selected
-                    ? { backgroundColor: Brand.primary, borderColor: Brand.primary }
-                    : { backgroundColor: colors.card, borderColor: colors.border },
+                  styles.submitText,
+                  { color: canSubmit ? '#FFF' : colors.textSecondary },
                 ]}
               >
-                <Text style={[styles.radiusChipText, { color: selected ? '#FFFFFF' : colors.text }]}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Sort by</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-          {SORT_OPTIONS.map((option) => {
-            const selected = option.mode === sortMode;
-            return (
-              <Pressable
-                key={option.mode}
-                onPress={() => setSortMode(option.mode)}
-                style={[
-                  styles.radiusChip,
-                  selected
-                    ? { backgroundColor: Brand.primary, borderColor: Brand.primary }
-                    : { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-              >
-                <Text style={[styles.radiusChipText, { color: selected ? '#FFFFFF' : colors.text }]}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+                List It
+              </Text>
+            </>
+          )}
+        </Pressable>
       </View>
-
-      {loading ? (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={Brand.primary} />
-        </View>
-      ) : stores.length === 0 ? (
-        <View style={styles.emptyWrap}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No stores to discover</Text>
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            There are no nearby stores you are not already following. Try a wider distance, or check
-            back when new stores join. Stores you follow appear on the Home tab.
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={stores}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => <StoreListRow store={nearbyToRowModel(item)} colors={colors} />}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
-  header: {
-    borderBottomWidth: 1,
-    paddingHorizontal: 14,
-    paddingBottom: 12,
-    gap: 8,
+  section: {
+    marginBottom: 24,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    lineHeight: 34,
-  },
-  subtitle: {
+  sectionLabel: {
     fontSize: 13,
     fontWeight: '600',
-  },
-  filterLabel: {
-    fontSize: 11,
-    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginTop: 4,
+    letterSpacing: 0.5,
+    marginBottom: 10,
   },
-  chipsRow: {
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    paddingRight: 20,
+    paddingVertical: 2,
   },
-  radiusChip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  radiusChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  loader: {
-    flex: 1,
+  categoryChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
     gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  emptyTitle: {
+  categoryEmoji: {
+    fontSize: 16,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  input: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+  },
+  pricePrefix: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginRight: 4,
+  },
+  priceInput: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: '700',
+    paddingVertical: 12,
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+  },
+  submitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+    borderRadius: 26,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  submitText: {
     fontSize: 17,
     fontWeight: '700',
-  },
-  emptyText: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  listContent: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 120,
-    gap: 14,
   },
 });
