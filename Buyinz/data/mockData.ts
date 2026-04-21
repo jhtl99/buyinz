@@ -21,7 +21,6 @@ export interface SalePost {
   title: string;
   /** null = no price set */
   price: number | null;
-  category: string;
   description: string;
   likes: number;
   comments: number;
@@ -38,7 +37,6 @@ export interface ISOPost {
   title: string;
   description: string;
   budget?: number;
-  category: string;
   likes: number;
   comments: number;
   liked: boolean;
@@ -132,7 +130,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Vintage Pittsburgh Steelers Jersey — #58 Lambert",
     price: 85,
-    category: "Clothing",
     description: "Classic Steelers jersey from the late 80s. Some fading adds to the charm. Size XL.",
     likes: 47,
     comments: 12,
@@ -149,7 +146,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     description:
       "Looking for a solid wood dining set for my new apartment. Doesn't need to be perfect — I can refinish it. Something like farmhouse or Shaker style preferred.",
     budget: 200,
-    category: "Furniture",
     likes: 8,
     comments: 3,
     liked: false,
@@ -166,7 +162,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Eames-Era Lounge Chair — Walnut Shell",
     price: 340,
-    category: "Furniture",
     description:
       "Beautiful mid-century lounge chair. Walnut veneer shell, original cushions recently re-upholstered in cream boucle. Absolutely stunning piece.",
     likes: 134,
@@ -185,7 +180,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Bundle of 6 Vintage Band Tees — Mostly M",
     price: 55,
-    category: "Clothing",
     description:
       "Cleaning out the closet! Mix of Zeppelin, Talking Heads, and a couple local Pittsburgh bands. All authentic, worn once or twice.",
     likes: 62,
@@ -203,7 +197,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     description:
       "Looking for a working turntable — Technics, Pioneer, or similar. Belt-drive preferred. Budget is flexible for the right piece. North Side / Strip District pickup preferred.",
     budget: 150,
-    category: "Electronics",
     likes: 22,
     comments: 7,
     liked: false,
@@ -220,7 +213,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Full Moving Sale — Furniture, Kitchen, Decor",
     price: 0,
-    category: "Other",
     description:
       "MOVING SALE! Entire apartment worth of stuff. Couch, coffee table, kitchenware, art, lamps, and more. DM for full list. Squirrel Hill pickup only. Everything negotiable.",
     likes: 191,
@@ -239,7 +231,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Tulip Side Table — Saarinen Reproduction",
     price: 120,
-    category: "Furniture",
     description:
       "Beautiful Saarinen-style tulip side table in white. Perfect condition, used only as a display piece. Pairs incredibly with any MCM room.",
     likes: 78,
@@ -259,7 +250,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     ],
     title: "Box of 40+ Vintage Paperbacks",
     price: 30,
-    category: "Books",
     description:
       "Eclectic mix — sci-fi, detective novels, some Penguin classics, a few Steelers biographies. All readable condition. Great for a bookshelf display.",
     likes: 35,
@@ -277,7 +267,6 @@ export const MOCK_FEED_POSTS: Post[] = [
     description:
       "You know the ones — Hollywood-style bulb mirror. Preferably working. Gold or chrome frame. Willing to pay up to my budget for the right piece.",
     budget: 80,
-    category: "Decor",
     likes: 14,
     comments: 2,
     liked: false,

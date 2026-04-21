@@ -40,5 +40,10 @@ export {
 
 export { insertPost } from './postsInsert';
 
+export {
+  resolveAvatarUrlForProfileSave,
+  uploadLocalImageToAvatarBucket,
+} from './avatarUpload';
+
 export type { ConversationCompletion } from './conversationCompletion';
 export { fetchConversationCompletion, markMyTransactionComplete } from './conversationCompletion';

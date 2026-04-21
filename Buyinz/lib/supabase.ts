@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import { supabase } from '@/supabase/client';
 import { sanitizePublicAvatarUrl } from '@/lib/avatar';
 
-/** Re-export the shared client (SecureStore session) — same instance as @/supabase/queries. */
+/** Re-export the shared client (persisted session) — same instance as @/supabase/queries. */
 export { supabase };
 
 export type AccountType = 'user' | 'store';
@@ -214,7 +214,7 @@ export async function saveProfile(profile: UserProfile) {
 
   const { data, error } = await supabase
     .from('users')
-    .upsert(dbPayload, { onConflict: 'username' })
+    .upsert(dbPayload, { onConflict: 'id' })
     .select()
     .single();
 

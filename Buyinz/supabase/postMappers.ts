@@ -50,7 +50,6 @@ function buildPostBase(row: any, seller: Seller) {
     seller,
     title: row.title ?? '',
     description: descriptionForDisplay(row.description),
-    category: row.category,
     likes: 0,
     comments: 0,
     liked: false,

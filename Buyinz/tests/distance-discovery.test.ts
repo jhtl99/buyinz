@@ -44,7 +44,6 @@ function makeSalePost(id: string, sellerOverrides: Partial<SalePost['seller']> =
     images: ['https://example.com/i.png'],
     title: `Item ${id}`,
     price: 10,
-    category: 'Other',
     description: '',
     likes: 5,
     comments: 0,
@@ -79,7 +78,6 @@ describe('Distance discovery — postMappers → seller geo', () => {
       id: 'post-1',
       type: 'sale' as const,
       title: 'Lamp',
-      category: 'Other' as const,
       created_at: new Date().toISOString(),
       users: {
         id: 'store-uuid',
@@ -103,7 +101,6 @@ describe('Distance discovery — postMappers → seller geo', () => {
       id: 'post-bad-geo',
       type: 'sale' as const,
       title: 'Chair',
-      category: 'Furniture' as const,
       created_at: new Date().toISOString(),
       users: {
         id: 'store-2',

@@ -301,6 +301,28 @@ describe('saveProfile', () => {
     jest.clearAllMocks();
   });
 
+  it('upserts on id so username changes update the existing row', async () => {
+    const single = jest.fn().mockResolvedValue({ data: { id: 'user-1' }, error: null });
+    const select = jest.fn().mockReturnValue({ single });
+    const upsert = jest.fn().mockReturnValue({ select });
+    mockedFrom.mockReturnValue({ upsert });
+
+    await saveProfile({
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      account_type: 'user',
+      display_name: 'Test',
+      username: 'new_handle',
+    });
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        username: 'new_handle',
+      }),
+      { onConflict: 'id' },
+    );
+  });
+
   it('throws Username must be unique when upsert returns unique violation 23505', async () => {
     mockedFrom.mockReturnValue(mockUsersUpsertChain(null, { code: '23505' }));
 

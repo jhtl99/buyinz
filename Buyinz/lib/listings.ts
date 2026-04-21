@@ -1,42 +1,16 @@
 import { insertPost } from '@/supabase/queries';
+import type { ListingDraft } from './listingDraft';
 
-/** Must match `posts.category` for new listings. */
-export const LISTING_CATEGORIES = ['Tops', 'Bottoms', 'Accessories', 'Other'] as const;
-
-export type ListingCategory = (typeof LISTING_CATEGORIES)[number];
-
-export interface ImageAsset {
-  uri: string;
-  width: number;
-  height: number;
-}
-
-export interface ListingDraft {
-  images: ImageAsset[];
-  title: string;
-  price: string;
-  category: ListingCategory;
-}
+export type { ImageAsset, ListingDraft } from './listingDraft';
+export { priceStringToDbValue } from './listingDraft';
 
 export const EMPTY_DRAFT: ListingDraft = {
   images: [],
   title: '',
   price: '',
-  category: 'Other',
 };
 
 export const MAX_PHOTOS = 5;
-
-/**
- * Maps draft price field to DB: empty → null (no price), valid number including 0 → stored as-is.
- * Non-numeric input when non-empty is invalid for submit (see isDraftValid).
- */
-export function priceStringToDbValue(price: string): number | null {
-  const t = price.trim();
-  if (t.length === 0) return null;
-  const n = parseFloat(t);
-  return Number.isFinite(n) ? n : null;
-}
 
 /** A listing is valid as long as it has at least one photo. Title and price are optional. */
 export function isDraftValid(draft: ListingDraft): boolean {
