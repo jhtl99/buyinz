@@ -7,9 +7,11 @@ You are a Senior Technical Architect at Carnegie Mellon. Your task is to generat
 Your specification must be technical, exhaustive, and follow the exact structure below:
 
 ### 1. Ownership & History
-* **Primary Owner:** [Name of the user who made/initiated the Pull Request]
-* **Secondary Owner:** [Name of user who merged the Pull Request]
-* **Merge Date:** [Current Date]
+The values below are facts pulled from GitHub metadata. Reproduce them verbatim in the final specification, including the exact GitHub usernames — do **not** substitute names, paraphrase, or leave bracketed placeholders.
+
+* **Primary Owner:** {{PRIMARY_OWNER}} (GitHub username; opened the implementation PR)
+* **Secondary Owner:** {{SECONDARY_OWNER}} (GitHub username; merged the PR, or if not yet merged, the approving reviewer)
+* **Merge Date:** {{MERGE_DATE}}
 
 ### 2. Architectural Diagrams (Mermaid)
 Provide three separate Mermaid diagrams:
