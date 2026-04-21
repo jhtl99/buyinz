@@ -5,12 +5,12 @@ Revision date: 2026-04-21
 ---
 
 ### 1. Ownership & History
-- **Primary Owner:** [PR Initiator — replace with PR author username or full name]
-- **Secondary Owner:** [PR Merger — replace with user who merged the PR]
+- **Primary Owner:** zachkfan
+- **Secondary Owner:** thejonathangu
 - **Merge Date:** 2026-04-21
 
 Change log
-- 2026-04-21 — Initial specification prepared for engineering audit (owner placeholders to be filled from PR metadata).
+- 2026-04-21 — Initial specification prepared for engineering audit (owner fields populated from PR #118 metadata: Primary Owner = zachkfan, Secondary Owner = thejonathangu).
 - 2026-04-21 — Updated to reflect PR #118: added CreateListing UI, listings library + submission flow, PhotoPicker usage; removed client Location-based Explore watch logic; updated DB schema to include listings table and images metadata.
 
 ---
@@ -402,6 +402,10 @@ E. listings (NEW)
 - updated_at timestamptz
 Purpose: marketplace listing rows created by users via CreateListingScreen.
 
+Storage impact for new columns:
+- images (jsonb) — typical small array of image metadata (3 items) ≈ 300–400 bytes depending on fields; estimate ~320 bytes average per listing for images metadata.
+- title/description/text columns already accounted; adding images jsonb increases per-row storage roughly by estimated 320 bytes (metadata only). Images themselves stored in Supabase Storage (object store), not in DB.
+
 F. message_status (per-user read receipts, optional)
 - message_id UUID REFERENCES messages(id)
 - user_id UUID REFERENCES profiles(id)
@@ -562,7 +566,7 @@ A. PII elements stored
 - Phone number (if implemented) — may be added later
 - Images uploaded as part of listings — may contain PII in the image content (faces, personal documents) and are stored in Supabase Storage; metadata (storage path, size, mime) stored in DB.
 
-Note: previous Explore tab code included client-side location watch; the refactor that produced CreateListingScreen removed the runtime Location.watchPositionAsync usage from that screen. Current repository change indicates the app no longer actively requests or watches the user's location in this screen. If future features reintroduce location collection, rerun privacy analysis.
+Note: the refactor that produced CreateListingScreen removed the runtime Location.watchPositionAsync usage from the Explore/CreateListing screen — the app no longer actively watches user GPS in that screen. If future features reintroduce location collection, rerun privacy analysis.
 
 B. Retention justification & lifecycle
 - Email: required for authentication, account recovery, and notifications. Lifecycle:
@@ -631,7 +635,7 @@ I. Other security controls
 ---
 
 Appendix: Implementation & Operational Checklist (for audit)
-- [ ] Fill Owner fields from PR metadata and record in change log.
+- [x] Fill Owner fields from PR metadata and record in change log.
 - [x] Capture concrete versions from package.json and lockfiles; update Dependency table. (TODO: replace placeholders)
 - [ ] Ensure RLS policies implemented for messages, conversations, and listings matching the described rules.
 - [ ] Configure automated backups (PITR) and verify restore in a staging environment.
@@ -648,6 +652,7 @@ Revision History
 | Date | Summary | PR |
 |---|---|---:|
 | 2026-04-21 | Added CreateListingScreen, PhotoPicker usage, new listings library and submitListing flow; removed Explore screen's runtime location watcher; introduced listings DB table + images metadata; updated PII handling for listing images. | #118 |
+| 2026-04-21 | Populated Ownership fields from PR metadata and synced spec with PR #118 diff (CreateListing UI + listings library + PhotoPicker; removed location watch). | #118 |
 
 End of specification.
 
