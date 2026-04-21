@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SalePost } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
@@ -125,15 +125,15 @@ export default function ProfileScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
         <Ionicons name="person-circle-outline" size={80} color={colors.tabIconDefault} style={{ marginBottom: 16 }} />
-        <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' }}>Sign in to continue</Text>
-        <Text style={{ color: colors.tabIconDefault, textAlign: 'center', marginBottom: 24, fontSize: 16 }}>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center', fontFamily: Fonts.serif }}>Sign in to continue</Text>
+        <Text style={{ color: colors.tabIconDefault, textAlign: 'center', marginBottom: 24, fontSize: 16, fontFamily: Fonts.sans }}>
           Sign in or create a profile to use Buyinz—browse the feed and list items.
         </Text>
         <Pressable
-          style={{ backgroundColor: '#2563eb', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8 }}
+          style={{ backgroundColor: colors.tint, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 8 }}
           onPress={() => router.push('/create-profile')}
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Sign in / Create profile</Text>
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16, fontFamily: Fonts.sans }}>Sign in / Create profile</Text>
         </Pressable>
       </View>
     );
@@ -169,7 +169,7 @@ export default function ProfileScreen() {
         footerBeforeGrid={
           <View style={styles.actionButtons}>
             <Pressable
-              style={[styles.actionBtn, { backgroundColor: scheme === 'light' ? '#EFEFEF' : '#2A2A2A' }]}
+              style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
               onPress={() => router.push('/edit-profile')}
             >
               <Text style={[styles.actionBtnText, { color: colors.text }]}>Edit Profile</Text>
@@ -196,6 +196,7 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: Fonts.serif,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -206,9 +207,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
+    borderWidth: 1,
   },
   actionBtnText: {
     fontWeight: '600',
     fontSize: 14,
+    fontFamily: Fonts.sans,
   },
 });

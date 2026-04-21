@@ -1,4 +1,5 @@
 import type { Post, SalePost, ISOPost, Seller } from '@/data/mockData';
+import { sanitizePublicAvatarUrl } from '@/lib/avatar';
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -22,7 +23,7 @@ function sellerFromUserRow(user: any): Seller {
     id: user.id,
     username: user.username,
     displayName: user.display_name,
-    avatar: user.avatar_url ?? '',
+    avatar: sanitizePublicAvatarUrl(user.avatar_url) ?? '',
     location: user.location ?? '',
     bio: user.bio ?? '',
     followers: 0,

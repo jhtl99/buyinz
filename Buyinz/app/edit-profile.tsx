@@ -1,4 +1,4 @@
-import { Brand, Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -312,7 +312,7 @@ export default function EditProfileScreen() {
           { backgroundColor: colors.background },
         ]}
       >
-        <ActivityIndicator size="large" color={Brand.primary} />
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
@@ -341,7 +341,7 @@ export default function EditProfileScreen() {
         <View
           style={[
             styles.section,
-            { backgroundColor: scheme === 'light' ? '#f5f5f5' : '#1c1c1e' },
+            { backgroundColor: colors.card },
           ]}
         >
           <View style={styles.avatarContainer}>
@@ -350,7 +350,9 @@ export default function EditProfileScreen() {
               style={[styles.avatar, { borderColor: colors.border }]}
             />
             <Pressable style={styles.changePhotoBtn} onPress={handleImagePick}>
-              <Text style={styles.changePhotoText}>Change Profile Photo</Text>
+              <Text style={[styles.changePhotoText, { color: colors.tint }]}>
+                Change Profile Photo
+              </Text>
             </Pressable>
           </View>
 
@@ -425,6 +427,7 @@ export default function EditProfileScreen() {
           <Pressable
             style={[
               styles.primaryBtn,
+              { backgroundColor: colors.tint },
               { marginTop: 16 },
               saveDisabled && styles.primaryBtnDisabled,
             ]}
@@ -443,8 +446,8 @@ export default function EditProfileScreen() {
           style={[
             styles.dangerSection,
             {
-              backgroundColor: scheme === 'light' ? '#fff5f5' : '#2c1518',
-              borderColor: '#fecaca',
+              backgroundColor: scheme === 'light' ? 'rgba(157, 54, 41, 0.08)' : 'rgba(157, 54, 41, 0.16)',
+              borderColor: 'rgba(157, 54, 41, 0.45)',
             },
           ]}
         >
@@ -498,6 +501,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: Fonts.serif,
   },
   content: {
     padding: 16,
@@ -512,6 +516,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: -8,
     marginBottom: 8,
+    fontFamily: Fonts.sans,
   },
   avatarContainer: {
     alignItems: 'center',
@@ -528,13 +533,14 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   changePhotoText: {
-    color: Brand.primary,
     fontWeight: '600',
     fontSize: 14,
+    fontFamily: Fonts.sans,
   },
   readOnlySectionLabel: {
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: Fonts.sans,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
@@ -543,10 +549,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     marginBottom: 8,
+    fontFamily: Fonts.sans,
   },
   readOnlyHint: {
     fontSize: 13,
     lineHeight: 18,
+    fontFamily: Fonts.sans,
   },
   input: {
     borderWidth: 1,
@@ -554,13 +562,13 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     fontSize: 15,
+    fontFamily: Fonts.sans,
   },
   textArea: {
     height: 80,
     textAlignVertical: 'top',
   },
   primaryBtn: {
-    backgroundColor: Brand.primary,
     padding: 14,
     borderRadius: 8,
     alignItems: 'center',
@@ -572,6 +580,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: Fonts.sans,
   },
   dangerSection: {
     padding: 16,
@@ -583,11 +592,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
+    fontFamily: Fonts.serif,
   },
   dangerCopy: {
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 16,
+    fontFamily: Fonts.sans,
   },
   dangerBtn: {
     borderWidth: 1,
@@ -599,5 +610,6 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontWeight: '700',
     fontSize: 15,
+    fontFamily: Fonts.sans,
   },
 });

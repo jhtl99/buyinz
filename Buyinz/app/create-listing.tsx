@@ -14,7 +14,7 @@ import {
 import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Brand } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
@@ -90,7 +90,7 @@ export default function CreateListingScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
             Title{' '}
-            <Text style={{ fontWeight: '400', textTransform: 'none' }}>(optional)</Text>
+            <Text style={{ fontWeight: '400', textTransform: 'none', fontFamily: Fonts.sans }}>(optional)</Text>
           </Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
@@ -107,7 +107,7 @@ export default function CreateListingScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
             Price{' '}
-            <Text style={{ fontWeight: '400', textTransform: 'none' }}>(optional)</Text>
+            <Text style={{ fontWeight: '400', textTransform: 'none', fontFamily: Fonts.sans }}>(optional)</Text>
           </Text>
           <View style={[styles.priceRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.pricePrefix, { color: colors.textSecondary }]}>$</Text>
@@ -140,7 +140,7 @@ export default function CreateListingScreen() {
           style={[
             styles.submitBtn,
             canSubmit && !submitting
-              ? { backgroundColor: Brand.primary, opacity: 1 }
+              ? { backgroundColor: colors.tint, opacity: 1 }
               : { backgroundColor: colors.muted, opacity: 0.6 },
           ]}
           onPress={handleSubmit}
@@ -178,12 +178,14 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: Fonts.sans,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,
   },
   input: {
     fontSize: 16,
+    fontFamily: Fonts.sans,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 12,
@@ -200,11 +202,13 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     marginRight: 4,
+    fontFamily: Fonts.sans,
   },
   priceInput: {
     flex: 1,
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
     paddingVertical: 12,
   },
   bottomBar: {
@@ -232,5 +236,6 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 17,
     fontWeight: '700',
+    fontFamily: Fonts.sans,
   },
 });
