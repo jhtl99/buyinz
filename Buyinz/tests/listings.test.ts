@@ -5,6 +5,7 @@ jest.mock('@/supabase/queries', () => ({
 import * as Queries from '@/supabase/queries';
 import {
   EMPTY_DRAFT,
+  getListingPriceValidationError,
   MAX_PHOTOS,
   isDraftValid,
   priceStringToDbValue,
@@ -57,8 +58,29 @@ describe('priceStringToDbValue', () => {
     expect(priceStringToDbValue('1e400')).toBeNull();
   });
 
-  it('parses leading-number prefix', () => {
-    expect(priceStringToDbValue('99usd')).toBe(99);
+  it('rejects leading-number suffix text', () => {
+    expect(priceStringToDbValue('99usd')).toBeNull();
+  });
+});
+
+describe('getListingPriceValidationError', () => {
+  it('allows empty price because it is optional', () => {
+    expect(getListingPriceValidationError('')).toBeNull();
+    expect(getListingPriceValidationError('   ')).toBeNull();
+  });
+
+  it('accepts valid prices within range', () => {
+    expect(getListingPriceValidationError('0')).toBeNull();
+    expect(getListingPriceValidationError('19.99')).toBeNull();
+    expect(getListingPriceValidationError('10000')).toBeNull();
+  });
+
+  it('rejects prices with too many decimal places', () => {
+    expect(getListingPriceValidationError('0.000001')).toMatch(/decimal/i);
+  });
+
+  it('rejects prices above the maximum', () => {
+    expect(getListingPriceValidationError('999999999')).toMatch(/10,000/i);
   });
 });
 
@@ -87,6 +109,14 @@ describe('isDraftValid', () => {
 
   it('allows zero price', () => {
     expect(isDraftValid(minimalValidDraft({ price: '0' }))).toBe(true);
+  });
+
+  it('rejects prices above the configured max', () => {
+    expect(isDraftValid(minimalValidDraft({ price: '999999999' }))).toBe(false);
+  });
+
+  it('rejects prices with too many decimals', () => {
+    expect(isDraftValid(minimalValidDraft({ price: '0.000001' }))).toBe(false);
   });
 });
 
