@@ -125,6 +125,19 @@ describe('Store profile & location (user story)', () => {
         }).ok,
       ).toBe(true);
     });
+
+    it('rejects ZIP codes outside Pittsburgh', () => {
+      const r = validateUsStoreAddressFormat({
+        address_line1: '5000 Forbes Ave',
+        city: 'Pittsburgh',
+        region: 'PA',
+        postal_code: '15120',
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.message).toMatch(/Pittsburgh/i);
+      }
+    });
   });
 
   describe('normalizeUsStateRegion', () => {

@@ -16,10 +16,31 @@ export function normalizeUsZipToFiveDigits(input: string): string {
   return digits.length >= 5 ? digits.slice(0, 5) : digits;
 }
 
+/** Strip invalid ZIP characters while preserving digits and a single hyphen. */
+export function sanitizeUsZipInput(input: string): string {
+  return input.replace(/[^\d-]/g, '').slice(0, 10);
+}
+
 export function isValidUsZipFormat(input: string): boolean {
   const t = input.trim();
   if (!t) return false;
   return US_ZIP_REGEX.test(t);
+}
+
+export function getPittsburghZipValidationError(
+  input: string,
+): string | null {
+  const t = input.trim();
+  if (!isValidUsZipFormat(t)) {
+    return 'Enter a valid U.S. ZIP code (5 digits, optional +4).';
+  }
+
+  const zip5 = normalizeUsZipToFiveDigits(t);
+  if (!zip5.startsWith('152')) {
+    return 'Use a Pittsburgh ZIP code.';
+  }
+
+  return null;
 }
 
 /** Uppercase 2-letter state/region code. */
@@ -72,10 +93,11 @@ export function validateUsStoreAddressFormat(
   }
 
   const zip = parts.postal_code.trim();
-  if (!isValidUsZipFormat(zip)) {
+  const zipError = getPittsburghZipValidationError(zip);
+  if (zipError) {
     return {
       ok: false,
-      message: 'Enter a valid U.S. ZIP code (5 digits, optional +4).',
+      message: zipError,
     };
   }
 

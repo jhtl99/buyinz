@@ -1,8 +1,10 @@
 import {
+  getPittsburghZipValidationError,
   isValidUsStateCode,
   isValidUsZipFormat,
   normalizeUsStateRegion,
   normalizeUsZipToFiveDigits,
+  sanitizeUsZipInput,
   validateUsStoreAddressFormat,
 } from '../lib/addressValidation';
 
@@ -10,6 +12,12 @@ describe('normalizeUsZipToFiveDigits', () => {
   it('returns first five digits', () => {
     expect(normalizeUsZipToFiveDigits('15213-1234')).toBe('15213');
     expect(normalizeUsZipToFiveDigits('15213')).toBe('15213');
+  });
+});
+
+describe('sanitizeUsZipInput', () => {
+  it('keeps only digits and hyphen for ZIP entry', () => {
+    expect(sanitizeUsZipInput('15a213-12b34')).toBe('15213-1234');
   });
 });
 
@@ -23,6 +31,17 @@ describe('isValidUsZipFormat', () => {
     expect(isValidUsZipFormat('1234')).toBe(false);
     expect(isValidUsZipFormat('')).toBe(false);
     expect(isValidUsZipFormat('1521-1234')).toBe(false);
+  });
+});
+
+describe('getPittsburghZipValidationError', () => {
+  it('accepts Pittsburgh ZIPs', () => {
+    expect(getPittsburghZipValidationError('15213')).toBeNull();
+    expect(getPittsburghZipValidationError('15213-1234')).toBeNull();
+  });
+
+  it('rejects non-Pittsburgh ZIPs', () => {
+    expect(getPittsburghZipValidationError('15120')).toMatch(/Pittsburgh/i);
   });
 });
 
@@ -50,6 +69,17 @@ describe('validateUsStoreAddressFormat', () => {
         postal_code: '15213',
       }).ok,
     ).toBe(true);
+  });
+
+  it('rejects a non-Pittsburgh ZIP', () => {
+    const r = validateUsStoreAddressFormat({
+      address_line1: '1 Main St',
+      city: 'Pittsburgh',
+      region: 'PA',
+      postal_code: '15120',
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toMatch(/Pittsburgh/i);
   });
 
   it('fails bad ZIP', () => {
