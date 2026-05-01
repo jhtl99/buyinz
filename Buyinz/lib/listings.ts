@@ -1,8 +1,9 @@
 import { insertPost } from '@/supabase/queries';
 import type { ListingDraft } from './listingDraft';
+import { getListingPriceValidationError } from './listingDraft';
 
 export type { ImageAsset, ListingDraft } from './listingDraft';
-export { priceStringToDbValue } from './listingDraft';
+export { priceStringToDbValue, getListingPriceValidationError } from './listingDraft';
 
 export const EMPTY_DRAFT: ListingDraft = {
   images: [],
@@ -15,12 +16,7 @@ export const MAX_PHOTOS = 5;
 /** A listing is valid as long as it has at least one photo. Title and price are optional. */
 export function isDraftValid(draft: ListingDraft): boolean {
   if (draft.images.length === 0) return false;
-  const pt = draft.price.trim();
-  if (pt.length > 0) {
-    const n = parseFloat(pt);
-    if (!Number.isFinite(n) || n < 0) return false;
-  }
-  return true;
+  return getListingPriceValidationError(draft.price) === null;
 }
 
 export async function submitListing(

@@ -332,5 +332,12 @@ describe('postsInsert', () => {
 
       await expect(insertPost(baseDraft())).rejects.toThrow(dbError);
     });
+
+    it('rejects invalid prices before uploading images', async () => {
+      await expect(insertPost(baseDraft({ price: '999999999' }))).rejects.toThrow(
+        /10,000/i,
+      );
+      expect(mockUpload).not.toHaveBeenCalled();
+    });
   });
 });
