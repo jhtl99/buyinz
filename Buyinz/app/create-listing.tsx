@@ -21,6 +21,7 @@ import { PhotoPicker } from '@/components/create/PhotoPicker';
 import {
   EMPTY_DRAFT,
   isDraftValid,
+  getListingPriceValidationError,
   submitListing,
   type ImageAsset,
   type ListingDraft,
@@ -46,6 +47,7 @@ export default function CreateListingScreen() {
   }
 
   const canSubmit = isDraftValid(draft);
+  const priceValidationError = getListingPriceValidationError(draft.price);
 
   const update = <K extends keyof ListingDraft>(key: K, value: ListingDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -123,6 +125,14 @@ export default function CreateListingScreen() {
               maxLength={8}
             />
           </View>
+          {priceValidationError ? (
+            <Text style={[styles.priceError, { color: '#ef4444' }]}>
+              {priceValidationError}
+            </Text>
+          ) : null}
+          <Text style={[styles.priceHelp, { color: colors.textSecondary }]}>
+            Price must be between $0 and $10,000 with up to 2 decimal places.
+          </Text>
         </View>
       </ScrollView>
 
@@ -210,6 +220,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: Fonts.sans,
     paddingVertical: 12,
+  },
+  priceError: {
+    marginTop: 8,
+    fontSize: 13,
+    fontFamily: Fonts.sans,
+  },
+  priceHelp: {
+    marginTop: 4,
+    fontSize: 12,
+    fontFamily: Fonts.sans,
   },
   bottomBar: {
     position: 'absolute',
