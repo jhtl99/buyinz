@@ -3,6 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   normalizeUsStateRegion,
+  getPittsburghZipValidationError,
+  sanitizeUsZipInput,
   validateUsStoreAddressFormat,
 } from '@/lib/addressValidation';
 import {
@@ -296,6 +298,11 @@ export default function CreateProfileScreen() {
         throw new Error('Choose Shopper or Store.');
       }
 
+      const zipError = getPittsburghZipValidationError(postalCode);
+      if (zipError && accountKind === 'store') {
+        throw new Error(zipError);
+      }
+
       const u = normalizeUsername(username);
       if (!u) {
         throw new Error('Please choose a username.');
@@ -440,6 +447,9 @@ export default function CreateProfileScreen() {
       postal_code: postalCode,
     }).ok;
 
+  const zipValidationError =
+    accountKind === 'store' ? getPittsburghZipValidationError(postalCode) : null;
+
   const coreFilled =
     accountKind === 'user'
       ? userCoreFilled
@@ -493,6 +503,14 @@ export default function CreateProfileScreen() {
       );
     }
     return null;
+  };
+
+  const zipHint = () => {
+    if (!postalCode.trim()) return null;
+    if (!zipValidationError) return null;
+    return (
+      <Text style={[styles.hint, { color: '#ef4444' }]}>{zipValidationError}</Text>
+    );
   };
 
   const fieldErr = (empty: boolean) =>
@@ -783,14 +801,16 @@ export default function CreateProfileScreen() {
                   style={[
                     styles.input,
                     { color: colors.text, borderColor: colors.border },
-                    fieldErr(!postalCode.trim()),
+                    fieldErr(!postalCode.trim() || !!zipValidationError),
                   ]}
-                  placeholder="ZIP (5 digits or ZIP+4)"
+                  placeholder="Pittsburgh ZIP (5 digits or ZIP+4)"
                   placeholderTextColor={colors.tabIconDefault}
                   value={postalCode}
-                  onChangeText={setPostalCode}
-                  keyboardType="numeric"
+                  onChangeText={(text) => setPostalCode(sanitizeUsZipInput(text))}
+                  keyboardType="default"
+                  maxLength={10}
                 />
+                {zipHint()}
               </>
             )}
 
