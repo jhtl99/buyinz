@@ -7,6 +7,10 @@ export { supabase };
 
 export type AccountType = 'user' | 'store';
 
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 20;
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
+
 export interface UserProfile {
   id?: string;
   account_type?: AccountType;
@@ -111,8 +115,31 @@ export function normalizeUsername(username: string): string {
   return username.trim();
 }
 
+export function getUsernameValidationError(username: string): string | null {
+  const normalized = normalizeUsername(username);
+  if (!normalized) return 'Username is required';
+  if (normalized.length < USERNAME_MIN_LENGTH) {
+    return `Username must be at least ${USERNAME_MIN_LENGTH} characters`;
+  }
+  if (normalized.length > USERNAME_MAX_LENGTH) {
+    return `Username must be ${USERNAME_MAX_LENGTH} characters or fewer`;
+  }
+  if (!USERNAME_PATTERN.test(normalized)) {
+    return 'Use only letters, numbers, and underscores';
+  }
+  return null;
+}
+
+export function validateUsername(username: string): void {
+  const message = getUsernameValidationError(username);
+  if (message) {
+    throw new Error(message);
+  }
+}
+
 export function validateOnboardingSave(profile: UserProfile): void {
   const t = profile.account_type ?? 'user';
+  validateUsername(profile.username);
   if (t === 'store') {
     if (!storeProfileCoreComplete(profile)) {
       throw new Error(

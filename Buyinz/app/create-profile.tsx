@@ -10,11 +10,13 @@ import {
   checkUsernameAvailable,
   composeStoreAddressString,
   fetchBuyinzUserRowByAuthId,
+  getUsernameValidationError,
   geocodeAddressString,
   isProfileOnboardingComplete,
   normalizeUsername,
   saveProfile,
   storeAddressPartsComplete,
+  USERNAME_MAX_LENGTH,
   supabase,
   validateOnboardingSave,
 } from '@/lib/supabase';
@@ -157,6 +159,10 @@ export default function CreateProfileScreen() {
       setUsernameCheck('idle');
       return;
     }
+    if (getUsernameValidationError(u)) {
+      setUsernameCheck('idle');
+      return;
+    }
     setUsernameCheck('checking');
     const t = setTimeout(async () => {
       try {
@@ -293,6 +299,10 @@ export default function CreateProfileScreen() {
       const u = normalizeUsername(username);
       if (!u) {
         throw new Error('Please choose a username.');
+      }
+      const usernameError = getUsernameValidationError(u);
+      if (usernameError) {
+        throw new Error(usernameError);
       }
       const available = await checkUsernameAvailable(u);
       if (!available) {
@@ -447,8 +457,15 @@ export default function CreateProfileScreen() {
   const headerTitle =
     phase === 'signIn' ? 'Sign in' : 'Complete your profile';
 
+  const usernameValidationError = getUsernameValidationError(username);
+
   const usernameHint = () => {
     if (!normalizeUsername(username)) return null;
+    if (usernameValidationError) {
+      return (
+        <Text style={[styles.hint, { color: '#ef4444' }]}>{usernameValidationError}</Text>
+      );
+    }
     if (usernameCheck === 'checking') {
       return (
         <Text style={[styles.hint, { color: colors.tabIconDefault }]}>
@@ -714,7 +731,7 @@ export default function CreateProfileScreen() {
               style={[
                 styles.input,
                 { color: colors.text, borderColor: colors.border },
-                fieldErr(!normalizeUsername(username)),
+                fieldErr(!normalizeUsername(username) || !!usernameValidationError),
               ]}
               placeholder="Username / handle (Required)"
               placeholderTextColor={colors.tabIconDefault}
@@ -722,6 +739,7 @@ export default function CreateProfileScreen() {
               onChangeText={setUsername}
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={USERNAME_MAX_LENGTH}
             />
             {usernameHint()}
 
