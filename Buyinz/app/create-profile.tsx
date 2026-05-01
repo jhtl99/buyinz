@@ -85,6 +85,7 @@ export default function CreateProfileScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [usernameCheck, setUsernameCheck] = useState<UsernameCheck>('idle');
   const [showValidation, setShowValidation] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
 
   useEffect(() => {
     if (phase !== 'onboarding') return;
@@ -368,10 +369,26 @@ export default function CreateProfileScreen() {
         throw new Error(formatCheck.message);
       }
 
-      const geo = await geocodeAddressString(address_string, {
-        expectedPostalCode: postalCode.trim(),
-        expectedRegion: regionNorm,
-      });
+      let geo;
+      try {
+        geo = await geocodeAddressString(address_string, {
+          expectedPostalCode: postalCode.trim(),
+          expectedRegion: regionNorm,
+        });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Could not locate address';
+        setAddressError(msg);
+        setIsLoading(false);
+        return;
+      }
+
+      // If geocoder returned non-blocking warnings (e.g. partial match),
+      // treat that as a blocking validation error for store onboarding.
+      if (geo?.warnings && Array.isArray(geo.warnings) && geo.warnings.length > 0) {
+        setAddressError(geo.warnings.join('\n\n'));
+        setIsLoading(false);
+        return;
+      }
 
       const profilePayload = {
         ...profilePayloadBase,
@@ -420,15 +437,17 @@ export default function CreateProfileScreen() {
 
   const userCoreFilled = !!displayName.trim() && !!normalizeUsername(username);
 
+  const storeAddressValidation = validateUsStoreAddressFormat({
+    address_line1: addressLine1,
+    city,
+    region,
+    postal_code: postalCode,
+  });
+
   const storeCoreFilled =
     !!displayName.trim() &&
     !!normalizeUsername(username) &&
-    validateUsStoreAddressFormat({
-      address_line1: addressLine1,
-      city,
-      region,
-      postal_code: postalCode,
-    }).ok;
+    storeAddressValidation.ok;
 
   const coreFilled =
     accountKind === 'user'
@@ -443,6 +462,9 @@ export default function CreateProfileScreen() {
     usernameCheck !== 'ok' ||
     onboardingSubphase !== 'form' ||
     !accountKind;
+
+  // Disable save while there's an address-level validation error (e.g. partial geocode match)
+  const effectiveSaveDisabled = saveDisabled || !!addressError;
 
   const headerTitle =
     phase === 'signIn' ? 'Sign in' : 'Complete your profile';
@@ -480,6 +502,10 @@ export default function CreateProfileScreen() {
 
   const fieldErr = (empty: boolean) =>
     showValidation && empty ? styles.inputError : undefined;
+
+  useEffect(() => {
+    setAddressError(null);
+  }, [addressLine1, city, region, postalCode]);
 
   return (
     <KeyboardAvoidingView
@@ -732,6 +758,7 @@ export default function CreateProfileScreen() {
                     styles.input,
                     { color: colors.text, borderColor: colors.border },
                     fieldErr(!addressLine1.trim()),
+                    !storeAddressValidation.ok && (showValidation || addressLine1 || city || region || postalCode) ? styles.inputError : undefined,
                   ]}
                   placeholder="Street address (Required)"
                   placeholderTextColor={colors.tabIconDefault}
@@ -743,6 +770,7 @@ export default function CreateProfileScreen() {
                     styles.input,
                     { color: colors.text, borderColor: colors.border },
                     fieldErr(!city.trim()),
+                    !storeAddressValidation.ok && (showValidation || addressLine1 || city || region || postalCode) ? styles.inputError : undefined,
                   ]}
                   placeholder="City (Required)"
                   placeholderTextColor={colors.tabIconDefault}
@@ -754,6 +782,7 @@ export default function CreateProfileScreen() {
                     styles.input,
                     { color: colors.text, borderColor: colors.border },
                     fieldErr(!region.trim()),
+                    !storeAddressValidation.ok && (showValidation || addressLine1 || city || region || postalCode) ? styles.inputError : undefined,
                   ]}
                   placeholder="State (2 letters, e.g. PA)"
                   placeholderTextColor={colors.tabIconDefault}
@@ -766,6 +795,7 @@ export default function CreateProfileScreen() {
                     styles.input,
                     { color: colors.text, borderColor: colors.border },
                     fieldErr(!postalCode.trim()),
+                    !storeAddressValidation.ok && (showValidation || addressLine1 || city || region || postalCode) ? styles.inputError : undefined,
                   ]}
                   placeholder="ZIP (5 digits or ZIP+4)"
                   placeholderTextColor={colors.tabIconDefault}
@@ -773,6 +803,12 @@ export default function CreateProfileScreen() {
                   onChangeText={setPostalCode}
                   keyboardType="numeric"
                 />
+                {/* Inline address validation message */}
+                {((!storeAddressValidation.ok && (showValidation || addressLine1 || city || region || postalCode)) || addressError) ? (
+                  <Text style={[styles.hint, { color: '#ef4444' }]}> 
+                    {addressError ?? (!storeAddressValidation.ok ? storeAddressValidation.message : null)}
+                  </Text>
+                ) : null}
               </>
             )}
 
@@ -797,10 +833,10 @@ export default function CreateProfileScreen() {
                 styles.primaryBtn,
                 { backgroundColor: colors.tint },
                 { marginTop: 16 },
-                saveDisabled && styles.primaryBtnDisabled,
+                effectiveSaveDisabled && styles.primaryBtnDisabled,
               ]}
               onPress={handleSave}
-              disabled={saveDisabled}
+              disabled={effectiveSaveDisabled}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
